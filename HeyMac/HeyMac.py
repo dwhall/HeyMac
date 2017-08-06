@@ -62,8 +62,7 @@ class HeyMac(pq.Ahsm):
         sig = event.signal
         if sig == pq.Signal.ENTRY:
             print("HeyMac Initializing...") # TODO: logging
-            me.te.postIn(me, 0)
-#            me.postFIFO(pq.Event(pq.Signal.MAC_INIT_RETRY, None)) # FIXME: This doesn't get processed until Ctrl+C
+            me.postFIFO(pq.Event(pq.Signal.MAC_INIT_RETRY, None))
             return me.handled(me, event)
 
         elif sig == pq.Signal.MAC_INIT_RETRY:
