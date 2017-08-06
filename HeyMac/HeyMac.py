@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """
-Copyright 2017 Dean Hall.  All rights reserved.
+Copyright 2017 Dean Hall.  See LICENSE file for details.
 """
 
 import asyncio
-from collections import namedtuple
 
 from lora_driver import *
 from pq import *
@@ -13,11 +12,11 @@ from pq import *
 class HeyMac(Ahsm):
     """Highly Engineered Yodeling, Medium Access Control
     A class that offers high-level control of the SX127x device
-    by using instances of SX127xSpi and SX127xGpio.
-    Maintains an RX packet queue that is filled asynchronously
-    by the SX127xGpio (RPi.GPIO) event thread.
+    by using instances of SX127xSpi and SX127xGpio from lora_driver.
     """
     def __init__(self, GpioClass=DraginoLoraGpsHat):
+
+        # Init this Ahsm with the initial pseudo-state
         super().__init__(HeyMac.initial)
 
         # Instances to control GPIO and SPI peripherals
