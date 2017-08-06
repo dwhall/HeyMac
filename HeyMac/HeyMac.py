@@ -51,6 +51,7 @@ class HeyMac(pq.Ahsm):
     def initial(me, event):
         """Pseudostate: initial
         """
+        me.te = pq.TimeEvent("MAC_INIT_RETRY")
         return me.tran(me, HeyMac.initializing)
 
 
@@ -61,11 +62,19 @@ class HeyMac(pq.Ahsm):
         sig = event.signal
         if sig == pq.Signal.ENTRY:
             print("HeyMac Initializing...") # TODO: logging
+            me.te.postIn(me, 0)
+#            me.postFIFO(pq.Event(pq.Signal.MAC_INIT_RETRY, None)) # FIXME: This doesn't get processed until Ctrl+C
+            return me.handled(me, event)
+
+        elif sig == pq.Signal.MAC_INIT_RETRY:
             if me.spi.check_version():
-                print("SPI to LoRa: PASS") # TODO: state transition
+                print("SPI to LoRa: PASS")
+                return me.tran(me, HeyMac.active)
             else:
                 print("SPI to LoRa: FAIL")
-            return me.handled(me, event)
+                me.te.postIn(me, 0.5)
+                return me.handled(me, event)
+
         return me.super(me, me.top)
 
 
@@ -74,7 +83,11 @@ class HeyMac(pq.Ahsm):
         """State: Active
         """
         sig = event.signal
-        return me.handled(me, event)
+        if sig == pq.Signal.ENTRY:
+            print("HeyMac active") # TODO: logging
+            return me.handled(me, event)
+
+        return me.super(me, me.top)
 
 
 if __name__ == "__main__":
