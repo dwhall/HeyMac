@@ -15,7 +15,7 @@ There is no CRC or message authentication code because either
 the physical layer SHOULD have a CRC or
 the network layer SHOULD have a message authentication code.
 
-The following diagram shows the HeyMace frame fields and their order.
+The following diagram shows the HeyMac frame fields and their order.
 
 ```
         +----+----+----+----+----+----+----+----+
@@ -37,7 +37,10 @@ The following diagram shows the HeyMace frame fields and their order.
         +----+----+----+----+----+----+----+----+
 ```
 
-## Frame Control
+The following sections explain each field in detail.
+
+
+### Frame Control
 
 The Frame Control (Fctl) field is always present and its value defines
 the presence or absence of the other fields in the header.
@@ -62,7 +65,7 @@ Legend:
     </ul>
     If Frame Type is 2b00, then the Version and Sequence field is absent;
     otherwise the Version and Sequence field is present.
-    If Frame Type is 2b11, then the Extended Type field is present in the field;
+    If Frame Type is 2b11, then the Extended Type field is present in the frame;
     otherwise the Extended Type field is absent.
   </dd>
   <dt><strong>L</strong></dt>
@@ -96,14 +99,14 @@ Legend:
 </dl>
 
 
-## Length
+### Length
 
 When the Length field is present, it is an 8-bit unsigned number, n,
 where `n + 1` is the entire length of the frame in octets,
 from the Frame Control field to the end of the Payload.
 So n ranges 0..255 to represent frame lengths of 1..256.
 
-## Version and Sequence
+### Version and Sequence
 
 When the Version and Sequence field is present, it is an 8-bit unsigned value
 consisting of two sub-fields.
@@ -111,28 +114,28 @@ The Version subfield is an unsigned value indicating the HeyMac protocol version
 The Sequence subfield is an unsigned sequence number.
 The size of each subfield is TBD.
 
-## Extended Type
+### Extended Type
 
-When the extended Type field is present, it is an 8-bit unsigned value
+When the Extended Type field is present, it is an 8-bit unsigned value
 that encodes the type of contents contained in the Payload field.
-Values and their types are TBD.
+Values and their meanings are TBD.
 
-## Destination Address
+### Destination Address
 
 When the Destination Address field is present, it is a 16- or 64-bit unsigned value
 representing the address of the destination for this frame.
 
-## Source Address
+### Source Address
 
 When the Source Address field is present, it is a 16- or 64-bit unsigned value
 representing the address of the destination for this frame.
 
-## Network ID
+### Network ID
 
 When the Network ID field is present, it is a 16-bit unsigned value
 representing this network's identity.
 TBD: subfields may indicate network type and instance.
 
-## Payload
+### Payload
 
 When the Payload field is present, it is a stream of payload octets.
