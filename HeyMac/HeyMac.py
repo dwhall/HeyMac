@@ -57,7 +57,7 @@ class HeyMac(pq.Ahsm):
 
     @staticmethod
     def initializing(me, event):
-        """State: Initialiaing
+        """State: Initializing
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
@@ -68,7 +68,7 @@ class HeyMac(pq.Ahsm):
         elif sig == pq.Signal.MAC_INIT_RETRY:
             if me.spi.check_version():
                 print("SPI to LoRa: PASS")
-                return me.tran(me, HeyMac.active)
+                return me.tran(me, HeyMac.running)
             else:
                 print("SPI to LoRa: FAIL")
                 me.te.postIn(me, 0.5)
@@ -78,12 +78,24 @@ class HeyMac(pq.Ahsm):
 
 
     @staticmethod
-    def active(me, event):
-        """State: Active
+    def running(me, event):
+        """State: Running
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            print("HeyMac active") # TODO: logging
+            print("HeyMac running") # TODO: logging
+            return me.handled(me, event)
+
+        return me.super(me, me.top)
+
+
+    @staticmethod
+    def sleeping(me, event):
+        """State: Sleeping
+        """
+        sig = event.signal
+        if sig == pq.Signal.ENTRY:
+            print("HeyMac sleeping") # TODO: logging
             return me.handled(me, event)
 
         return me.super(me, me.top)
