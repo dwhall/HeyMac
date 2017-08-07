@@ -1,13 +1,16 @@
 # HeyMac
 
-A Data Link Layer (2) to be used with lora_driver on a Raspberry Pi 3.
-Written in Python3 using the [pq](https://github.com/dwhall/pq) 
+HeyMac is a TDMA-style Data Link Layer (2) designed for use with
+low data rate radio modems such as a LoRa radio module on a Raspberry Pi 3.
+HeyMac will build on top of [lora_driver](https://github.com/dwhall/lora_driver)
+the Physical Layer (1) LoRa radio driver. 
+HeyMac is written in Python3 using the [pq](https://github.com/dwhall/pq) 
 hierarchical state machine framework.
 
 The frame structure and frame control fields are distilled from
-the IEEE 802.15.4 MAC and slightly expanded to allow a 256 Byte payload.
+the IEEE 802.15.4 MAC and slightly altered to allow a 256 Byte payload.
 
-## HeyMac Frame version 0
+## HeyMac Frame version 1
 
 The HeyMac frame is composed of two general parts, the header and the payload.
 The header is every field before the payload.
@@ -16,6 +19,7 @@ the physical layer SHOULD have a CRC or
 the network layer SHOULD have a message authentication code.
 
 The following diagram shows the HeyMac frame fields and their order.
+The topmost field in the digram is transmitted first.
 
 ```
         +----+----+----+----+----+----+----+----+
@@ -43,7 +47,7 @@ The following sections explain each field in detail.
 ### Frame Control
 
 The Frame Control (Fctl) field is always present and its value defines
-the presence or absence of the other fields in the header.
+the presence, absence, size or type of the other fields in the header.
 
 ```
           7   6   5   4   3   2   1   0 (bit)
@@ -110,9 +114,9 @@ So n ranges 0..255 to represent frame lengths of 1..256.
 
 When the Version and Sequence field is present, it is an 8-bit unsigned value
 consisting of two sub-fields.
-The Version subfield is an unsigned value indicating the HeyMac protocol version.
-The Sequence subfield is an unsigned sequence number.
-The size of each subfield is TBD.
+The Version subfield is an unsigned 4-bit value indicating the HeyMac protocol version.
+The Sequence subfield is an unsigned 4-bit sequence number.
+The Version subfield occupies the upper 4 bits, while Sequence occupies the lower 4 bits.
 
 ### Extended Type
 
