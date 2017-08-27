@@ -43,6 +43,8 @@ class HeyMac(pq.Ahsm):
 
         # Subscribe to DIO events
         pq.Framework.subscribe("MAC_DIO0", self)
+        pq.Framework.subscribe("MAC_DIO1", self)
+
 
     # The GPIO module responds to external I/O in a separate thread.
     # State machine processing should not happen in that thread.
@@ -63,6 +65,8 @@ class HeyMac(pq.Ahsm):
 
         me.te = pq.TimeEvent("MAC_INIT_RETRY")
         me.bcn_te = pq.TimeEvent("MAC_BEACON_TIMER")
+        me.lstn_te = pq.TimeEvent("MAC_LISTEN_TMOUT")
+
         return me.tran(me, HeyMac.initializing)
 
 
@@ -80,7 +84,7 @@ class HeyMac(pq.Ahsm):
             if me.spi.check_chip_ver():
                 me.spi.set_freq(BCN_FREQ)
                 me.spi.set_config(en_crc=True)
-                return me.tran(me, me.beaconing)
+                return me.tran(me, me.listening)
             else:
                 me.te.postIn(me, 0.500)
                 return me.handled(me, event)
@@ -100,6 +104,48 @@ class HeyMac(pq.Ahsm):
             return me.handled(me, event)
 
         return me.super(me, me.top)
+
+
+    @staticmethod
+    def listening(me, event):
+        """State: HeyMac:Running:Listening
+        """
+        sig = event.signal
+        if sig == pq.Signal.ENTRY:
+            print("HeyMac Running:Listening")
+            me.lstn_te.postIn(me, 16.0) # TODO: magic number
+
+            me.spi.receive(False)
+            return me.handled(me, event)
+
+        elif sig == pq.Signal.MAC_DIO0:
+            print("lstn DIO0 RxDone") # TODO: logging
+            me.lstn_te.disarm()
+            me.lstn_te.postIn(me, 16.0) # TODO: magic number
+
+            # If the rx was good, get the data and stats
+            if self.spi.check_rx_flags():
+                payld, rssi, snr = self.spi.get_rx()
+                print("lstn Rx %d bytes, rssi=%d, snr=%f" % (len(payld), rssi, snr))
+            else:
+                print("lstn Rx but pkt was not valid")
+            return me.handled(me, event)
+
+        elif sig == pq.Signal.MAC_DIO1:
+            print("lstn DIO1 RxTimeout") # TODO: logging
+
+            me.spi.receive(False)
+            return me.handled(me, event)
+
+        elif sig == pq.Signal.MAC_LISTEN_TMOUT:
+            print("HeyMac Listening timeout")
+            return me.tran(me, me.beaconing)
+
+        elif sig == pq.Signal.EXIT:
+            me.spi.set_op_mode("stdby")
+            return me.handled(me, event)
+
+        return me.super(me, me.running)
 
 
     @staticmethod
