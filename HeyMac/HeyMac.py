@@ -59,7 +59,7 @@ class HeyMac(pq.Ahsm):
         """Pseudostate: HeyMac:initial
         """
         me.asn = 0
-        me.src_addr = "\xf0\x05\xba\x11\xca\xfe\x26\x00"
+        me.src_addr = b"\xf0\x05\xba\x11\xca\xfe\x26\x00"
 
         me.te = pq.TimeEvent("MAC_INIT_RETRY")
         me.bcn_te = pq.TimeEvent("MAC_BEACON_TIMER")

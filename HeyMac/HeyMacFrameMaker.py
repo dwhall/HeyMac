@@ -99,7 +99,7 @@ class HeyMacFrameMaker(object):
             self.fields[field_name] = field_val
 
         elif field_name is "daddr":
-            assert type(field_val) is str
+            assert type(field_val) is bytes
             len_field_val = len(field_val)
             assert len_field_val in (0,2,8)
             self.fields[field_name] = field_val
@@ -111,7 +111,7 @@ class HeyMacFrameMaker(object):
                 self.fctl_dam = HeyMacFrameMaker.ADDR_MODES['64b']
 
         elif field_name is "saddr":
-            assert type(field_val) is str
+            assert type(field_val) is bytes
             len_field_val = len(field_val)
             assert len_field_val in (0,2,8)
             self.fields[field_name] = field_val
@@ -129,7 +129,7 @@ class HeyMacFrameMaker(object):
             assert False, "This field is not yet supported"
 
         elif field_name is "payld":
-            assert type(field_val) is str
+            assert type(field_val) is bytes
             self.fields[field_name] = field_val
 
 
@@ -160,13 +160,13 @@ class HeyMacFrameMaker(object):
         if 'exttype' in self.fields:
             b.append(self.fields['exttype'])
         if "daddr" in self.fields:
-            b.extend(map(ord, self.fields['daddr']))
+            b.extend(self.fields['daddr'])
         if "saddr" in self.fields:
-            b.extend(map(ord, self.fields['saddr']))
+            b.extend(self.fields['saddr'])
         # if "netid" in self.fields:
-        #     b.extend(map(ord, self.fields['netid']))
+        #     b.extend(self.fields['netid'])
         if "payld" in self.fields:
-            b.extend(map(ord, self.fields['payld']))
+            b.extend(self.fields['payld'])
 
         # Calculate, insert and validate frame length.
         # len(b) will be one less than length of frame

@@ -67,6 +67,6 @@ class HeyMacBeacon(object):
 
         # TODO: Append MsgPack data for Nghbrs, Nets
 
-        self.f.add_field("payld", payld.decode())
+        self.f.add_field("payld", payld)
 
         return str(self.f)
