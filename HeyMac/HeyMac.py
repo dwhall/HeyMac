@@ -41,6 +41,8 @@ class HeyMac(pq.Ahsm):
         self.gpio.set_dio1_handler(self.dio1_handler)
         self.gpio.set_dio2_handler(self.dio2_handler)
 
+        # Subscribe to DIO events
+        pq.Framework.subscribe("MAC_DIO0", self)
 
     # The GPIO module responds to external I/O in a separate thread.
     # State machine processing should not happen in that thread.
@@ -57,7 +59,7 @@ class HeyMac(pq.Ahsm):
         """Pseudostate: HeyMac:initial
         """
         me.asn = 0
-        me.src_addr = "\xf0\x05\xba\x11\xca\xfe\x02\x56"
+        me.src_addr = "\xf0\x05\xba\x11\xca\xfe\x26\x00"
 
         me.te = pq.TimeEvent("MAC_INIT_RETRY")
         me.bcn_te = pq.TimeEvent("MAC_BEACON_TIMER")
@@ -117,9 +119,13 @@ class HeyMac(pq.Ahsm):
             # TODO: tx beacon according to bcn slots
             if me.asn % 16 == 0:
                 me.bcn.update_asn(me.asn)
-                print("bcn:", repr(me.bcn))
+                print("bcn:", me.asn)
                 me.spi.transmit(str(me.bcn))
 
+            return me.handled(me, event)
+
+        elif sig == pq.Signal.MAC_DIO0:
+            print("bcn DIO0 TxDone") # TODO: logging
             return me.handled(me, event)
 
         elif sig == pq.Signal.EXIT:
