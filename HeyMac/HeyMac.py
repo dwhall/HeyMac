@@ -6,6 +6,7 @@ Copyright 2017 Dean Hall.  See LICENSE file for details.
 import asyncio
 
 import lora_driver, pq
+import HeyMacBeacon
 
 
 class HeyMac(pq.Ahsm):
@@ -42,60 +43,93 @@ class HeyMac(pq.Ahsm):
     # So in the following GPIO handlers, we enqueue a unique event for each GPIO.
     # The separate thread will exit quickly back to the main thread
     # and the event will be processed there.
-    def dio0_handler(self,): pq.Framework.publish(self.evt_dio0)
-    def dio1_handler(self,): pq.Framework.publish(self.evt_dio1)
-    def dio2_handler(self,): pq.Framework.publish(self.evt_dio2)
+    def dio0_handler(self, chnl): pq.Framework.publish(self.evt_dio0)
+    def dio1_handler(self, chnl): pq.Framework.publish(self.evt_dio1)
+    def dio2_handler(self, chnl): pq.Framework.publish(self.evt_dio2)
 
 
     @staticmethod
     def initial(me, event):
-        """Pseudostate: initial
+        """Pseudostate: HeyMac:initial
         """
+        me.asn = 0
+        me.src_addr = "\xf0\x05\xba\x11\xca\xfe\x02\x56"
+
         me.te = pq.TimeEvent("MAC_INIT_RETRY")
+        me.bcn_te = pq.TimeEvent("MAC_BEACON_TIMER")
         return me.tran(me, HeyMac.initializing)
 
 
     @staticmethod
     def initializing(me, event):
-        """State: Initializing
+        """State: HeyMac:Initializing
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            print("HeyMac Initializing...") # TODO: logging
-            me.postFIFO(pq.Event(pq.Signal.MAC_INIT_RETRY, None))
+            print("HeyMac Initializing") # TODO: logging
+            me.te.postIn(me, 0.0)
             return me.handled(me, event)
 
         elif sig == pq.Signal.MAC_INIT_RETRY:
-            if me.spi.check_version():
-                print("SPI to LoRa: PASS")
-                return me.tran(me, HeyMac.running)
+            if me.spi.check_chip_ver():
+                return me.tran(me, me.beaconing)
             else:
-                print("SPI to LoRa: FAIL")
-                me.te.postIn(me, 0.5)
+                me.te.postIn(me, 0.500)
                 return me.handled(me, event)
+
+            # TODO read chip's current config
 
         return me.super(me, me.top)
 
 
     @staticmethod
     def running(me, event):
-        """State: Running
+        """State: HeyMac:Running
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            print("HeyMac running") # TODO: logging
+            print("HeyMac Running") # TODO: logging
             return me.handled(me, event)
 
         return me.super(me, me.top)
 
 
     @staticmethod
-    def sleeping(me, event):
-        """State: Sleeping
+    def beaconing(me, event):
+        """State: HeyMac:Running:Beaconing
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            print("HeyMac sleeping") # TODO: logging
+            print("HeyMac Running:Beaconing") # TODO: logging
+            me.bcn = HeyMacBeacon.HeyMacBeacon(me.src_addr, me.asn, 0, None, None)
+            me.bcn_te.postEvery(me, 0.250)
+            return me.handled(me, event)
+
+        elif sig == pq.Signal.MAC_BEACON_TIMER:
+            me.asn += 1
+
+            # TODO: tx beacon according to bcn slots
+            if me.asn % 16 == 0:
+                me.bcn.update_asn(me.asn)
+                print("bcn:", repr(me.bcn))
+                me.spi.transmit(str(me.bcn))
+
+            return me.handled(me, event)
+
+        elif sig == pq.Signal.EXIT:
+            me.bcn_te.disarm()
+            return me.handled(me, event)
+
+        return me.super(me, me.running)
+
+
+    @staticmethod
+    def sleeping(me, event):
+        """State: HeyMac:Sleeping
+        """
+        sig = event.signal
+        if sig == pq.Signal.ENTRY:
+            print("HeyMac Sleeping") # TODO: logging
             return me.handled(me, event)
 
         return me.super(me, me.top)
