@@ -119,8 +119,9 @@ class HeyMac(pq.Ahsm):
             # TODO: tx beacon according to bcn slots
             if me.asn % 16 == 0:
                 me.bcn.update_asn(me.asn)
-                print("bcn:", me.asn)
-                me.spi.transmit(str(me.bcn))
+                payld = str(me.bcn)
+                print(repr(me.bcn), "#len", len(payld), "bytes")
+                me.spi.transmit(payld)
 
             return me.handled(me, event)
 

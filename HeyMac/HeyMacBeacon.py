@@ -20,7 +20,7 @@ class HeyMacBeacon(object):
         +----+----+----+----+----+----+----+----+
         |  Absolute Slot Number (4 octets)      |
         +----+----+----+----+----+----+----+----+
-        |  SlotMap (4 octets)                   |
+        |  SlotBitmap (4 octets)                |
         +----+----+----+----+----+----+----+----+
     TODO:
         |  Neighbor data (variable octets)      |
@@ -33,7 +33,7 @@ class HeyMacBeacon(object):
 
     def __init__(
         self,
-        src_addr,       # source add
+        src_addr,       # source address
         asn,            # Absolute Slot Number
         slot_bitmap,    # 32b map of timeslots
         nghbrs,         # sequence of neighbor data
@@ -45,6 +45,7 @@ class HeyMacBeacon(object):
             fctl_type = 'mac',
             saddr = src_addr,
             )
+        self.src_addr = src_addr
         self.asn = asn
         self.slot_bitmap = slot_bitmap
         self.nghbrs = nghbrs
@@ -54,6 +55,13 @@ class HeyMacBeacon(object):
     def update_asn(self, asn):
         self.asn = asn
 
+
+    def __repr__(self,):
+        return "HeyMacBeacon(src_addr=%s, asn=%d, slot_bitmap=%d)" % (
+            self.src_addr,
+            self.asn,
+            self.slot_bitmap
+            )
 
     def __str__(self,):
 
