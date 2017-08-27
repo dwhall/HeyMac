@@ -9,6 +9,10 @@ import lora_driver, pq
 import HeyMacBeacon
 
 
+# Radio Frequency for beacon transmissions
+BCN_FREQ = 434.000e6
+
+
 class HeyMac(pq.Ahsm):
     """Highly Engineered Yodeling, Medium Access Control
     A class that offers high-level control of the SX127x device
@@ -72,6 +76,8 @@ class HeyMac(pq.Ahsm):
 
         elif sig == pq.Signal.MAC_INIT_RETRY:
             if me.spi.check_chip_ver():
+                me.spi.set_freq(BCN_FREQ)
+                me.spi.set_config(en_crc=True)
                 return me.tran(me, me.beaconing)
             else:
                 me.te.postIn(me, 0.500)
