@@ -57,7 +57,7 @@ class HeyMacBeacon(object):
 
 
     def __repr__(self,):
-        return "HeyMacBeacon(src_addr=%s, asn=%d, slot_bitmap=%d)" % (
+        return "HeyMacBeacon(%s, %d, %d, 0, 0)" % (
             self.src_addr,
             self.asn,
             self.slot_bitmap

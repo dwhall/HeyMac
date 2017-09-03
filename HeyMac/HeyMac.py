@@ -82,8 +82,10 @@ class HeyMac(pq.Ahsm):
 
         elif sig == pq.Signal.MAC_INIT_RETRY:
             if me.spi.check_chip_ver():
+                me.spi.set_pwr_cfg(boost=True)
                 me.spi.set_freq(BCN_FREQ)
                 me.spi.set_config(en_crc=True)
+                me.spi.set_op_mode('stdby')
                 return me.tran(me, me.listening)
             else:
                 me.te.postIn(me, 0.500)
@@ -103,6 +105,14 @@ class HeyMac(pq.Ahsm):
             print("HeyMac Running") # TODO: logging
             return me.handled(me, event)
 
+        elif sig == pq.Signal.MAC_DIO0:
+            print("running DIO0 unhandled at lower layer!") # DBG
+            return me.handled(me, event)
+
+        elif sig == pq.Signal.MAC_DIO1:
+            print("running DIO1 unhandled at lower layer!") # DBG
+            return me.handled(me, event)
+
         return me.super(me, me.top)
 
 
@@ -113,28 +123,26 @@ class HeyMac(pq.Ahsm):
         sig = event.signal
         if sig == pq.Signal.ENTRY:
             print("HeyMac Running:Listening")
-            me.lstn_te.postIn(me, 16.0) # TODO: magic number
+            me.lstn_te.postIn(me, 8.0) # TODO: magic number
 
-            me.spi.receive(False)
+            me.spi.receive()
             return me.handled(me, event)
 
         elif sig == pq.Signal.MAC_DIO0:
             print("lstn DIO0 RxDone") # TODO: logging
             me.lstn_te.disarm()
-            me.lstn_te.postIn(me, 16.0) # TODO: magic number
+            me.lstn_te.postIn(me, 8.0) # TODO: magic number
 
             # If the rx was good, get the data and stats
-            if self.spi.check_rx_flags():
-                payld, rssi, snr = self.spi.get_rx()
-                print("lstn Rx %d bytes, rssi=%d, snr=%f" % (len(payld), rssi, snr))
+            if me.spi.check_rx_flags():
+                payld, rssi, snr = me.spi.get_rx()
+                print("lstn Rx %d bytes, rssi=%d dBm, snr=%.3f dB" % (len(payld), rssi, snr))
             else:
                 print("lstn Rx but pkt was not valid")
             return me.handled(me, event)
 
         elif sig == pq.Signal.MAC_DIO1:
             print("lstn DIO1 RxTimeout") # TODO: logging
-
-            me.spi.receive(False)
             return me.handled(me, event)
 
         elif sig == pq.Signal.MAC_LISTEN_TMOUT:
@@ -160,9 +168,8 @@ class HeyMac(pq.Ahsm):
             return me.handled(me, event)
 
         elif sig == pq.Signal.MAC_BEACON_TIMER:
-            me.asn += 1
-
             # TODO: tx beacon according to bcn slots
+            me.asn += 1
             if me.asn % 16 == 0:
                 me.bcn.update_asn(me.asn)
                 payld = str(me.bcn)
@@ -172,7 +179,7 @@ class HeyMac(pq.Ahsm):
             return me.handled(me, event)
 
         elif sig == pq.Signal.MAC_DIO0:
-            print("bcn DIO0 TxDone") # TODO: logging
+            # print("bcn DIO0 TxDone") # TODO: logging
             return me.handled(me, event)
 
         elif sig == pq.Signal.EXIT:
