@@ -6,7 +6,7 @@ Copyright 2017 Dean Hall.  See LICENSE file for details.
 import asyncio
 
 import lora_driver, pq
-import HeyMacBeacon
+from HeyMac import *
 
 
 # Radio Frequency for beacon transmissions
@@ -166,7 +166,7 @@ class HeyMac(pq.Ahsm):
         sig = event.signal
         if sig == pq.Signal.ENTRY:
             print("HeyMac Running:Beaconing") # TODO: logging
-            me.bcn = HeyMacBeacon.HeyMacBeacon(me.src_addr, me.asn, 0, None, None)
+            me.bcn = HeyMacBeacon(saddr=me.src_addr, asn=me.asn, slotmap=0) #TODO nghbrs, ntwks
             me.bcn_te.postEvery(me, 0.250)
             return me.handled(me, event)
 
@@ -174,8 +174,8 @@ class HeyMac(pq.Ahsm):
             # TODO: tx beacon according to bcn slots
             me.asn += 1
             if me.asn % 16 == 0:
-                me.bcn.update_asn(me.asn)
-                payld = str(me.bcn)
+                me.bcn.asn = me.asn
+                payld = bytes(me.bcn)
                 print(repr(me.bcn), "#len", len(payld), "bytes")
                 me.spi.transmit(payld)
 
