@@ -15,11 +15,13 @@ FCTL_TYPE_EXT = 0b11 << 6
 FCTL_LENCODE_BIT = 1 << 5
 FCTL_PEND_BIT = 1 << 4
 
+FCTL_SADDR_MASK = 0b11 << 2
 FCTL_SADDR_MODE_NONE = 0
 FCTL_SADDR_MODE_64BIT = 0b01 << 2
 FCTL_SADDR_MODE_16BIT = 0b10 << 2
 FCTL_SADDR_MODE_16BIT_NET = 0b11 << 2
 
+FCTL_DADDR_MASK = 0b11
 FCTL_DADDR_MODE_NONE = 0
 FCTL_DADDR_MODE_64BIT = 0b01
 FCTL_DADDR_MODE_16BIT = 0b10
@@ -55,24 +57,31 @@ class HeyMacFrame(dpkt.Packet):
         # ExtType field exists when Fctl's type subfield indicates Extended Type
         return (self.fctl & 0b11000000) == 0b11000000
     def _has_daddr_field(self,):
-        return (self.fctl & 0b00000011) != 0
+        return (self.fctl & FCTL_DADDR_MASK) != 0
     def _has_saddr_field(self,):
-        return (self.fctl & 0b00001100) != 0
+        return (self.fctl & FCTL_SADDR_MASK) != 0
     def _has_netid_field(self,):
-        return (self.fctl & 0b00001100) == 0b00001100 \
-            or (self.fctl & 0b00000011) == 0b00000011
+        return (self.fctl & FCTL_DADDR_MASK) == FCTL_DADDR_MODE_16BIT_NET \
+            or (self.fctl & FCTL_SADDR_MASK) == FCTL_SADDR_MODE_16BIT_NET
 
     # Functions to determine size of variable-size fields
     def _sizeof_saddr_field(self,):
         sz = (0, 8, 2, 2)
-        sam = (self.fctl & 0b00001100) >> 2
+        sam = (self.fctl & FCTL_SADDR_MASK) >> 2
         return sz[sam]
     def _sizeof_daddr_field(self,):
         sz = (0, 8, 2, 2)
-        dam = (self.fctl & 0b00000011)
+        dam = (self.fctl & FCTL_DADDR_MASK)
         return sz[dam]
 
     # Getters/setters for the VerSeq sequence subfield
+    @property
+    def ver(self,):
+        if self._ver_seq:
+            return (self._ver_seq[0] & 0xF0) >> 4
+        else:
+            return None
+
     @property
     def seq(self,):
         if self._ver_seq:
@@ -98,7 +107,7 @@ class HeyMacFrame(dpkt.Packet):
         if self._has_verseq_field():
             if len(self.data) < 1:
                 raise dpkt.NeedData("HeyMacFrame verseq")
-            self._ver_seq = self.data[0]
+            self._ver_seq = self.data[0:1]
             self.data = self.data[1:]
 
         if self._has_exttype_field():
@@ -118,7 +127,7 @@ class HeyMacFrame(dpkt.Packet):
         if self._has_saddr_field():
             if len(self.data) < 1:
                 raise dpkt.NeedData("HeyMacFrame saddr")
-            sz = self._sizeof_daddr_field()
+            sz = self._sizeof_saddr_field()
             self.saddr = self.data[0:sz]
             self.data = self.data[sz:]
 
@@ -199,73 +208,3 @@ class HeyMacFrame(dpkt.Packet):
         # Pack Fctl last because we modify above
         l.insert(0, super(HeyMacFrame, self).pack_hdr())
         return b''.join(l)
-
-
-if __name__ == "__main__":
-
-    #Test unpacking
-    b = b"\x65\x14\x10\xff\xff\xff\xff\xff\xff\xff\xff\xab\xcd\xef\x01\x02\x03\x04\x05hi"
-    f = HeyMacFrame(b)
-    assert f.fctl == 0x65
-    assert f.daddr == b"\xff\xff\xff\xff\xff\xff\xff\xff"
-    assert f.saddr == b"\xab\xcd\xef\x01\x02\x03\x04\x05"
-    assert f.data == b"hi"
-
-    b = b"\x6A\x11\x10\xff\xff\xab\xcdhello world"
-    f = HeyMacFrame(b)
-    assert f.fctl == 0x6A
-    assert f.daddr == b"\xff\xff"
-    assert f.saddr == b"\xab\xcd"
-    assert f.data == b"hello world"
-
-    b = b"\xA0\x16\x10ipv6_hdr_compression"
-    f = HeyMacFrame(b)
-    assert f.fctl == 0xA0
-    assert f.daddr == b""
-    assert f.saddr == b""
-    assert f.data == b"ipv6_hdr_compression"
-
-    print("Unpacking tests PASS")
-
-    # Test packing
-    f = HeyMacFrame()
-    f.omit_lencode = True
-    assert bytes(f) == b"\x00"
-
-    f = HeyMacFrame()
-    assert bytes(f) == b"\x20\x01"
-
-    f = HeyMacFrame()
-    f.omit_lencode = True
-    f.saddr = b"\x01\x02\x03\x04\x05\x06\x07\x08"
-    assert bytes(f) == b"\x04\x01\x02\x03\x04\x05\x06\x07\x08"
-    
-    f = HeyMacFrame()
-    f.omit_lencode = True
-    f.fctl |= FCTL_TYPE_MAC
-    f.ver = 1
-    f.seq = 1
-    f.saddr = b"\x01\x02\x03\x04\x05\x06\x07\x08"
-    assert bytes(f) == b"\x44\x11\x01\x02\x03\x04\x05\x06\x07\x08"
-    
-    f = HeyMacFrame()
-    f.fctl |= FCTL_TYPE_MAC
-    f.ver = 1
-    f.seq = 2
-    f.saddr = b"\x01\x02\x03\x04\x05\x06\x07\x08"
-    assert bytes(f) == b"\x64\x0a\x12\x01\x02\x03\x04\x05\x06\x07\x08"
-    
-    f = HeyMacFrame()
-    f.fctl |= FCTL_TYPE_NLH
-    f.data = b"ipv6_hdr_compression"
-    assert bytes(f) == b"\xA0\x16\x10ipv6_hdr_compression"
-
-    f = HeyMacFrame()
-    f.fctl |= FCTL_TYPE_EXT
-    f.exttype = b"\x2A"
-    f.data = b"6x7"
-    assert bytes(f) == b"\xE0\x06\x10\x2A6x7"
-
-    #print("DWH",bytes(f).hex())
-
-    print("Packing tests PASS")
