@@ -202,8 +202,9 @@ class HeyMacFrame(dpkt.Packet):
             if hasattr(self, "data") and self.data:
                 nbytes += len(self.data)
             if nbytes > 256:
-                raise dpkt.PackError("HeyMacFrame exceeds 256")
-            l.insert(0, nbytes.to_bytes(1, "big"))
+                raise dpkt.PackError("HeyMacFrame exceeds 256 bytes")
+            self.lencode = nbytes.to_bytes(1, "big")
+            l.insert(0, self.lencode)
             self.fctl |= FCTL_LENCODE_BIT
 
         # Pack Fctl last because we modify above
