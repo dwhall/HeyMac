@@ -111,40 +111,40 @@ class HeyMacFrame(dpkt.Packet):
 
         if self._has_lencode_field():
             if len(self.data) < 1:
-                raise dpkt.NeedData('HeyMacFrame lencode')
+                raise dpkt.NeedData('for lencode')
             self._lencode = self.data[0:1]
             self.data = self.data[1:]
 
         if self._has_verseq_field():
             if len(self.data) < 1:
-                raise dpkt.NeedData("HeyMacFrame verseq")
+                raise dpkt.NeedData("for verseq")
             self._ver_seq = self.data[0:1]
             self.data = self.data[1:]
 
         if self._has_exttype_field():
             if len(self.data) < 1:
-                raise dpkt.NeedData("HeyMacFrame exttype")
+                raise dpkt.NeedData("for exttype")
             self.exttype = self.data[0]
             self.data = self.data[1:]
 
         if self._has_daddr_field():
             sz = self._sizeof_daddr_field()
             if len(self.data) < sz:
-                raise dpkt.NeedData("HeyMacFrame daddr")
+                raise dpkt.NeedData("for daddr")
             sz = self._sizeof_daddr_field()
             self.daddr = self.data[0:sz]
             self.data = self.data[sz:]
 
         if self._has_saddr_field():
             if len(self.data) < 1:
-                raise dpkt.NeedData("HeyMacFrame saddr")
+                raise dpkt.NeedData("for saddr")
             sz = self._sizeof_saddr_field()
             self.saddr = self.data[0:sz]
             self.data = self.data[sz:]
 
         if self._has_netid_field():
             if len(self.data) < 2:
-                raise dpkt.NeedData("HeyMacFrame netid")
+                raise dpkt.NeedData("for netid")
             self.netid = self.data[0:2]
             self.data = self.data[2:]
 
@@ -163,7 +163,7 @@ class HeyMacFrame(dpkt.Packet):
         if self._ver_seq:
             # If Fctl type is MIN, error
             if not self._has_verseq_field():
-                raise dpkt.PackError("HeyMacFrame VerSeq set but Fctl type was not")
+                raise dpkt.PackError("VerSeq set but Fctl type is MIN")
             nbytes += 1
             l.append(self._ver_seq)
 
@@ -183,7 +183,7 @@ class HeyMacFrame(dpkt.Packet):
                 else:
                     self.fctl |= FCTL_DADDR_MODE_16BIT
             else:
-                raise dpkt.PackError("HeyMacFrame daddr len")
+                raise dpkt.PackError("invalid daddr length")
             l.append(self.daddr)
 
         if self.saddr:
@@ -197,13 +197,13 @@ class HeyMacFrame(dpkt.Packet):
                 else:
                     self.fctl |= FCTL_SADDR_MODE_16BIT
             else:
-                raise dpkt.PackError("HeyMacFrame saddr len")
+                raise dpkt.PackError("invalid saddr length")
             l.append(self.saddr)
 
         if self.netid:
             nbytes += len(self.netid)
             if len(self.netid) != 2:
-                raise dpkt.PackError("HeyMacFrame netid len")
+                raise dpkt.PackError("invalid netid length")
             l.append(self.netid)
 
         # Pack Lencode second-to-last so length can be calc'd
@@ -212,7 +212,7 @@ class HeyMacFrame(dpkt.Packet):
             if hasattr(self, "data") and self.data:
                 nbytes += len(self.data)
             if nbytes > 256:
-                raise dpkt.PackError("HeyMacFrame exceeds 256 bytes")
+                raise dpkt.PackError("frame length exceeds 256 bytes")
             self._lencode = nbytes.to_bytes(1, "big")
             l.insert(0, self._lencode)
             self.fctl |= FCTL_LENCODE_BIT
