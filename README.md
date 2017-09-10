@@ -25,7 +25,7 @@ The topmost field in the digram is transmitted first.
         +----+----+----+----+----+----+----+----+
         |  Frame Control (1 octet)              |
         +----+----+----+----+----+----+----+----+
-        |  Length (0 or 1 octet)                |
+        |  Lencode (0 or 1 octet)               |
         +----+----+----+----+----+----+----+----+
         |  Version and Sequence (0 or 1 octet)  |
         +----+----+----+----+----+----+----+----+
@@ -73,8 +73,8 @@ Legend:
     otherwise the Extended Type field is absent.
   </dd>
   <dt><strong>L</strong></dt>
-  <dd>Frame Length:  If 1, the frame's Length field is present;
-  otherwise the Length field is absent.
+  <dd>Frame Lencode:  If 1, the frame's Lencode field is present;
+  otherwise the Lencode field is absent.
   </dd>
   <dt><strong>P</strong></dt>
   <dd>Frame Pending:  If 1, the transmitting device has back-to-back frames
@@ -103,12 +103,12 @@ Legend:
 </dl>
 
 
-### Length
+### Lencode
 
-When the Length field is present, it is an 8-bit unsigned number, n,
+When the Lencode field is present, it is an 8-bit unsigned number, n,
 where `n + 1` is the entire length of the frame in octets,
-from the Frame Control field to the end of the Payload.
-So n ranges 0..255 to represent frame lengths of 1..256.
+counted from the Frame Control field to the end of the Payload.
+So Lencode ranges 0..255 to represent frame lengths of 1..256.
 
 ### Version and Sequence
 
