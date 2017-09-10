@@ -11,6 +11,7 @@ FCTL_TYPE_MIN = 0
 FCTL_TYPE_MAC = 0b01 << 6
 FCTL_TYPE_NLH = 0b10 << 6
 FCTL_TYPE_EXT = 0b11 << 6
+FCTL_TYPE_MASK = 0b11 << 6
 
 FCTL_LENCODE_BIT = 1 << 5
 FCTL_PEND_BIT = 1 << 4
@@ -35,7 +36,7 @@ class HeyMacFrame(dpkt.Packet):
         # Fctl is the only field guaranteed to be present
         # Below this are optional fields
         ('lencode', '0s', b''),
-        ('_ver_seq', '0s', b''),
+        ('_ver_seq', '0s', b''), # accessed via .ver and .seq properties
         ('exttype', '0s', b''),
         ('daddr', '0s', b''),
         ('saddr', '0s', b''),
@@ -49,13 +50,13 @@ class HeyMacFrame(dpkt.Packet):
 
     # Functions to help determine which fields are present
     def _has_lencode_field(self,):
-        return (self.fctl &  0b00100000) != 0
+        return (self.fctl &  FCTL_LENCODE_BIT) != 0
     def _has_verseq_field(self,):
         # VerSeq field exists in all but Min frame types
-        return (self.fctl & 0b11000000) != 0b00000000
+        return (self.fctl & FCTL_TYPE_MASK) != 0
     def _has_exttype_field(self,):
         # ExtType field exists when Fctl's type subfield indicates Extended Type
-        return (self.fctl & 0b11000000) == 0b11000000
+        return (self.fctl & FCTL_TYPE_MASK) == FCTL_TYPE_EXT
     def _has_daddr_field(self,):
         return (self.fctl & FCTL_DADDR_MASK) != 0
     def _has_saddr_field(self,):
