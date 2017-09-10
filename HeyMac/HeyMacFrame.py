@@ -35,7 +35,7 @@ class HeyMacFrame(dpkt.Packet):
         ('fctl', 'B', 0),
         # Fctl is the only field guaranteed to be present
         # Below this are optional fields
-        ('lencode', '0s', b''),
+        ('_lencode', '0s', b''),
         ('_ver_seq', '0s', b''), # accessed via .ver and .seq properties
         ('exttype', '0s', b''),
         ('daddr', '0s', b''),
@@ -75,7 +75,10 @@ class HeyMacFrame(dpkt.Packet):
         dam = (self.fctl & FCTL_DADDR_MASK)
         return sz[dam]
 
-    # Getters/setters for the VerSeq sequence subfield
+    def __len__(self):
+        return self._lencode[0] + 1
+
+    # Getters/setters for _<private> fields
     @property
     def ver(self,):
         if self._ver_seq:
@@ -95,6 +98,13 @@ class HeyMacFrame(dpkt.Packet):
         vs = (HEYMAC_VERSION << 4) | (s & 0x0F)
         self._ver_seq = vs.to_bytes(1, "big")
 
+    @property
+    def lencode(self,):
+        if self._lencode:
+            return self._lencode[0]
+        else:
+            return None
+
     # Upack/Pack methods needed by dpkt
     def unpack(self, buf):
         super(HeyMacFrame, self).unpack(buf)
@@ -102,7 +112,7 @@ class HeyMacFrame(dpkt.Packet):
         if self._has_lencode_field():
             if len(self.data) < 1:
                 raise dpkt.NeedData('HeyMacFrame lencode')
-            self.lencode = self.data[0]
+            self._lencode = self.data[0:1]
             self.data = self.data[1:]
 
         if self._has_verseq_field():
@@ -203,8 +213,8 @@ class HeyMacFrame(dpkt.Packet):
                 nbytes += len(self.data)
             if nbytes > 256:
                 raise dpkt.PackError("HeyMacFrame exceeds 256 bytes")
-            self.lencode = nbytes.to_bytes(1, "big")
-            l.insert(0, self.lencode)
+            self._lencode = nbytes.to_bytes(1, "big")
+            l.insert(0, self._lencode)
             self.fctl |= FCTL_LENCODE_BIT
 
         # Pack Fctl last because we modify above

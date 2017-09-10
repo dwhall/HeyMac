@@ -17,7 +17,7 @@ class TestHeyMacFrame(unittest.TestCase):
         # Unpack
         f = HeyMacFrame(b)
         self.assertEqual(f.fctl, 0)
-        self.assertEqual(f.lencode, b"")
+        self.assertEqual(f.lencode, None)
         self.assertEqual(f.saddr, b"")
         self.assertEqual(f.daddr, b"")
         self.assertEqual(f.data, b"")
