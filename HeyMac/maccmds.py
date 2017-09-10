@@ -1,19 +1,28 @@
 """
 Copyright 2017 Dean Hall.  See LICENSE file for details.
 
-HeyMacBeacon - HeyMac protocol Beacon frame
+HeyMac Commands for MAC frame type:
+- HeyMac Beacon
 """
 
 
-import struct
+import dpkt
 
-import HeyMacFrameMaker
+from .frame import *
 
 
-class HeyMacBeacon(object):
-    """HeyMac Beacon frame creation and parsing
+# HeyMac Command IDs
+HEYMAC_CMD_BCN = 1
 
-    A HeyMac Beacon has a frame type of MAC and has the following structure::
+
+class HeyMacCmd(HeyMacFrame):
+    __hdr__ = (
+        ('cmd', 'B', 0),
+        )
+
+
+class HeyMacBeacon(HeyMacCmd):
+    """HeyMac Beacon
 
         +----+----+----+----+----+----+----+----+
         |  Frame Command (1 octet)              |
@@ -29,52 +38,10 @@ class HeyMacBeacon(object):
         +----+----+----+----+----+----+----+----+
     """
 
-    MAC_CMD_BCN = 1
-
-    def __init__(
-        self,
-        src_addr,       # source address
-        asn,            # Absolute Slot Number
-        slot_bitmap,    # 32b map of timeslots
-        nghbrs,         # sequence of neighbor data
-        nets,           # sequence of network data
-        ):
-        """Creates an instance of a beacon frame
-        """
-        self.f = HeyMacFrameMaker.HeyMacFrameMaker(
-            fctl_type = 'mac',
-            saddr = src_addr,
-            )
-        self.src_addr = src_addr
-        self.asn = asn
-        self.slot_bitmap = slot_bitmap
-        self.nghbrs = nghbrs
-        self.nets = nets
-
-
-    def update_asn(self, asn):
-        self.asn = asn
-
-
-    def __repr__(self,):
-        return "HeyMacBeacon(%s, %d, %d, 0, 0)" % (
-            self.src_addr,
-            self.asn,
-            self.slot_bitmap
-            )
-
-    def __str__(self,):
-
-        # TODO: Use MsgPack for all data when Nghbrs, Nets is added
-        payld = struct.pack(
-            "!BLL", 
-            HeyMacBeacon.MAC_CMD_BCN,
-            self.asn,
-            self.slot_bitmap
-            )
-
-        # TODO: Append MsgPack data for Nghbrs, Nets
-
-        self.f.add_field("payld", payld)
-
-        return str(self.f)
+    __hdr__ = (
+        ('asn', 'I', 0),
+        ('slotmap', 'I', 0),
+        # variable-length fields
+#        ('_nghbrs', '0s', b''),
+#        ('_ntwks', '0s', b''),
+    )
