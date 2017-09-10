@@ -129,7 +129,9 @@ class HeyMac(pq.Ahsm):
             return me.handled(me, event)
 
         elif sig == pq.Signal.MAC_DIO0:
-            print("lstn DIO0 RxDone") # TODO: logging
+#            print("lstn DIO0 RxDone") # TODO: logging
+
+            # Reset time-out timer
             me.lstn_te.disarm()
             me.lstn_te.postIn(me, 8.0) # TODO: magic number
 
@@ -141,6 +143,7 @@ class HeyMac(pq.Ahsm):
                 print("lstn Rx but pkt was not valid")
             return me.handled(me, event)
 
+        # This event will not happen from continuous-RX
         elif sig == pq.Signal.MAC_DIO1:
             print("lstn DIO1 RxTimeout") # TODO: logging
             return me.handled(me, event)
