@@ -138,7 +138,9 @@ class HeyMac(pq.Ahsm):
             # If the rx was good, get the data and stats
             if me.spi.check_rx_flags():
                 payld, rssi, snr = me.spi.get_rx()
-                print("lstn Rx %d bytes, rssi=%d dBm, snr=%.3f dB" % (len(payld), rssi, snr))
+                f = HeyMacFrame(bytes(payld))
+                bcn = HeyMacBeacon(f.data)
+                print("lstn Rx %d bytes, rssi=%d dBm, snr=%.3f dB\t%s" % (len(payld), rssi, snr, repr(bcn)))
             else:
                 print("lstn Rx but pkt was not valid")
             return me.handled(me, event)

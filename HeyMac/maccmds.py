@@ -8,20 +8,14 @@ HeyMac Commands for MAC frame type:
 
 import dpkt
 
-from .frame import *
+from HeyMac import *
 
 
 # HeyMac Command IDs
 HEYMAC_CMD_BCN = 1
 
 
-class HeyMacCmd(HeyMacFrame):
-    __hdr__ = (
-        ('cmd', 'B', 0),
-        )
-
-
-class HeyMacBeacon(HeyMacCmd):
+class HeyMacBeacon(dpkt.Packet):
     """HeyMac Beacon
 
         +----+----+----+----+----+----+----+----+
@@ -39,6 +33,7 @@ class HeyMacBeacon(HeyMacCmd):
     """
 
     __hdr__ = (
+        ('cmd', 'B', HEYMAC_CMD_BCN),
         ('asn', 'I', 0),
         ('slotmap', 'I', 0),
         # variable-length fields
