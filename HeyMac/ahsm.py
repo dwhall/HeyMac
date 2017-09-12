@@ -139,7 +139,7 @@ class HeyMac(pq.Ahsm):
             if me.spi.check_rx_flags():
                 payld, rssi, snr = me.spi.get_rx()
                 f = HeyMacFrame(bytes(payld))
-                bcn = HeyMacBeacon(f.data)
+                bcn = f.data
                 print("lstn Rx %d bytes, rssi=%d dBm, snr=%.3f dB\t%s" % (len(payld), rssi, snr, repr(bcn)))
             else:
                 print("lstn Rx but pkt was not valid")

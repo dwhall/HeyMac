@@ -67,6 +67,12 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(f.daddr, b"")
         self.assertEqual(f.data, b"")
 
+    def test_mac_len_verseq_saddr16b_beacon(self,):
+        # Unpack
+        b = b"h\r\x11\xb0\x0b\x01\x00\x00\x00\x02\x00\x00\x00\x00"
+        f = HeyMacFrame()
+        self.assertTrue(type(f.data), HeyMacCmdBeacon)
+    
     def test_mac_len_verseq_saddr64b(self,):
         # Pack
         f = HeyMacFrame()

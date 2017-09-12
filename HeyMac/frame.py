@@ -2,6 +2,8 @@ import struct
 
 import dpkt
 
+from HeyMac import *
+
 
 # HeyMac protocol version
 HEYMAC_VERSION = 1
@@ -147,6 +149,11 @@ class HeyMacFrame(dpkt.Packet):
                 raise dpkt.NeedData("for netid")
             self.netid = self.data[0:2]
             self.data = self.data[2:]
+
+        # Unpack the payload for known frame types
+        if self.fctl & FCTL_TYPE_MASK == FCTL_TYPE_MAC:
+            if self.data and self.data[0] == 1: #HEYMAC_CMD_BEACON:
+                self.data = HeyMacCmdBeacon(self.data)
 
 
     def pack_hdr(self):
