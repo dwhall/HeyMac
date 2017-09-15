@@ -18,17 +18,17 @@ FCTL_TYPE_MASK = 0b11 << 6
 FCTL_LENCODE_BIT = 1 << 5
 FCTL_PEND_BIT = 1 << 4
 
-FCTL_SADDR_MASK = 0b11 << 2
-FCTL_SADDR_MODE_NONE = 0
-FCTL_SADDR_MODE_64BIT = 0b01 << 2
-FCTL_SADDR_MODE_16BIT = 0b10 << 2
-FCTL_SADDR_MODE_16BIT_NET = 0b11 << 2
-
-FCTL_DADDR_MASK = 0b11
+FCTL_DADDR_MASK = 0b11 << 2
 FCTL_DADDR_MODE_NONE = 0
-FCTL_DADDR_MODE_64BIT = 0b01
-FCTL_DADDR_MODE_16BIT = 0b10
-FCTL_DADDR_MODE_16BIT_NET = 0b11
+FCTL_DADDR_MODE_64BIT = 0b01 << 2
+FCTL_DADDR_MODE_16BIT = 0b10 << 2
+FCTL_DADDR_MODE_16BIT_NET = 0b11 << 2
+
+FCTL_SADDR_MASK = 0b11
+FCTL_SADDR_MODE_NONE = 0
+FCTL_SADDR_MODE_64BIT = 0b01
+FCTL_SADDR_MODE_16BIT = 0b10
+FCTL_SADDR_MODE_16BIT_NET = 0b11
 
 
 class HeyMacFrame(dpkt.Packet):
@@ -70,11 +70,11 @@ class HeyMacFrame(dpkt.Packet):
     # Functions to determine size of variable-size fields
     def _sizeof_saddr_field(self,):
         sz = (0, 8, 2, 2)
-        sam = (self.fctl & FCTL_SADDR_MASK) >> 2
+        sam = (self.fctl & FCTL_SADDR_MASK)
         return sz[sam]
     def _sizeof_daddr_field(self,):
         sz = (0, 8, 2, 2)
-        dam = (self.fctl & FCTL_DADDR_MASK)
+        dam = (self.fctl & FCTL_DADDR_MASK) >> 2
         return sz[dam]
 
     def __len__(self):
@@ -109,6 +109,10 @@ class HeyMacFrame(dpkt.Packet):
 
     # Upack/Pack methods needed by dpkt
     def unpack(self, buf):
+        """Unpacks a bytes object into component attributes.
+        This function is called when a HeyMacFrame instance is created
+        by passing a bytes object to the constructor
+        """
         super(HeyMacFrame, self).unpack(buf)
 
         if self._has_lencode_field():
@@ -157,6 +161,10 @@ class HeyMacFrame(dpkt.Packet):
 
 
     def pack_hdr(self):
+        """Packs header attributes into a bytes object.
+        This function is called when bytes() or len() is called
+        on an instance of HeyMacFrame.
+        """
         nbytes = 0
         l = []
 
