@@ -131,6 +131,10 @@ class HeyMac(pq.Ahsm):
             print("PPS") # DBG
             return me.handled(me, event)
 
+        elif sig == pq.Signal.SIGTERM:
+            print("Received SIGTERM") # DBG
+            return me.tran(me, me.exiting)
+
         return me.super(me, me.top)
 
 
@@ -223,6 +227,18 @@ class HeyMac(pq.Ahsm):
 
         return me.super(me, me.top)
 
+
+    @staticmethod
+    def exiting(me, event):
+        """State HeyMac:exiting
+        """
+        sig = event.signal
+        if sig == pq.Signal.ENTRY:
+            print("HeyMac Exiting") # TODO: logging
+            me.gpio.exit()
+            return me.handled(me, event)
+        
+        return me.super(me, me.top)
 
 if __name__ == "__main__":
     m = HeyMac()
