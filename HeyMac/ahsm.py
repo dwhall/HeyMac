@@ -3,6 +3,13 @@
 Copyright 2017 Dean Hall.  See LICENSE file for details.
 """
 
+# Manually set path for Node-RED execution
+#import os
+#if "PYTHONPATH" not in os.environ:
+#    import sys
+#    sys.path.extend(("/home/pi/ezXX/lora_driver", "/home/pi/ezXX/furp", "/home/pi/ezXX/pq", "/home/pi/ezXX/HeyMac"))
+#del os, sys
+
 import asyncio
 
 import lora_driver, pq
@@ -10,7 +17,7 @@ from HeyMac import *
 
 
 # Radio Frequency for beacon transmissions
-BCN_FREQ = 434.000e6
+BCN_FREQ = 434.000e6    # TODO: PHY config item
 
 
 class HeyMac(pq.Ahsm):
@@ -45,6 +52,11 @@ class HeyMac(pq.Ahsm):
         pq.Framework.subscribe("MAC_DIO0", self)
         pq.Framework.subscribe("MAC_DIO1", self)
 
+        # Declare PPS event, set handler and subscribe
+        self.evt_pps = pq.Event(pq.Signal.register("MAC_PPS"), None)
+        self.gpio.set_pps_handler(self.pps_handler)
+        pq.Framework.subscribe("MAC_PPS", self)
+
 
     # The GPIO module responds to external I/O in a separate thread.
     # State machine processing should not happen in that thread.
@@ -54,6 +66,8 @@ class HeyMac(pq.Ahsm):
     def dio0_handler(self, chnl): pq.Framework.publish(self.evt_dio0)
     def dio1_handler(self, chnl): pq.Framework.publish(self.evt_dio1)
     def dio2_handler(self, chnl): pq.Framework.publish(self.evt_dio2)
+
+    def pps_handler(self, chnl): pq.Framework.publish(self.evt_pps)
 
 
     @staticmethod
@@ -113,6 +127,10 @@ class HeyMac(pq.Ahsm):
             print("running DIO1 unhandled at lower layer!") # DBG
             return me.handled(me, event)
 
+        elif sig == pq.Signal.MAC_PPS:
+            print("PPS") # DBG
+            return me.handled(me, event)
+
         return me.super(me, me.top)
 
 
@@ -140,7 +158,7 @@ class HeyMac(pq.Ahsm):
                 payld, rssi, snr = me.spi.get_rx()
                 f = HeyMacFrame(bytes(payld))
                 bcn = f.data
-                print("lstn Rx %d bytes, rssi=%d dBm, snr=%.3f dB\t%s" % (len(payld), rssi, snr, repr(bcn)))
+                print("lstn Rx %d bytes, rssi=%d dBm, snr=%.3f dB\t%s" % (len(payld), rssi, snr, repr(f)))
             else:
                 print("lstn Rx but pkt was not valid")
             return me.handled(me, event)
