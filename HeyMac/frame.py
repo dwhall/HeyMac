@@ -113,6 +113,7 @@ class HeyMacFrame(dpkt.Packet):
         This function is called when a HeyMacFrame instance is created
         by passing a bytes object to the constructor
         """
+        buflen = len(buf)
         super(HeyMacFrame, self).unpack(buf)
 
         if self._has_lencode_field():
@@ -153,6 +154,14 @@ class HeyMacFrame(dpkt.Packet):
                 raise dpkt.NeedData("for netid")
             self.netid = self.data[0:2]
             self.data = self.data[2:]
+
+        # If the Length is known, separate out any excess data (EXPERIMENTAL may want to reject such frames)
+        if self._has_lencode_field():
+            stated_len = self.lencode + 1
+            if buflen > stated_len:
+                self.excess = self.data[stated_len - buflen:]
+                self.data = self.data[:stated_len - buflen]
+                print("Excess data") # TODO: logging
 
         # Unpack the payload for known frame types
         if self.fctl & FCTL_TYPE_MASK == FCTL_TYPE_MAC:
