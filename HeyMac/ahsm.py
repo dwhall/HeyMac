@@ -19,6 +19,20 @@ from HeyMac import *
 # Radio Frequency for beacon transmissions
 BCN_FREQ = 434.000e6    # TODO: PHY config item
 
+# Default configuration
+CFG = lora_driver.SX127xConfig(
+    bandwidth=250000,
+    code_rate="4/6",
+    implct_hdr_mode=False,
+    spread_factor=128,
+    tx_cont=False,
+    en_crc=False,
+    symbol_count=0x64,
+    preamble_len=8, # chip adds 4 more symbol lengths to this
+    en_ldr=False,
+    agc_auto=True,
+    sync_word=0x12)
+
 
 class HeyMac(pq.Ahsm):
     """Highly Engineered Yodeling, Medium Access Control
@@ -96,9 +110,9 @@ class HeyMac(pq.Ahsm):
 
         elif sig == pq.Signal.MAC_INIT_RETRY:
             if me.spi.check_chip_ver():
+                me.spi.set_config(CFG)
                 me.spi.set_pwr_cfg(boost=True)
                 me.spi.set_freq(BCN_FREQ)
-                me.spi.set_config(en_crc=True)
                 me.spi.set_op_mode('stdby')
                 return me.tran(me, me.listening)
             else:
