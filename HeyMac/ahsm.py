@@ -66,11 +66,6 @@ class HeyMac(pq.Ahsm):
         pq.Framework.subscribe("MAC_DIO0", self)
         pq.Framework.subscribe("MAC_DIO1", self)
 
-        # Declare PPS event, set handler and subscribe
-        self.evt_pps = pq.Event(pq.Signal.register("MAC_PPS"), None)
-        self.gpio.set_pps_handler(self.pps_handler)
-        pq.Framework.subscribe("MAC_PPS", self)
-
 
     # The GPIO module responds to external I/O in a separate thread.
     # State machine processing should not happen in that thread.
@@ -80,8 +75,6 @@ class HeyMac(pq.Ahsm):
     def dio0_handler(self, chnl): pq.Framework.publish(self.evt_dio0)
     def dio1_handler(self, chnl): pq.Framework.publish(self.evt_dio1)
     def dio2_handler(self, chnl): pq.Framework.publish(self.evt_dio2)
-
-    def pps_handler(self, chnl): pq.Framework.publish(self.evt_pps)
 
 
     @staticmethod
@@ -139,10 +132,6 @@ class HeyMac(pq.Ahsm):
 
         elif sig == pq.Signal.MAC_DIO1:
             print("running DIO1 unhandled at lower layer!") # DBG
-            return me.handled(me, event)
-
-        elif sig == pq.Signal.MAC_PPS:
-            print("PPS") # DBG
             return me.handled(me, event)
 
         elif sig == pq.Signal.SIGTERM:
