@@ -36,7 +36,8 @@ class GpsAhsm(pq.Ahsm):
         GPIO.setmode(GPIO.BCM)
 
         # Incoming signals
-        pq.Signal.register("GPS_OPEN") # Value is GPIO/BCM of PPS pin input
+        pq.Framework.subscribe("GPS_PPS", me)
+#        pq.Signal.register("GPS_OPEN") # Value is GPIO/BCM of PPS pin input
 
         # Outgoing signals
         pq.Signal.register("GPS_NMEA") # Value is one NMEA sentence [bytes]
@@ -108,7 +109,7 @@ class GpsAhsm(pq.Ahsm):
                 nmea_sentence = me.nmea_data[0:n+2]
                 me.nmea_data = me.nmea_data[n+2:]
                 pq.Framework.publish(pq.Event(pq.Signal.GPS_NMEA, nmea_sentence))
-                print("GPS_NMEA:", nmea_sentence)
+                if b"GPRMC" in nmea_sentence: print("GPS_NMEA:", nmea_sentence) # DBG
                 n = me.nmea_data.find(b"\r\n")
             return me.handled(me, event)
 
