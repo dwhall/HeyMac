@@ -53,11 +53,9 @@ class HeyMacFrame(dpkt.Packet):
     # Functions to help determine which fields are present
     def _has_lencode_field(self,):
         return (self.fctl &  FCTL_LENCODE_BIT) != 0
-    def _has_verseq_field(self,):
-        # VerSeq field exists in all but Min frame types
+    def _has_verseq_field(self,): # VerSeq exists in all but Min frame types
         return (self.fctl & FCTL_TYPE_MASK) != 0
-    def _has_exttype_field(self,):
-        # ExtType field exists when Fctl's type subfield indicates Extended Type
+    def _has_exttype_field(self,): # ExtType exists when Fctl type is Extended
         return (self.fctl & FCTL_TYPE_MASK) == FCTL_TYPE_EXT
     def _has_daddr_field(self,):
         return (self.fctl & FCTL_DADDR_MASK) != 0
