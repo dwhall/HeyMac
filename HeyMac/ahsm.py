@@ -193,7 +193,7 @@ class HeyMac(pq.Ahsm):
         sig = event.signal
         if sig == pq.Signal.ENTRY:
             print("HeyMac Running:Beaconing") # TODO: logging
-            me.bcn = HeyMacBeacon(saddr=me.src_addr, asn=me.asn, slotmap=0) #TODO nghbrs, ntwks
+            me.bcn = HeyMacCmdBeacon(saddr=me.src_addr, asn=me.asn, slotmap=0) #TODO nghbrs, ntwks
             me.bcn_te.postEvery(me, 0.250)
             return me.handled(me, event)
 
