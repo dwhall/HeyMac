@@ -10,7 +10,8 @@ Copyright 2017 Dean Hall.  See LICENSE file for details.
 #    sys.path.extend(("/home/pi/ezXX/lora_driver", "/home/pi/ezXX/furp", "/home/pi/ezXX/pq", "/home/pi/ezXX/HeyMac"))
 #del os, sys
 
-import asyncio
+import asyncio, logging
+logging.basicConfig(level=logging.INFO)
 
 import lora_driver, pq
 from HeyMac import *
@@ -97,7 +98,7 @@ class HeyMac(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            print("HeyMac Initializing") # TODO: logging
+            logging.info("HeyMac Initializing")
             me.te.postIn(me, 0.0)
             return me.handled(me, event)
 
@@ -123,19 +124,19 @@ class HeyMac(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            print("HeyMac Running") # TODO: logging
+            logging.info("HeyMac Running")
             return me.handled(me, event)
 
         elif sig == pq.Signal.MAC_DIO0:
-            print("running DIO0 unhandled at lower layer!") # DBG
+            logging.info("running DIO0 unhandled at lower layer!")
             return me.handled(me, event)
 
         elif sig == pq.Signal.MAC_DIO1:
-            print("running DIO1 unhandled at lower layer!") # DBG
+            logging.info("running DIO1 unhandled at lower layer!")
             return me.handled(me, event)
 
         elif sig == pq.Signal.SIGTERM:
-            print("Received SIGTERM") # DBG
+            logging.info("Received SIGTERM")
             return me.tran(me, me.exiting)
 
         return me.super(me, me.top)
@@ -147,14 +148,14 @@ class HeyMac(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            print("HeyMac Running:Listening")
+            logging.info("HeyMac Running:Listening")
             me.lstn_te.postIn(me, 8.0) # TODO: magic number
 
             me.spi.receive()
             return me.handled(me, event)
 
         elif sig == pq.Signal.MAC_DIO0:
-#            print("lstn DIO0 RxDone") # TODO: logging
+#            logging.info("lstn DIO0 RxDone")
 
             # Reset time-out timer
             me.lstn_te.disarm()
@@ -165,18 +166,18 @@ class HeyMac(pq.Ahsm):
                 payld, rssi, snr = me.spi.get_rx()
                 f = HeyMacFrame(bytes(payld))
                 bcn = f.data
-                print("lstn Rx %d bytes, rssi=%d dBm, snr=%.3f dB\t%s" % (len(payld), rssi, snr, repr(f)))
+                logging.info("lstn Rx %d bytes, rssi=%d dBm, snr=%.3f dB\t%s" % (len(payld), rssi, snr, repr(f)))
             else:
-                print("lstn Rx but pkt was not valid")
+                logging.info("lstn Rx but pkt was not valid")
             return me.handled(me, event)
 
         # This event will not happen from continuous-RX
         elif sig == pq.Signal.MAC_DIO1:
-            print("lstn DIO1 RxTimeout") # TODO: logging
+            logging.info("lstn DIO1 RxTimeout")
             return me.handled(me, event)
 
         elif sig == pq.Signal.MAC_LISTEN_TMOUT:
-            print("HeyMac Listening timeout")
+            logging.info("HeyMac Listening timeout")
             return me.tran(me, me.beaconing)
 
         elif sig == pq.Signal.EXIT:
@@ -192,7 +193,7 @@ class HeyMac(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            print("HeyMac Running:Beaconing") # TODO: logging
+            logging.info("HeyMac Running:Beaconing")
             me.bcn = HeyMacCmdBeacon(saddr=me.src_addr, asn=me.asn, slotmap=0) #TODO nghbrs, ntwks
             me.bcn_te.postEvery(me, 0.250)
             return me.handled(me, event)
@@ -203,13 +204,13 @@ class HeyMac(pq.Ahsm):
             if me.asn % 16 == 0:
                 me.bcn.asn = me.asn
                 payld = bytes(me.bcn)
-                print(repr(me.bcn), "#len", len(payld), "bytes")
+                logging.info(repr(me.bcn), "#len", len(payld), "bytes")
                 me.spi.transmit(payld)
 
             return me.handled(me, event)
 
         elif sig == pq.Signal.MAC_DIO0:
-            # print("bcn DIO0 TxDone") # TODO: logging
+            # logging.info("bcn DIO0 TxDone")
             return me.handled(me, event)
 
         elif sig == pq.Signal.EXIT:
@@ -225,7 +226,7 @@ class HeyMac(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            print("HeyMac Sleeping") # TODO: logging
+            logging.info("HeyMac Sleeping")
             return me.handled(me, event)
 
         return me.super(me, me.top)
@@ -237,7 +238,7 @@ class HeyMac(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            print("HeyMac Exiting") # TODO: logging
+            logging.info("HeyMac Exiting")
             me.gpio.exit()
             return me.handled(me, event)
         

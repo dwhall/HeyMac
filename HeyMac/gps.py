@@ -3,7 +3,8 @@
 Copyright 2017 Dean Hall.  See LICENSE file for details.
 """
 
-import asyncio
+import asyncio, logging
+logging.basicConfig(level=logging.INFO)
 
 import serial
 import RPi.GPIO as GPIO
@@ -60,7 +61,7 @@ class GpsAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            print("GpsAhsm Awaiting") # TODO: logging
+            logging.info("GpsAhsm Awaiting")
             return me.handled(me, event)
 
         elif sig == pq.Signal.GPS_OPEN:
@@ -70,7 +71,7 @@ class GpsAhsm(pq.Ahsm):
             return me.tran(me, me.running)
 
         elif sig == pq.Signal.SIGTERM:
-            print("Received SIGTERM") # DBG
+            logging.info("Received SIGTERM")
             return me.tran(me, me.exiting)
 
         return me.super(me, me.top)
@@ -82,7 +83,7 @@ class GpsAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            print("GpsAhsm Running") # TODO: logging
+            logging.info("GpsAhsm Running")
 
             # Initialize a GPIO pin as an input for the PPS signal
             # and set the handler function for the signal
@@ -109,22 +110,23 @@ class GpsAhsm(pq.Ahsm):
                 nmea_sentence = me.nmea_data[0:n+2]
                 me.nmea_data = me.nmea_data[n+2:]
                 pq.Framework.publish(pq.Event(pq.Signal.GPS_NMEA, nmea_sentence))
-                if b"GPRMC" in nmea_sentence: print("GPS_NMEA:", nmea_sentence) # DBG
+                if b"GPRMC" in nmea_sentence: 
+                    logging.info("GPS_NMEA:" + str(nmea_sentence))
                 n = me.nmea_data.find(b"\r\n")
             return me.handled(me, event)
 
         elif sig == pq.Signal.GPS_PPS:
-            print("GPS_PPS")
+            logging.info("GPS_PPS")
             return me.handled(me, event)
 
         elif sig == pq.Signal.SIGTERM:
-            print("Received SIGTERM") # DBG
+            logging.info("Received SIGTERM")
             return me.tran(me, me.exiting)
 
         elif sig == pq.Signal.EXIT:
             me.te_nmea.disarm()
             me.ser.close()
-            GPIO.remove_event_detect(me.pps_chnl)
+            GPIO.setmode(GPIO.BCM)
             GPIO.cleanup(me.pps_chnl)
             me.pps_chnl = None
             return me.handled(me, event)
@@ -138,7 +140,7 @@ class GpsAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            print("GpsAhsm Exiting") # TODO: logging
+            print("GpsAhsm Exiting")
             return me.handled(me, event)
         
         # Tran back to awaiting
