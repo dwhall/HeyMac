@@ -4,10 +4,18 @@ Copyright 2017 Dean Hall.  See LICENSE file for details.
 """
 
 import asyncio, logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(filename=__file__+'.log',level=logging.INFO)
+#logging.basicConfig(level=logging.INFO)
 
-import serial
-import RPi.GPIO as GPIO
+try:
+    import serial
+except ModuleNotFoundError:
+    import mock_serial as serial
+
+try:
+    import RPi.GPIO as GPIO
+except ModuleNotFoundError:
+    import mock_gpio as GPIO
 
 import pq
 

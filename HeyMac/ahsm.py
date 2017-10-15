@@ -11,7 +11,8 @@ Copyright 2017 Dean Hall.  See LICENSE file for details.
 #del os, sys
 
 import asyncio, logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(filename=__file__+'.log',level=logging.INFO)
+#logging.basicConfig(level=logging.INFO)
 
 import lora_driver, pq
 from HeyMac import *
@@ -204,7 +205,7 @@ class HeyMac(pq.Ahsm):
             if me.asn % 16 == 0:
                 me.bcn.asn = me.asn
                 payld = bytes(me.bcn)
-                logging.info(repr(me.bcn), "#len", len(payld), "bytes")
+                logging.info("bcn %d bytes %s" % (len(me.bcn), repr(me.bcn)))
                 me.spi.transmit(payld)
 
             return me.handled(me, event)
