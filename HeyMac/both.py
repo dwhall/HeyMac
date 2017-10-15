@@ -1,14 +1,13 @@
 import asyncio
 
-from gps import GpsAhsm
-from ahsm import HeyMac
+import ahsm, gps, gps_cfg
 
 
 if __name__ == "__main__":
-    gps = GpsAhsm(GpsAhsm.initial)
+    gps = gps.GpsAhsm(gps_cfg.DraginoLoraGpsHat)
     gps.start(0)
 
-    m = HeyMac()
+    m = ahsm.HeyMac()
     m.start(0)
 
     loop = asyncio.get_event_loop()

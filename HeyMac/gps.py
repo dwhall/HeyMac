@@ -4,7 +4,7 @@ Copyright 2017 Dean Hall.  See LICENSE file for details.
 """
 
 import asyncio, logging
-logging.basicConfig(filename=__file__+'.log',level=logging.INFO)
+logging.basicConfig(filename=__file__+'.log', level=logging.INFO)
 #logging.basicConfig(level=logging.INFO)
 
 try:
@@ -17,18 +17,25 @@ try:
 except ModuleNotFoundError:
     import mock_gpio as GPIO
 
-import pq
+import gps_cfg, pq
 
 
 GPS_NMEA_PERIOD = 0.100 # [secs]
 SER_FIFO_MAX = 4095
-## Connect GPS modules PPS pin 6 to RPi GPIO26 pin 37
+
 
 class GpsAhsm(pq.Ahsm):
     """GPS Receiver State Machine
     Handles serial I/O to a GPS receiver
     and a GPIO pin for the Pulse Per Second (PPS).
     """
+
+    def __init__(self, cfg):
+        self.serial_port = cfg.serial_port
+        self.serial_baud = cfg.serial_baud
+        self.pps_chnl = cfg.pps_chnl
+        super().__init__(GpsAhsm.initial)
+
 
     def _pps_handler(self, chnl):
         """This is the PPS signal handler method
@@ -46,7 +53,7 @@ class GpsAhsm(pq.Ahsm):
 
         # Incoming signals
         pq.Framework.subscribe("GPS_PPS", me)
-#        pq.Signal.register("GPS_OPEN") # Value is GPIO/BCM of PPS pin input
+        pq.Signal.register("GPS_OPEN") # Value is GPIO/BCM of PPS pin input
 
         # Outgoing signals
         pq.Signal.register("GPS_NMEA") # Value is one NMEA sentence [bytes]
@@ -56,33 +63,7 @@ class GpsAhsm(pq.Ahsm):
 
         # Initialize a timer event used to schedule the NMEA handler
         me.te_nmea = pq.TimeEvent("GPS_NMEA_PRDC")
-#        return me.tran(me, GpsAhsm.awaiting)
-# Instrumenting
-        me.ser_port = "/dev/serial0"
-        me.pps_chnl = 26
         return me.tran(me, GpsAhsm.running)
-
-
-    @staticmethod
-    def awaiting(me, event):
-        """State: GpsAhsm:Awaiting
-        """
-        sig = event.signal
-        if sig == pq.Signal.ENTRY:
-            logging.info("GpsAhsm Awaiting")
-            return me.handled(me, event)
-
-        elif sig == pq.Signal.GPS_OPEN:
-            # Get the arguments from the msg
-            # and transition to the Running state
-            me.pps_chnl, me.ser_port = sig.value
-            return me.tran(me, me.running)
-
-        elif sig == pq.Signal.SIGTERM:
-            logging.info("Received SIGTERM")
-            return me.tran(me, me.exiting)
-
-        return me.super(me, me.top)
 
 
     @staticmethod
@@ -102,7 +83,7 @@ class GpsAhsm(pq.Ahsm):
             me.nmea_data = bytearray()
 
             # Open the serial port where NMEA input is expected
-            me.ser = serial.Serial(port=me.ser_port, baudrate=9600, timeout=0)
+            me.ser = serial.Serial(port=me.serial_port, baudrate=me.serial_baud, timeout=0)
 
             # Start the repeating timer event
             me.te_nmea.postEvery(me, GPS_NMEA_PERIOD)
@@ -156,7 +137,7 @@ class GpsAhsm(pq.Ahsm):
 
 
 if __name__ == "__main__":
-    gps = GpsAhsm(GpsAhsm.initial)
+    gps = GpsAhsm(gps_cfg.DraginoLoraGpsHat)
     gps.start(0)
 
     loop = asyncio.get_event_loop()
