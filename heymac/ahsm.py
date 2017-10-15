@@ -14,8 +14,7 @@ import asyncio, logging
 logging.basicConfig(filename=__file__+'.log',level=logging.INFO)
 #logging.basicConfig(level=logging.INFO)
 
-import lora_driver, pq
-from HeyMac import *
+import lora_driver, heymac, pq
 
 
 # Radio Frequency for beacon transmissions
@@ -165,7 +164,7 @@ class HeyMac(pq.Ahsm):
             # If the rx was good, get the data and stats
             if me.spi.check_rx_flags():
                 payld, rssi, snr = me.spi.get_rx()
-                f = HeyMacFrame(bytes(payld))
+                f = heymac.HeyMacFrame(bytes(payld))
                 bcn = f.data
                 logging.info("lstn Rx %d bytes, rssi=%d dBm, snr=%.3f dB\t%s" % (len(payld), rssi, snr, repr(f)))
             else:

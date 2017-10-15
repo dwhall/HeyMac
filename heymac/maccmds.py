@@ -8,8 +8,6 @@ HeyMac Commands for MAC frame type:
 
 import dpkt
 
-from HeyMac import *
-
 
 # HeyMac Command IDs
 HEYMAC_CMD_BEACON = 1
