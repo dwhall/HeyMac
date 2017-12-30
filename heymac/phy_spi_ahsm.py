@@ -5,7 +5,7 @@ Copyright 2017 Dean Hall.  See LICENSE for details.
 
 
 import pq
-from lora_driver import SX127xSpi
+import lora_driver
 
 
 class SX127xSpiAhsm(pq.Ahsm):
@@ -33,6 +33,8 @@ class SX127xSpiAhsm(pq.Ahsm):
         # Outgoing
         pq.Signal.register("RX_DATA")
 
+        me.sx127x = lora_driver.SX127xSpi()
+
         return me.tran(me, SX127xSpiAhsm.initializing)
 
 
@@ -46,8 +48,8 @@ class SX127xSpiAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            if SX127xSpi.check_chip_ver():
-                SX127xSpi.get_regs()
+            if me.sx127x.check_chip_ver():
+                me.sx127x.get_regs()
                 me.postFIFO(pq.Event(pq.Signal.ALWAYS, None))
             else:
                 # TODO: no SX127x or no SPI
@@ -66,11 +68,11 @@ class SX127xSpiAhsm(pq.Ahsm):
         """State: SX127xSpiAhsm:idling
         """
         sig = event.signal
-       # if sig == pq.Signal.ENTRY:
-       #      return me.handled(me, event)
+        if sig == pq.Signal.ENTRY:
+            return me.handled(me, event)
 
-        if sig == pq.Signal.CFG_LORA:
-            SX127xSpi.set_config(event.value)
+        elif sig == pq.Signal.CFG_LORA:
+            me.sx127x.set_config(event.value)
             return me.handled(me, event)
         
         elif sig == pq.Signal.SLEEP:
@@ -102,10 +104,10 @@ class SX127xSpiAhsm(pq.Ahsm):
             rx_time = event.value
 
             # Prepare DIO0,1 to cause RxDone, RxTimeout interrupts
-            SX127xSpi.enable_irqs(SX127xSpi.IRQFLAGS_RXTIMEOUT_MASK 
+            me.sx127x.enable_irqs(SX127xSpi.IRQFLAGS_RXTIMEOUT_MASK
                 | SX127xSpi.IRQFLAGS_RXDONE_MASK)
-            SX127xSpi.set_dio_mapping(dio0=0, dio1=0)
-            SX127xSpi.set_rx_fifo()
+            me.sx127x.set_dio_mapping(dio0=0, dio1=0)
+            me.sx127x.set_rx_fifo()
 
             #TODO set timer to RX at appropriate time
 
@@ -125,8 +127,8 @@ class SX127xSpiAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            SX127xSpi.set_rx_freq(freq)  # freq?
-            SX127xSpi.set_mode("fsrx")
+            me.sx127x.set_rx_freq(freq)  # freq?
+            me.sx127x.set_mode("fsrx")
             return me.handled(me, event)
 
         elif sig == pq.Signal.TMOUT:
@@ -141,12 +143,13 @@ class SX127xSpiAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            SX127xSpi.set_op_mode(mode="rxonce")
+            me.sx127x.set_op_mode(mode="rxonce")
+            return me.handled(me, event)
         
         elif sig == pq.Signal.DIO0: # RX_DONE
             rx_time = event.value
-            if SX127xSpi.check_rx_flags():
-                payld, rssi, snr = SX127xSpi.get_rx()
+            if me.sx127x.check_rx_flags():
+                payld, rssi, snr = me.sx127x.get_rx()
                 pkt_data = (rx_time, payld, rssi, snr)
                 pq.Framework.publish(pq.Event(pq.Signal.RX_DATA, pkt_data))
             else:
@@ -159,6 +162,7 @@ class SX127xSpiAhsm(pq.Ahsm):
 
         elif sig == pq.Signal.DIO3: # ValidHeader
             # TODO: future: DIO3  for earlier rx_time capture
+            return me.handled(me, event)
 
         return me.super(me, me.top)
 
@@ -199,7 +203,7 @@ class SX127xSpiAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            SX127xSpi.set_mode("fstx")
+            me.sx127x.set_mode("fstx")
             return me.handled(me, event)
 
         elif sig == pq.Signal.TMOUT:
@@ -214,7 +218,7 @@ class SX127xSpiAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            SX127xSpi.set_mode("tx")
+            me.sx127x.set_mode("tx")
             return me.handled(me, event)
 
         elif sig == pq.Signal.DIO0: # TX_DONE

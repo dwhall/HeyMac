@@ -35,7 +35,6 @@ class UartAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            logging.info("UartAhsm Running")
 
             # Init the NMEA data buffer
             me.nmea_data = bytearray()
@@ -58,12 +57,10 @@ class UartAhsm(pq.Ahsm):
                 me.nmea_data = me.nmea_data[n+2:]
                 if b"GPRMC" in nmea_sentence: 
                     pq.Framework.publish(pq.Event(pq.Signal.GPS_NMEA, nmea_sentence))
-                    logging.info("GPS_NMEA:" + str(nmea_sentence))
                 n = me.nmea_data.find(b"\r\n")
             return me.handled(me, event)
 
         elif sig == pq.Signal.SIGTERM:
-            logging.info("Received SIGTERM")
             return me.tran(me, me.exiting)
 
         elif sig == pq.Signal.EXIT:
@@ -80,7 +77,6 @@ class UartAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            print("UartAhsm Exiting")
             return me.handled(me, event)
         
         return me.super(me, me.top)
