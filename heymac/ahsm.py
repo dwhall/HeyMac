@@ -11,8 +11,8 @@ Copyright 2017 Dean Hall.  See LICENSE file for details.
 #del os, sys
 
 import asyncio, logging
-logging.basicConfig(filename=__file__+'.log',level=logging.INFO)
-#logging.basicConfig(level=logging.INFO)
+#logging.basicConfig(filename=__file__+'.log',level=logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
 import lora_driver, heymac, pq
 

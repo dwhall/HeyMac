@@ -4,8 +4,8 @@ Copyright 2017 Dean Hall.  See LICENSE file for details.
 """
 
 import asyncio, logging
-logging.basicConfig(filename=__file__+'.log', level=logging.INFO)
-#logging.basicConfig(level=logging.INFO)
+#logging.basicConfig(filename=__file__+'.log', level=logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
 try:
     import serial
@@ -53,12 +53,11 @@ class GpsAhsm(pq.Ahsm):
 
         # Incoming signals
         pq.Framework.subscribe("GPS_PPS", me)
-        pq.Signal.register("GPS_OPEN") # Value is GPIO/BCM of PPS pin input
 
         # Outgoing signals
         pq.Signal.register("GPS_NMEA") # Value is one NMEA sentence [bytes]
 
-        # Events of outgoing signals
+        # Event used by PPS handler
         me.evt_pps = pq.Event(pq.Signal.register("GPS_PPS"), None)
 
         # Initialize a timer event used to schedule the NMEA handler
@@ -96,10 +95,10 @@ class GpsAhsm(pq.Ahsm):
             # If a newline is present, publish one or more NMEA sentences
             n = me.nmea_data.find(b"\r\n")
             while n >= 0:
-                nmea_sentence = me.nmea_data[0:n+2]
+                nmea_sentence = bytes(me.nmea_data[0:n+2])
                 me.nmea_data = me.nmea_data[n+2:]
-                pq.Framework.publish(pq.Event(pq.Signal.GPS_NMEA, nmea_sentence))
                 if b"GPRMC" in nmea_sentence: 
+                    pq.Framework.publish(pq.Event(pq.Signal.GPS_NMEA, nmea_sentence))
                     logging.info("GPS_NMEA:" + str(nmea_sentence))
                 n = me.nmea_data.find(b"\r\n")
             return me.handled(me, event)
@@ -116,7 +115,7 @@ class GpsAhsm(pq.Ahsm):
             me.te_nmea.disarm()
             me.ser.close()
             GPIO.setmode(GPIO.BCM)
-            GPIO.cleanup(me.pps_chnl)
+#            GPIO.cleanup(me.pps_chnl) # Handled by SX127xGpio.exit()
             me.pps_chnl = None
             return me.handled(me, event)
 
