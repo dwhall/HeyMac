@@ -1,8 +1,13 @@
-import time
-try:
-    import serial
-except ModuleNotFoundError:
-    import mock_serial as serial
+#!/usr/bin/env python3
+"""
+Copyright 2017 Dean Hall.  See LICENSE for details.
+
+Physical Layer State Machine for UART operations on the RasPi
+- reads a UART, parses NMEA sentences and posts them as GPS_NMEA events
+"""
+
+
+import serial
 
 import pq
 
@@ -10,6 +15,8 @@ import pq
 # TODO: move to config file
 uart_port = "/dev/serial0"
 uart_baud = 9600
+
+# Constants
 GPS_NMEA_PERIOD = 0.100 # [secs]
 SER_FIFO_MAX = 4095
 

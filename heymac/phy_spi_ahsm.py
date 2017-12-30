@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """
 Copyright 2017 Dean Hall.  See LICENSE for details.
+
+Physical Layer State Machine for SPI operations to the SX127x device
+- models SX127x device operation
+- establishes Transmit and Receive sequences
+- responds to a handful of events (expected from Layer 2 (MAC))
 """
 
 
