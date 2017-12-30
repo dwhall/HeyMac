@@ -30,7 +30,7 @@ class HeyMacAhsm(pq.Ahsm):
 
     @staticmethod
     def running(me, event):
-        """State: HeyMacAhsm:Running
+        """State: HeyMacAhsm:running
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
@@ -40,8 +40,6 @@ class HeyMacAhsm(pq.Ahsm):
             return me.tran(me, me.exiting)
 
         elif sig == pq.Signal.EXIT:
-            me.te_nmea.disarm()
-            me.ser.close()
             return me.handled(me, event)
 
         return me.super(me, me.top)
