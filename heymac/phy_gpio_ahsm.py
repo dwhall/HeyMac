@@ -35,7 +35,6 @@ def gpio_input_handler(sig):
     """
     time = pq.Framework._event_loop.time()
     evt = pq.Event(sig, time)
-    print("GPIO publish", evt)
     pq.Framework.publish(evt)
 
 
