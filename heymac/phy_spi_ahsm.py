@@ -99,7 +99,7 @@ class SX127xSpiAhsm(pq.Ahsm):
 #### Receive chain
     @staticmethod
     def rx_prepping(me, event):
-        """State: HeyMac:idling:rx_prepping
+        """State: SX127xSpiAhsm:idling:rx_prepping
         While still in radio's standby mode,
         get regs and FIFO ready for RX.
         Always transfer to Frequency Synth RX mode.
@@ -128,7 +128,7 @@ class SX127xSpiAhsm(pq.Ahsm):
 
     @staticmethod
     def fsrxing(me, event):
-        """State: HeyMac:fsrxing
+        """State: SX127xSpiAhsm:fsrxing
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
@@ -144,7 +144,7 @@ class SX127xSpiAhsm(pq.Ahsm):
 
     @staticmethod
     def receiving(me, event):
-        """State HeyMac:receiving
+        """State SX127xSpiAhsm:receiving
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
@@ -175,7 +175,7 @@ class SX127xSpiAhsm(pq.Ahsm):
 #### Transmit chain
     @staticmethod
     def tx_prepping(me, event):
-        """State: HeyMac:idling:tx_prepping
+        """State: SX127xSpiAhsm:idling:tx_prepping
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
@@ -204,7 +204,7 @@ class SX127xSpiAhsm(pq.Ahsm):
 
     @staticmethod
     def fstxing(me, event):
-        """State: HeyMac:fstxing
+        """State: SX127xSpiAhsm:fstxing
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
@@ -219,7 +219,7 @@ class SX127xSpiAhsm(pq.Ahsm):
 
     @staticmethod
     def transmitting(me, event):
-        """State: HeyMac:transmitting
+        """State: SX127xSpiAhsm:transmitting
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:

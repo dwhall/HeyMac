@@ -38,7 +38,7 @@ class UartAhsm(pq.Ahsm):
 
     @staticmethod
     def running(me, event):
-        """State: GpsAhsm:Running
+        """State: UartAhsm:Running
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
