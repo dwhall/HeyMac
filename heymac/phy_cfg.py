@@ -20,7 +20,7 @@ sx127x_cfg = lora_driver.SX127xConfig(
 
 # GPIO configuration
 reset = {"pin":17, "sig_name":"GPS_RST"}
-dio0 = {"pin":4, "sig_name":"DIO0"}
-dio1 = {"pin":23, "sig_name":"DIO1"}
-dio2 = {"pin":24, "sig_name":"DIO2"}
-pps = {"pin":26, "sig_name":"PPS"}
+dio0 = {"pin":4, "sig_name":"PHY_DIO0"}
+dio1 = {"pin":23, "sig_name":"PHY_DIO1"}
+dio2 = {"pin":24, "sig_name":"PHY_DIO2"}
+pps = {"pin":26, "sig_name":"PHY_PPS"}

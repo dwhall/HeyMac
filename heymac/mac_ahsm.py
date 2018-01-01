@@ -25,6 +25,7 @@ class HeyMacAhsm(pq.Ahsm):
         pq.Signal.register("GPS_NMEA") # Value is one NMEA sentence [bytes]
 
         # Incoming signals
+        pq.Framework.subscribe("PHY_PPS", me)
         pq.Framework.subscribe("PHY_RX_DATA", me)
 
         # Initialize a timer event used to schedule the NMEA handler

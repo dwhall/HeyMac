@@ -32,10 +32,10 @@ class SX127xSpiAhsm(pq.Ahsm):
         pq.Framework.subscribe("TRANSMIT", me)
 
         # Incoming from GPIO (SX127x's DIO pins)
-        pq.Framework.subscribe("DIO0", me)
-        pq.Framework.subscribe("DIO1", me)
-        pq.Framework.subscribe("DIO3", me)
-        pq.Framework.subscribe("DIO4", me)
+        pq.Framework.subscribe("PHY_DIO0", me)
+        pq.Framework.subscribe("PHY_DIO1", me)
+        pq.Framework.subscribe("PHY_DIO3", me)
+        pq.Framework.subscribe("PHY_DIO4", me)
 
         me.sx127x = lora_driver.SX127xSpi()
 
@@ -159,7 +159,7 @@ class SX127xSpiAhsm(pq.Ahsm):
             me.sx127x.set_op_mode(mode="rxonce")
             return me.handled(me, event)
         
-        elif sig == pq.Signal.DIO0: # RX_DONE
+        elif sig == pq.Signal.PHY_DIO0: # RX_DONE
             rx_time = event.value
             if me.sx127x.check_rx_flags():
                 payld, rssi, snr = me.sx127x.get_rx()
@@ -171,11 +171,11 @@ class SX127xSpiAhsm(pq.Ahsm):
                 pass
             return me.tran(me, SX127xSpiAhsm.idling)
 
-        elif sig == pq.Signal.DIO1: # RX_TIMEOUT
+        elif sig == pq.Signal.PHY_DIO1: # RX_TIMEOUT
             me.sx127x.clear_irqs(lora_driver.IRQFLAGS_RXTIMEOUT_MASK)
             return me.tran(me, SX127xSpiAhsm.idling)
 
-        elif sig == pq.Signal.DIO3: # ValidHeader
+        elif sig == pq.Signal.PHY_DIO3: # ValidHeader
             # TODO: future: DIO3  for earlier rx_time capture
             return me.handled(me, event)
 
@@ -239,7 +239,7 @@ class SX127xSpiAhsm(pq.Ahsm):
             me.sx127x.set_mode("tx")
             return me.handled(me, event)
 
-        elif sig == pq.Signal.DIO0: # TX_DONE
+        elif sig == pq.Signal.PHY_DIO0: # TX_DONE
             return me.tran(me, SX127xSpiAhsm.idling)
 
         return me.super(me, me.top)
