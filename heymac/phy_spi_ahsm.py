@@ -74,11 +74,9 @@ class SX127xSpiAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            print("PHY IDLING")
             return me.handled(me, event)
 
         elif sig == pq.Signal.CFG_LORA:
-            print("phy idling cfg_lora")
             me.sx127x.set_config(event.value)
             me.sx127x.set_pwr_cfg(boost=True)
             return me.handled(me, event)
@@ -110,9 +108,13 @@ class SX127xSpiAhsm(pq.Ahsm):
         sig = event.signal
         if sig == pq.Signal.ENTRY:
 
-            # Prepare DIO0,1 to cause RxDone, RxTimeout interrupts
+            # Enable only the RX interrupts (disable all others)
+            me.sx127x.disable_irqs()
             me.sx127x.enable_irqs(lora_driver.IRQFLAGS_RXTIMEOUT_MASK
-                | lora_driver.IRQFLAGS_RXDONE_MASK)
+                | lora_driver.IRQFLAGS_RXDONE_MASK
+                | lora_driver.IRQFLAGS_PAYLOADCRCERROR_MASK)
+
+            # Prepare DIO0,1 to cause RxDone, RxTimeout interrupts
             me.sx127x.set_dio_mapping(dio0=0, dio1=0)
             me.sx127x.set_rx_fifo()
 
@@ -154,12 +156,10 @@ class SX127xSpiAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            print("PHY RECEIVING")
             me.sx127x.set_op_mode(mode="rxonce")
             return me.handled(me, event)
         
         elif sig == pq.Signal.DIO0: # RX_DONE
-            print("phy rx done")
             rx_time = event.value
             if me.sx127x.check_rx_flags():
                 payld, rssi, snr = me.sx127x.get_rx()
@@ -167,11 +167,11 @@ class SX127xSpiAhsm(pq.Ahsm):
                 pq.Framework.publish(pq.Event(pq.Signal.PHY_RX_DATA, pkt_data))
             else:
                 # TODO: crc error stats
+                print("rx bad")
                 pass
             return me.tran(me, SX127xSpiAhsm.idling)
 
         elif sig == pq.Signal.DIO1: # RX_TIMEOUT
-            print("phy rx timeout")
             me.sx127x.clear_irqs(lora_driver.IRQFLAGS_RXTIMEOUT_MASK)
             return me.tran(me, SX127xSpiAhsm.idling)
 
@@ -191,11 +191,14 @@ class SX127xSpiAhsm(pq.Ahsm):
         if sig == pq.Signal.ENTRY:
             tx_time, tx_data = event.value
 
+            # Enable only the TX interrupts (disable all others)
+            me.sx127x.disable_irqs()
+            me.sx127x.enable_irqs(lora_driver.IRQFLAGS_TXDONE_MASK)
+            me.sx127x.clear_irqs(lora_driver.IRQFLAGS_TXDONE_MASK)
+
             # Prepare DIO0 to cause TxDone interrupt
             me.sx127x.set_dio_mapping(dio0=1)
             me.sx127x.set_tx_data(tx_data)
-            me.sx127x.enable_irqs(lora_driver.IRQFLAGS_TXDONE_MASK)
-            me.sx127x.clear_irqs(lora_driver.IRQFLAGS_TXDONE_MASK)
 
             #TODO set timer to TX at appropriate time
 

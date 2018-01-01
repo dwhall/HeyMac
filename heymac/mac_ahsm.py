@@ -80,13 +80,11 @@ class HeyMacAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            print("MAC LISTENING")
             me.tm_evt.postEvery(me, 0.750)
             me.tries = int(mac_cfg.tslots_per_sframe / mac_cfg.tslots_per_sec / 0.750)
             return me.handled(me, event)
 
         elif sig == pq.Signal.MAC_TMR_PRDC:
-            print("post receive")
             value = (0, phy_cfg.rx_freq) # rx time and freq
             pq.Framework.post(pq.Event(pq.Signal.RECEIVE, value), "SX127xSpiAhsm")
             me.tries -= 1
