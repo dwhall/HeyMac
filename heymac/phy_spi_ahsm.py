@@ -85,11 +85,14 @@ class SX127xSpiAhsm(pq.Ahsm):
             return me.tran(me, me.sleeping)
 
         elif sig == pq.Signal.RECEIVE:
-            me.rx_time, me.rx_freq = event.value
+            me.rx_time = event.value[0]
+            me.rx_freq = event.value[1]
             return me.tran(me, me.rx_prepping)
 
         elif sig == pq.Signal.TRANSMIT:
-            me.tx_time = event.value
+            me.tx_time = event.value[0]
+            me.tx_freq = event.value[1]
+            me.tx_data = event.value[2]
             return me.tran(me, me.tx_prepping)
 
         elif sig == pq.Signal.CAD:
@@ -189,7 +192,6 @@ class SX127xSpiAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            tx_time, tx_data = event.value
 
             # Enable only the TX interrupts (disable all others)
             me.sx127x.disable_irqs()
@@ -198,16 +200,21 @@ class SX127xSpiAhsm(pq.Ahsm):
 
             # Prepare DIO0 to cause TxDone interrupt
             me.sx127x.set_dio_mapping(dio0=1)
-            me.sx127x.set_tx_data(tx_data)
+            me.sx127x.set_tx_data(me.tx_data)
 
-            #TODO set timer to TX at appropriate time
+            # Set the transmit frequency
+            me.sx127x.set_tx_freq(me.tx_freq)
 
             # Reminder pattern to trans to fstxing
             me.postFIFO(pq.Event(pq.Signal.ALWAYS, None))
             return me.handled(me, event)
 
         elif sig == pq.Signal.ALWAYS:
-            return me.tran(me, SX127xSpiAhsm.fstxing)
+            if me.tx_time == 0:
+                return me.tran(me, SX127xSpiAhsm.transmitting)
+            else:
+                #TODO set timer to TX at appropriate time
+                return me.tran(me, SX127xSpiAhsm.fstxing)
 
         elif sig == pq.Signal.EXIT:
             return me.handled(me, event)
@@ -236,7 +243,7 @@ class SX127xSpiAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            me.sx127x.set_mode("tx")
+            me.sx127x.set_op_mode(mode="tx")
             return me.handled(me, event)
 
         elif sig == pq.Signal.PHY_DIO0: # TX_DONE
