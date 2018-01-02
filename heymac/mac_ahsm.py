@@ -10,9 +10,11 @@ MAC (data link layer) (layer 2) State Machine for protocol operations
 """
 
 
+import hashlib
+
 import pq
 
-import mac_cfg, phy_cfg
+import mac_cfg, mac_cmds, mac_frame, mac_identity, phy_cfg
 
 
 class HeyMacAhsm(pq.Ahsm):
@@ -31,6 +33,16 @@ class HeyMacAhsm(pq.Ahsm):
         # Initialize a timer event used to schedule the NMEA handler
         me.tm_evt = pq.TimeEvent("MAC_TMR_PRDC")
         
+        # Calculate the 128-bit source address from the identity's pub_key
+        h = hashlib.sha512()
+        h.update(mac_identity.pub_key)
+        h.update(h.digest())
+        me.saddr = h.digest()[:8]
+        assert me.saddr[0] in (0xfc, 0xfd)
+        
+        # First estimate of 1s
+        me.pps_est = 1.0
+
         return me.tran(me, HeyMacAhsm.initializing)
 
 
@@ -74,15 +86,13 @@ class HeyMacAhsm(pq.Ahsm):
     def listening(me, event):
         """State: HeyMacAhsm:running:listening
         Listens to radio and GPS for timing indicators.
-        Exits due to one of three conditions:
-        1) PPS signals are present and have listened for one Sframe
-        2) RXd data frames and have sync'd to neighbors' beacons
-        3) No signals and one Sframe has elapsed
+        Transitions to Scheduling after listening for two superframes
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            me.tm_evt.postEvery(me, 0.750)
-            me.tries = int(mac_cfg.tslots_per_sframe / mac_cfg.tslots_per_sec / 0.750)
+            print("LISTENING")
+            me.tm_evt.postEvery(me, 0.750)  # TODO: ensure this is longer than the rx timeout
+            me.tries = int(1.0 * mac_cfg.tslots_per_sframe / mac_cfg.tslots_per_sec / 0.750)
             return me.handled(me, event)
 
         elif sig == pq.Signal.MAC_TMR_PRDC:
@@ -90,18 +100,61 @@ class HeyMacAhsm(pq.Ahsm):
             pq.Framework.post(pq.Event(pq.Signal.RECEIVE, value), "SX127xSpiAhsm")
             me.tries -= 1
             if me.tries == 0:
-                return me.tran(HeyMacAhsm.beaconing)
+                return me.tran(me, me.scheduling)
             return me.handled(me, event)
 
         elif sig == pq.Signal.PHY_RX_DATA:
-            print("rx_data", event.value)
+            rx_time, payld, rssi, snr = event.value
+            f = mac_frame.HeyMacFrame(bytes(payld))
+            if isinstance(f.data, mac_cmds.HeyMacCmdBeacon):
+                print("lstng Rx %d bytes, rssi=%d dBm, snr=%.3f dB\t%s" % (len(payld), rssi, snr, repr(f)))
+                # TODO: add to ngbr data
+            else:
+                print("rxd pkt is not a bcn")
             return me.handled(me, event)
 
         elif sig == pq.Signal.EXIT:
+            del me.tries
+            me.tm_evt.disarm()
             return me.handled(me, event)
 
         return me.super(me, me.top)
 
+
+    @staticmethod
+    def scheduling(me, event):
+        """State: HeyMacAhsm:running:scheduling
+        Emits beacon regularly.
+        If this node has received beacons, an open slot is chosen;
+        otherwise, the slot is chosen arbitrarily.
+        If this node has received PPS, tx and rx timeslots are synchronized.
+        """
+        sig = event.signal
+        if sig == pq.Signal.ENTRY:
+            print("SCHEDULING")
+            me.tslot_time = me.pps_est / mac_cfg.tslots_per_sec
+            me.tm_evt.postIn(me, me.tslot_time)  # TODO: ensure this is longer than the rx timeout
+            me.asn = 0
+            me.bcn_seq = 0
+            me.bcn_slot = mac_identity.pub_key[0] % mac_cfg.tslots_per_sframe
+            return me.handled(me, event)
+
+        elif sig == pq.Signal.MAC_TMR_PRDC:
+            me.tm_evt.postIn(me, me.tslot_time)  # TODO: ensure this is longer than the rx timeout
+            me.asn += 1
+            if me.asn % mac_cfg.tslots_per_sframe == me.bcn_slot:
+                print("bcn")
+                value = (0, phy_cfg.tx_freq, me.build_beacon_cmd(me.bcn_seq)) # tx time, freq and data
+                me.bcn_seq += 1
+                pq.Framework.post(pq.Event(pq.Signal.TRANSMIT, value), "SX127xSpiAhsm")
+
+            return me.handled(me, event)
+
+        elif sig == pq.Signal.EXIT:
+            me.tm_evt.disarm()
+            return me.handled(me, event)
+
+        return me.super(me, me.top)
 
     @staticmethod
     def exiting(me, event):
@@ -113,4 +166,25 @@ class HeyMacAhsm(pq.Ahsm):
         
         return me.super(me, me.top)
 
+
+#### End State Machines
+
+    def build_mac_frame(self, seq=0):
+        """Returns a generic HeyMac V1 frame with the given sequence number
+        """
+        frame = mac_frame.HeyMacFrame(fctl=mac_frame.FCTL_TYPE_MAC
+            | mac_frame.FCTL_LENCODE_BIT
+            | mac_frame.FCTL_SADDR_MODE_64BIT)
+        frame.saddr = self.saddr
+        frame.seq = seq
+        return frame
+
+
+    def build_beacon_cmd(self, bcn_seq=0):
+        """Returns a HeyMac V1 Beacon frame with the given sequence number
+        """
+        f = self.build_mac_frame(bcn_seq)
+        bcn = mac_cmds.HeyMacCmdBeacon(asn=self.asn)
+        f.data = bcn
+        return bytes(f)
 
