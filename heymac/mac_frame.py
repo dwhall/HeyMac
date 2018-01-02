@@ -2,7 +2,7 @@ import struct
 
 import dpkt
 
-import heymac
+import mac_cmds
 
 
 # HeyMac protocol version
@@ -164,7 +164,7 @@ class HeyMacFrame(dpkt.Packet):
         # Unpack the payload for known frame types
         if self.fctl & FCTL_TYPE_MASK == FCTL_TYPE_MAC:
             if self.data and self.data[0] == 1: #HEYMAC_CMD_BEACON:
-                self.data = heymac.HeyMacCmdBeacon(self.data)
+                self.data = mac_cmds.HeyMacCmdBeacon(self.data)
 
 
     def pack_hdr(self):
