@@ -170,7 +170,6 @@ class SX127xSpiAhsm(pq.Ahsm):
                 pq.Framework.publish(pq.Event(pq.Signal.PHY_RX_DATA, pkt_data))
             else:
                 # TODO: crc error stats
-                print("rx bad")
                 pass
             return me.tran(me, SX127xSpiAhsm.idling)
 

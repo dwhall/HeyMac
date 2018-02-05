@@ -14,7 +14,15 @@ import hashlib
 
 import pq
 
-import mac_cfg, mac_cmds, mac_frame, mac_identity, phy_cfg
+import mac_cfg, mac_cmds, mac_frame
+import phy_cfg
+import cfg
+
+
+# Turn user JSON config files into Python dicts
+mac_identity = cfg.get_from_json("mac_identity.json")
+# Convert hex bytes to bytearray since JSON can't do binary strings
+mac_identity['pub_key'] = bytearray.fromhex(mac_identity['pub_key'])
 
 
 class HeyMacAhsm(pq.Ahsm):
@@ -27,7 +35,7 @@ class HeyMacAhsm(pq.Ahsm):
         pq.Signal.register("GPS_NMEA") # Value is one NMEA sentence [bytes]
 
         # Incoming signals
-        pq.Framework.subscribe("PHY_PPS", me)
+        pq.Framework.subscribe("PHY_GPS_PPS", me)
         pq.Framework.subscribe("PHY_RX_DATA", me)
 
         # Initialize a timer event used to schedule the NMEA handler
@@ -35,13 +43,17 @@ class HeyMacAhsm(pq.Ahsm):
         
         # Calculate the 128-bit source address from the identity's pub_key
         h = hashlib.sha512()
-        h.update(mac_identity.pub_key)
+        h.update(mac_identity['pub_key'])
         h.update(h.digest())
         me.saddr = h.digest()[:8]
         assert me.saddr[0] in (0xfc, 0xfd)
         
-        # First estimate of 1s
-        me.pps_est = 1.0
+        # Error of computer clock time [secs]
+        # calculated as: time_at_pps - prev_time_at_pps
+        me.pps_err = 0.0
+
+        # Time of the previous GPS PPS
+        me.time_of_last_pps = None
 
         return me.tran(me, HeyMacAhsm.initializing)
 
@@ -73,6 +85,15 @@ class HeyMacAhsm(pq.Ahsm):
         if sig == pq.Signal.ENTRY:
             return me.handled(me, event)
 
+        elif sig == pq.Signal.PHY_GPS_PPS:
+            me.on_pps(event.value)
+            return me.handled(me, event)
+
+        elif sig == pq.Signal.PHY_RX_DATA:
+            rx_time, payld, rssi, snr = event.value
+            me.on_rx_frame(rx_time, payld, rssi, snr)
+            return me.handled(me, event)
+
         elif sig == pq.Signal.SIGTERM:
             return me.tran(me, me.exiting)
 
@@ -88,11 +109,13 @@ class HeyMacAhsm(pq.Ahsm):
         Listens to radio and GPS for timing indicators.
         Transitions to Scheduling after listening for two superframes
         """
+        N_SFRAMES = 1.0
+        LISTEN_PRD_SECS = 0.750
         sig = event.signal
         if sig == pq.Signal.ENTRY:
             print("LISTENING")
-            me.tm_evt.postEvery(me, 0.750)  # TODO: ensure this is longer than the rx timeout
-            me.tries = int(1.0 * mac_cfg.tslots_per_sframe / mac_cfg.tslots_per_sec / 0.750)
+            me.tm_evt.postEvery(me, LISTEN_PRD_SECS)  # TODO: ensure this is longer than the rx timeout
+            me.tries = int(N_SFRAMES * mac_cfg.tslots_per_sframe / mac_cfg.tslots_per_sec / LISTEN_PRD_SECS)
             return me.handled(me, event)
 
         elif sig == pq.Signal.MAC_TMR_PRDC:
@@ -103,22 +126,12 @@ class HeyMacAhsm(pq.Ahsm):
                 return me.tran(me, me.scheduling)
             return me.handled(me, event)
 
-        elif sig == pq.Signal.PHY_RX_DATA:
-            rx_time, payld, rssi, snr = event.value
-            f = mac_frame.HeyMacFrame(bytes(payld))
-            if isinstance(f.data, mac_cmds.HeyMacCmdBeacon):
-                print("lstng Rx %d bytes, rssi=%d dBm, snr=%.3f dB\t%s" % (len(payld), rssi, snr, repr(f)))
-                # TODO: add to ngbr data
-            else:
-                print("rxd pkt is not a bcn")
-            return me.handled(me, event)
-
         elif sig == pq.Signal.EXIT:
             del me.tries
             me.tm_evt.disarm()
             return me.handled(me, event)
 
-        return me.super(me, me.top)
+        return me.super(me, me.running)
 
 
     @staticmethod
@@ -129,24 +142,49 @@ class HeyMacAhsm(pq.Ahsm):
         otherwise, the slot is chosen arbitrarily.
         If this node has received PPS, tx and rx timeslots are synchronized.
         """
+        TSLOT_PREP_TIME = 0.100 # secs
+
         sig = event.signal
         if sig == pq.Signal.ENTRY:
             print("SCHEDULING")
-            me.tslot_time = me.pps_est / mac_cfg.tslots_per_sec
-            me.tm_evt.postIn(me, me.tslot_time)  # TODO: ensure this is longer than the rx timeout
+            
+            # If there has been no PPS, use now as a pseudo edge
+            if not me.time_of_last_pps:
+                me.time_of_last_pps = pq.Framework._event_loop.time()
+                me.tslots_since_last_pps = 0
+
+            # If there has been a PPS, initialize this variable
+            else:
+                me.tslots_since_last_pps = round((pq.Framework._event_loop.time() - me.time_of_last_pps) * mac_cfg.tslots_per_sec)
+
+            # Set the TimeEvent to post at the best estimate of the next PPS edge
+            me.tslots_since_last_pps += 1
+            next_tslot = me.time_of_last_pps + me.tslots_since_last_pps * (1.0 - me.pps_err) / mac_cfg.tslots_per_sec
+            next_tslot_prep = next_tslot - TSLOT_PREP_TIME
+            me.tm_evt.postAt(me, next_tslot) #TODO: use next_tslot_prep
+
             me.asn = 0
             me.bcn_seq = 0
-            me.bcn_slot = mac_identity.pub_key[0] % mac_cfg.tslots_per_sframe
+            me.bcn_slot = mac_identity['pub_key'][0] % mac_cfg.tslots_per_sframe
             return me.handled(me, event)
 
         elif sig == pq.Signal.MAC_TMR_PRDC:
-            me.tm_evt.postIn(me, me.tslot_time)  # TODO: ensure this is longer than the rx timeout
+            # Set the TimeEvent to post at the best estimate of the next PPS edge
+            me.tslots_since_last_pps += 1
+            next_tslot = me.time_of_last_pps + me.tslots_since_last_pps * (1.0 - me.pps_err) / mac_cfg.tslots_per_sec
+            next_tslot_prep = next_tslot - TSLOT_PREP_TIME
+            me.tm_evt.postAt(me, next_tslot) #TODO: use next_tslot_prep
             me.asn += 1
+
             if me.asn % mac_cfg.tslots_per_sframe == me.bcn_slot:
                 print("bcn")
                 value = (0, phy_cfg.tx_freq, me.build_beacon_cmd(me.bcn_seq)) # tx time, freq and data
                 me.bcn_seq += 1
                 pq.Framework.post(pq.Event(pq.Signal.TRANSMIT, value), "SX127xSpiAhsm")
+
+            elif me.asn % 4 == 0:
+                value = (0, phy_cfg.rx_freq) # rx time and freq
+                pq.Framework.post(pq.Event(pq.Signal.RECEIVE, value), "SX127xSpiAhsm")
 
             return me.handled(me, event)
 
@@ -154,7 +192,7 @@ class HeyMacAhsm(pq.Ahsm):
             me.tm_evt.disarm()
             return me.handled(me, event)
 
-        return me.super(me, me.top)
+        return me.super(me, me.running)
 
     @staticmethod
     def exiting(me, event):
@@ -188,3 +226,44 @@ class HeyMacAhsm(pq.Ahsm):
         f.data = bcn
         return bytes(f)
 
+
+    def on_pps(self, time_of_pps):
+        """Measures the amount of computer clock time that has elapsed
+        since the previous GPS PPS pulse.  Calculates the amount of error 
+        between the computer clock time and the PPS edge.
+        (self.pps_err).
+        """
+        # If there are two PPS pulses within the following amount of time [secs],
+        # then use the delta between PPS pulses to calculate the
+        # computer clock time per second.
+        PPS_GAP_TOLERANCE = 10
+
+        if self.time_of_last_pps:
+            delta = time_of_pps - self.time_of_last_pps
+            if delta < PPS_GAP_TOLERANCE:
+
+                # Remove the whole seconds and divide by the number of secs
+                # to get the amount of error per second
+                whole_secs = round(delta)
+                err = (delta - whole_secs) / whole_secs
+
+                # TODO: least squares fit
+                # For now, do this cheap IIR average
+                self.pps_err = (self.pps_err + err) * 0.5
+
+        # Save this one for the next time
+        self.time_of_last_pps = time_of_pps
+
+        # Reset this counter used in scheduling state
+        self.tslots_since_last_pps = 0
+
+
+    def on_rx_frame(self, rx_time, payld, rssi, snr):
+        """
+        """
+        f = mac_frame.HeyMacFrame(bytes(payld))
+        if isinstance(f.data, mac_cmds.HeyMacCmdBeacon):
+            print("MAC_TMR_PRDC Rx %d bytes, rssi=%d dBm, snr=%.3f dB\t%s" % (len(payld), rssi, snr, repr(f)))
+            # TODO: add to ngbr data
+        else:
+            print("rxd pkt is not a bcn")

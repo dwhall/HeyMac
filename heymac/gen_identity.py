@@ -3,12 +3,14 @@
 """
 Copyright 2017 Dean Hall.  See LICENSE for details.
 
-This is a tool to generate a mac_identity.py file.
+This is a tool to generate a HeyMac identity configuration file.
 An asymmetric cryptographic keypair is generated
-such that the SHA512(SHA512(pub_key)) starts with 0xFC
+such that the SHA512(SHA512(pub_key)) starts with 0xFC or 0xFD
 """
 
-import hashlib, random
+import hashlib, os.path, random
+
+import cfg
 
 
 def gen_keypair():
@@ -26,9 +28,9 @@ def gen_personal_keypair():
 def gen_device_keypair():
     return _gen_specific_keypair("fd")
 
-def _gen_specific_keypair(firstbyte):
-    """Generate keypairs and forget them
-    until we make one with a specific first byte.
+def _gen_specific_keypair(prefix):
+    """Generates keypairs and forgets them
+    until one is made with a specific prefix (nibble, byte or bytes).
     """
     done = False
     while not done:
@@ -36,10 +38,21 @@ def _gen_specific_keypair(firstbyte):
         h = hashlib.sha512()
         h.update(pub_key)
         h.update(h.digest())
-        done = h.hexdigest().startswith(firstbyte)
+        done = h.hexdigest().startswith(prefix)
     return (prv_key, pub_key)
 
 
 if __name__ == "__main__":
+    name = input("Full name: ")
+    callsign = input("Callsign: ")
     _, pub_key = gen_device_keypair()
-    print("pub_key:", pub_key)
+
+    fn = os.path.join(cfg.get_app_data_path("HeyMac"), "mac_identity.json")
+    with open(fn, 'w') as f:
+        f.write(
+            '{\n'
+            '"name": "%s"\n'
+            '"callsign": "%s"\n'
+            '"pub_key": "%s"\n'
+            '}\n'
+            % (name, callsign, pub_key))

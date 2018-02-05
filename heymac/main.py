@@ -1,3 +1,12 @@
+#!/usr/bin/env python3
+
+"""
+Copyright 2018 Dean Hall.  See LICENSE for details.
+
+Launches all the state machines to run the HeyMac network
+"""
+
+
 import asyncio
 
 import mac_ahsm

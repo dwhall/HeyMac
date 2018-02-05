@@ -16,9 +16,11 @@ import pq
 uart_port = "/dev/serial0"
 uart_baud = 9600
 
-# Constants
+# Time period to check UART for NMEA data
 GPS_NMEA_PERIOD = 0.100 # [secs]
-SER_FIFO_MAX = 4095
+
+# UART buffer size depends on baud rate (2X for margin)
+SER_FIFO_MAX = 2 * round(uart_baud * GPS_NMEA_PERIOD)
 
 
 class UartAhsm(pq.Ahsm):
@@ -64,6 +66,7 @@ class UartAhsm(pq.Ahsm):
                 me.nmea_data = me.nmea_data[n+2:]
                 if b"GPRMC" in nmea_sentence: 
                     pq.Framework.publish(pq.Event(pq.Signal.GPS_NMEA, nmea_sentence))
+#                    print(nmea_sentence) #DBG
                 n = me.nmea_data.find(b"\r\n")
             return me.handled(me, event)
 

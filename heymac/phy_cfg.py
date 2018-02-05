@@ -1,8 +1,8 @@
 import lora_driver
 
 # Transmit and receive center frequencies
-tx_freq = 434.000e6
-rx_freq = 434.000e6
+tx_freq = 432.550e6
+rx_freq = 432.550e6
 
 # Modem configuration
 sx127x_cfg = lora_driver.SX127xConfig(
@@ -23,4 +23,4 @@ reset = {"pin":17, "sig_name":"GPS_RST"}
 dio0 = {"pin":4, "sig_name":"PHY_DIO0"}
 dio1 = {"pin":23, "sig_name":"PHY_DIO1"}
 dio2 = {"pin":24, "sig_name":"PHY_DIO2"}
-pps = {"pin":26, "sig_name":"PHY_PPS"}
+pps = {"pin":26, "sig_name":"PHY_GPS_PPS"}
