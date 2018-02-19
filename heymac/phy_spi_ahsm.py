@@ -39,6 +39,9 @@ class SX127xSpiAhsm(pq.Ahsm):
 
         me.sx127x = lora_driver.SX127xSpi()
 
+        # Initialize a timer event
+        me.tm_evt = pq.TimeEvent("_TM_EVT_TMOUT")
+
         return me.tran(me, SX127xSpiAhsm.initializing)
 
 
@@ -121,18 +124,15 @@ class SX127xSpiAhsm(pq.Ahsm):
             me.sx127x.set_dio_mapping(dio0=0, dio1=0)
             me.sx127x.set_rx_fifo()
 
-            # Skipping fsrxing for now so set freq
-            me.sx127x.set_rx_freq(me.rx_freq)
-
-            #TODO set timer to RX at appropriate time
-
             # Reminder pattern to trans to fsrxing
             me.postFIFO(pq.Event(pq.Signal.ALWAYS, None))
             return me.handled(me, event)
 
         elif sig == pq.Signal.ALWAYS:
-#            return me.tran(me, SX127xSpiAhsm.fsrxing)
-            return me.tran(me, SX127xSpiAhsm.receiving)
+            if me.rx_time == 0:
+                return me.tran(me, SX127xSpiAhsm.receiving)
+            else:
+                return me.tran(me, SX127xSpiAhsm.fsrxing)
 
         return me.super(me, me.idling)
 
@@ -143,11 +143,15 @@ class SX127xSpiAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            me.sx127x.set_rx_freq(freq)  # freq?
-            me.sx127x.set_mode("fsrx")
+            print("fsrx           ", pq.Framework._event_loop.time())
+            print("rx_time        ", me.rx_time)
+            me.tm_evt.postAt(me, me.rx_time)
+            me.sx127x.set_rx_freq(me.rx_freq)
+            me.sx127x.set_op_mode("fsrx")
             return me.handled(me, event)
 
-        elif sig == pq.Signal.TMOUT:
+        elif sig == pq.Signal._TM_EVT_TMOUT:
+            print("fsrx tmout     ", pq.Framework._event_loop.time())
             return me.tran(me, SX127xSpiAhsm.receiving)
 
         return me.super(me, me.top)
@@ -159,6 +163,7 @@ class SX127xSpiAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
+            print("rxonce         ", pq.Framework._event_loop.time())
             me.sx127x.set_op_mode(mode="rxonce")
             return me.handled(me, event)
         
@@ -173,7 +178,7 @@ class SX127xSpiAhsm(pq.Ahsm):
                 pass
             return me.tran(me, SX127xSpiAhsm.idling)
 
-        elif sig == pq.Signal.PHY_DIO1: # RX_TIMEOUT
+        elif sig == pq.Signal.PHY_DIO1: # RX_TM_EVT_TMOUT
             me.sx127x.clear_irqs(lora_driver.IRQFLAGS_RXTIMEOUT_MASK)
             return me.tran(me, SX127xSpiAhsm.idling)
 
@@ -201,9 +206,6 @@ class SX127xSpiAhsm(pq.Ahsm):
             me.sx127x.set_dio_mapping(dio0=1)
             me.sx127x.set_tx_data(me.tx_data)
 
-            # Set the transmit frequency
-            me.sx127x.set_tx_freq(me.tx_freq)
-
             # Reminder pattern to trans to fstxing
             me.postFIFO(pq.Event(pq.Signal.ALWAYS, None))
             return me.handled(me, event)
@@ -212,7 +214,6 @@ class SX127xSpiAhsm(pq.Ahsm):
             if me.tx_time == 0:
                 return me.tran(me, SX127xSpiAhsm.transmitting)
             else:
-                #TODO set timer to TX at appropriate time
                 return me.tran(me, SX127xSpiAhsm.fstxing)
 
         elif sig == pq.Signal.EXIT:
@@ -227,11 +228,15 @@ class SX127xSpiAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            me.sx127x.set_mode("fstx")
+            me.tm_evt.postAt(me, me.tx_time)
+
+            # Set the frequency and start freq synth
+            me.sx127x.set_tx_freq(me.tx_freq)
+            me.sx127x.set_op_mode("fstx")
             return me.handled(me, event)
 
-        elif sig == pq.Signal.TMOUT:
-            return me.tran(me, SX127xSpiAhsm.transmit)
+        elif sig == pq.Signal._TM_EVT_TMOUT:
+            return me.tran(me, SX127xSpiAhsm.transmitting)
 
         return me.super(me, me.top)
 
@@ -242,6 +247,7 @@ class SX127xSpiAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
+            print("tx             ", pq.Framework._event_loop.time())
             me.sx127x.set_op_mode(mode="tx")
             return me.handled(me, event)
 
