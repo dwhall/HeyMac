@@ -143,15 +143,12 @@ class SX127xSpiAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            print("fsrx           ", pq.Framework._event_loop.time())
-            print("rx_time        ", me.rx_time)
             me.tm_evt.postAt(me, me.rx_time)
             me.sx127x.set_rx_freq(me.rx_freq)
             me.sx127x.set_op_mode("fsrx")
             return me.handled(me, event)
 
         elif sig == pq.Signal._TM_EVT_TMOUT:
-            print("fsrx tmout     ", pq.Framework._event_loop.time())
             return me.tran(me, SX127xSpiAhsm.receiving)
 
         return me.super(me, me.top)
@@ -168,10 +165,10 @@ class SX127xSpiAhsm(pq.Ahsm):
             return me.handled(me, event)
         
         elif sig == pq.Signal.PHY_DIO0: # RX_DONE
-            rx_time = event.value
+            rxd_time = event.value
             if me.sx127x.check_rx_flags():
                 payld, rssi, snr = me.sx127x.get_rx()
-                pkt_data = (rx_time, payld, rssi, snr)
+                pkt_data = (rxd_time, payld, rssi, snr)
                 pq.Framework.publish(pq.Event(pq.Signal.PHY_RX_DATA, pkt_data))
             else:
                 # TODO: crc error stats
@@ -229,6 +226,7 @@ class SX127xSpiAhsm(pq.Ahsm):
         sig = event.signal
         if sig == pq.Signal.ENTRY:
             me.tm_evt.postAt(me, me.tx_time)
+            print("tx_time        ", me.tx_time)
 
             # Set the frequency and start freq synth
             me.sx127x.set_tx_freq(me.tx_freq)
