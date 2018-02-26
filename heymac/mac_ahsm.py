@@ -51,7 +51,7 @@ class HeyMacAhsm(pq.Ahsm):
         # Init HeyMac values
         me.asn = 0
         me.bcn_seq = 0
-        me.bcn_slot = mac_identity['pub_key'][0] % mac_cfg.tslots_per_sframe
+        me.bcn_slot = (mac_identity['pub_key'][0] % mac_cfg.tslots_per_sframe) & ~3
 
         # Error of computer clock time [secs]
         # calculated as: time_at_pps - prev_time_at_pps
@@ -191,8 +191,6 @@ class HeyMacAhsm(pq.Ahsm):
             """
             # Count the Absolute Slot Number
             me.asn += 1
-
-#            print("prep           ", pq.Framework._event_loop.time())
 
             # Transmit a beacon during this node's beacon slot
             if me.asn % mac_cfg.tslots_per_sframe == me.bcn_slot:
