@@ -198,8 +198,17 @@ class SX127xSpiAhsm(pq.Ahsm):
             return me.handled(me, event)
 
         elif sig == pq.Signal.ALWAYS:
+            # Calculate precise sleep time and apply a TX margin
+            # to allow receivers time to get ready
             tiny_sleep = me.tx_time - pq.Framework._event_loop.time()
-            if 0.0 < tiny_sleep < 0.050: # mac layer uses .04s PREP time
+            tiny_sleep += phy_cfg.tx_margin
+
+            # If TX time has passed, don't sleep
+            # Else use sleep to get ~1ms precision
+            # Cap sleep at 50ms so we don't block for too long
+            if 0.0 < tiny_sleep: # because MAC layer uses 40ms PREP time
+                if tiny_sleep > 0.050:
+                    tiny_sleep = 0.050
                 time.sleep(tiny_sleep)
             return me.tran(me, SX127xSpiAhsm.transmitting)
 
