@@ -51,7 +51,14 @@ class HeyMacAhsm(pq.Ahsm):
         # Init HeyMac values
         me.asn = 0
         me.bcn_seq = 0
-        me.bcn_slot = (mac_identity['pub_key'][0] % mac_cfg.tslots_per_sframe) & ~3
+
+        # This is the initial value for this node's beacon slot.
+        # There may be a slot collision, so the final beacon slot may vary.
+        # The first byte of this node's public key is a nice pseudo-random value
+        # to use to determine this node's Tslot to use for beaconing.
+        me.bcn_slot = (mac_identity['pub_key'][0] % mac_cfg.tslots_per_sframe)
+        # Beacon slots are the first slots after a PPS
+        me.bcn_slot = math.floor(me.bcn_slot / mac_cfg.tslots_per_sec) * mac_cfg.tslots_per_sec
 
         # Error of computer clock time [secs]
         # calculated as: time_at_pps - prev_time_at_pps
@@ -91,7 +98,7 @@ class HeyMacAhsm(pq.Ahsm):
             return me.handled(me, event)
 
         elif sig == pq.Signal.PHY_GPS_PPS:
-            print("pps            ", event.value)
+#            print("pps            ", event.value)
             me.on_pps(event.value)
             return me.handled(me, event)
 
@@ -276,7 +283,12 @@ class HeyMacAhsm(pq.Ahsm):
     def on_rx_frame(self, rx_time, payld, rssi, snr):
         """
         """
-        f = mac_frame.HeyMacFrame(bytes(payld))
+        try:
+            f = mac_frame.HeyMacFrame(bytes(payld))
+        except:
+            print("rxd pkt failed unpacking")
+            return
+
         if isinstance(f.data, mac_cmds.HeyMacCmdBeacon):
             print("MAC_TMR_PRDC Rx %d bytes, rssi=%d dBm, snr=%.3f dB\t%s" % (len(payld), rssi, snr, repr(f)))
             # TODO: add to ngbr data
