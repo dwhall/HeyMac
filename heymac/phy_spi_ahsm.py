@@ -42,9 +42,6 @@ class SX127xSpiAhsm(pq.Ahsm):
 
         me.sx127x = lora_driver.SX127xSpi()
 
-        # Initialize a timer event
-        me.tm_evt = pq.TimeEvent("_TM_EVT_TMOUT")
-
         return me.tran(me, SX127xSpiAhsm.initializing)
 
 
@@ -163,7 +160,7 @@ class SX127xSpiAhsm(pq.Ahsm):
                 pass
             return me.tran(me, SX127xSpiAhsm.idling)
 
-        elif sig == pq.Signal.PHY_DIO1: # RX_TM_EVT_TMOUT
+        elif sig == pq.Signal.PHY_DIO1: # RX_TIMEOUT
             me.sx127x.clear_irqs(lora_driver.IRQFLAGS_RXTIMEOUT_MASK)
             return me.tran(me, SX127xSpiAhsm.idling)
 
