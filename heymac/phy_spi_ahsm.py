@@ -11,6 +11,8 @@ Physical Layer State Machine for SPI operations to the SX127x device
 
 import lora_driver, pq
 
+import phy_cfg
+
 
 class SX127xSpiAhsm(pq.Ahsm):
 
@@ -123,35 +125,19 @@ class SX127xSpiAhsm(pq.Ahsm):
             # Prepare DIO0,1 to cause RxDone, RxTimeout interrupts
             me.sx127x.set_dio_mapping(dio0=0, dio1=0)
             me.sx127x.set_rx_fifo()
-
-            # Reminder pattern to trans to fsrxing
-            me.postFIFO(pq.Event(pq.Signal.ALWAYS, None))
-            return me.handled(me, event)
-
-        elif sig == pq.Signal.ALWAYS:
-            if me.rx_time == 0:
-                return me.tran(me, SX127xSpiAhsm.receiving)
-            else:
-                return me.tran(me, SX127xSpiAhsm.fsrxing)
-
-        return me.super(me, me.idling)
-
-
-    @staticmethod
-    def fsrxing(me, event):
-        """State: SX127xSpiAhsm:fsrxing
-        """
-        sig = event.signal
-        if sig == pq.Signal.ENTRY:
-            me.tm_evt.postAt(me, me.rx_time)
             me.sx127x.set_rx_freq(me.rx_freq)
-            me.sx127x.set_op_mode("fsrx")
+
+            # Receive now or at the prescribed rx_time
+            if me.rx_time == 0:
+                me.tm_evt.postIn(me, 0)
+            else:
+                me.tm_evt.postAt(me, me.rx_time)
             return me.handled(me, event)
 
         elif sig == pq.Signal._TM_EVT_TMOUT:
             return me.tran(me, SX127xSpiAhsm.receiving)
 
-        return me.super(me, me.top)
+        return me.super(me, me.idling)
 
 
     @staticmethod
@@ -160,6 +146,7 @@ class SX127xSpiAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
+            print("rx_time        ", me.rx_time)
             print("rxonce         ", pq.Framework._event_loop.time())
             me.sx127x.set_op_mode(mode="rxonce")
             return me.handled(me, event)
@@ -203,15 +190,18 @@ class SX127xSpiAhsm(pq.Ahsm):
             me.sx127x.set_dio_mapping(dio0=1)
             me.sx127x.set_tx_data(me.tx_data)
 
-            # Reminder pattern to trans to fstxing
-            me.postFIFO(pq.Event(pq.Signal.ALWAYS, None))
+            me.sx127x.set_tx_freq(me.tx_freq)
+
+            # Transmit now or at the prescribed rx_time
+            if me.tx_time == 0:
+                me.tm_evt.postIn(me, 0)
+            else:
+                me.tm_evt.postAt(me, me.tx_time + phy_cfg.tx_margin)
             return me.handled(me, event)
 
-        elif sig == pq.Signal.ALWAYS:
-            if me.tx_time == 0:
-                return me.tran(me, SX127xSpiAhsm.transmitting)
-            else:
-                return me.tran(me, SX127xSpiAhsm.fstxing)
+
+        elif sig == pq.Signal._TM_EVT_TMOUT:
+            return me.tran(me, SX127xSpiAhsm.transmitting)
 
         elif sig == pq.Signal.EXIT:
             return me.handled(me, event)
@@ -220,31 +210,12 @@ class SX127xSpiAhsm(pq.Ahsm):
 
 
     @staticmethod
-    def fstxing(me, event):
-        """State: SX127xSpiAhsm:fstxing
-        """
-        sig = event.signal
-        if sig == pq.Signal.ENTRY:
-            me.tm_evt.postAt(me, me.tx_time)
-            print("tx_time        ", me.tx_time)
-
-            # Set the frequency and start freq synth
-            me.sx127x.set_tx_freq(me.tx_freq)
-            me.sx127x.set_op_mode("fstx")
-            return me.handled(me, event)
-
-        elif sig == pq.Signal._TM_EVT_TMOUT:
-            return me.tran(me, SX127xSpiAhsm.transmitting)
-
-        return me.super(me, me.top)
-
-
-    @staticmethod
     def transmitting(me, event):
         """State: SX127xSpiAhsm:transmitting
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
+            print("tx_time        ", me.tx_time)
             print("tx             ", pq.Framework._event_loop.time())
             me.sx127x.set_op_mode(mode="tx")
             return me.handled(me, event)

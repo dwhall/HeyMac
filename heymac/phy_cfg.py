@@ -4,6 +4,8 @@ import lora_driver
 tx_freq = 432.550e6
 rx_freq = 432.550e6
 
+tx_margin = 0.030 # secs
+
 # Modem configuration
 sx127x_cfg = lora_driver.SX127xConfig(
     bandwidth=250000,
