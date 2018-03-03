@@ -9,7 +9,7 @@ Launches all the state machines to run the HeyMac network
 
 import asyncio
 
-import mac_ahsm
+import mac_tdma_ahsm
 import phy_gpio_ahsm, phy_spi_ahsm, phy_uart_ahsm
 
 
@@ -18,7 +18,7 @@ if __name__ == "__main__":
     gpioAhsm = phy_gpio_ahsm.GpioAhsm(phy_gpio_ahsm.GpioAhsm.initial)
     spiAhsm = phy_spi_ahsm.SX127xSpiAhsm(phy_spi_ahsm.SX127xSpiAhsm.initial)
     uartAhsm = phy_uart_ahsm.UartAhsm(phy_uart_ahsm.UartAhsm.initial)
-    macAhsm = mac_ahsm.HeyMacAhsm(mac_ahsm.HeyMacAhsm.initial)
+    macAhsm = mac_tdma_ahsm.HeyMacAhsm(mac_tdma_ahsm.HeyMacAhsm.initial)
 
     # Start state machines
     spiAhsm.start(10)
