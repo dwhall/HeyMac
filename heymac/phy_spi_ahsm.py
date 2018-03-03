@@ -8,6 +8,7 @@ Physical Layer State Machine for SPI operations to the SX127x device
 - responds to a handful of events (expected from Layer 2 (MAC))
 """
 
+import time
 
 import lora_driver, pq
 
@@ -127,14 +128,14 @@ class SX127xSpiAhsm(pq.Ahsm):
             me.sx127x.set_rx_fifo()
             me.sx127x.set_rx_freq(me.rx_freq)
 
-            # Receive now or at the prescribed rx_time
-            if me.rx_time == 0:
-                me.tm_evt.postIn(me, 0)
-            else:
-                me.tm_evt.postAt(me, me.rx_time)
+            # Reminder pattern 
+            me.postFIFO(pq.Event(pq.Signal.ALWAYS, None))
             return me.handled(me, event)
 
-        elif sig == pq.Signal._TM_EVT_TMOUT:
+        elif sig == pq.Signal.ALWAYS:
+            tiny_sleep = me.rx_time - pq.Framework._event_loop.time()
+            if 0.0 < tiny_sleep < 0.050: # mac layer uses .04s PREP time
+                time.sleep(tiny_sleep)
             return me.tran(me, SX127xSpiAhsm.receiving)
 
         return me.super(me, me.idling)
@@ -192,19 +193,15 @@ class SX127xSpiAhsm(pq.Ahsm):
 
             me.sx127x.set_tx_freq(me.tx_freq)
 
-            # Transmit now or at the prescribed rx_time
-            if me.tx_time == 0:
-                me.tm_evt.postIn(me, 0)
-            else:
-                me.tm_evt.postAt(me, me.tx_time + phy_cfg.tx_margin)
+            # Reminder pattern 
+            me.postFIFO(pq.Event(pq.Signal.ALWAYS, None))
             return me.handled(me, event)
 
-
-        elif sig == pq.Signal._TM_EVT_TMOUT:
+        elif sig == pq.Signal.ALWAYS:
+            tiny_sleep = me.tx_time - pq.Framework._event_loop.time()
+            if 0.0 < tiny_sleep < 0.050: # mac layer uses .04s PREP time
+                time.sleep(tiny_sleep)
             return me.tran(me, SX127xSpiAhsm.transmitting)
-
-        elif sig == pq.Signal.EXIT:
-            return me.handled(me, event)
 
         return me.super(me, me.idling)
 
