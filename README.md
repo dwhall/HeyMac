@@ -19,7 +19,7 @@ the physical layer SHOULD have a CRC or
 the network layer SHOULD have a message authentication code.
 
 The following diagram shows the HeyMac frame fields and their order.
-The topmost field in the digram is transmitted first.
+The topmost field in the diagram is transmitted first.
 
 ```
         +----+----+----+----+----+----+----+----+
@@ -110,13 +110,17 @@ where `n + 1` is the entire length of the frame in octets,
 counted from the Frame Control field to the end of the Payload.
 So Lencode ranges 0..255 to represent frame lengths of 1..256.
 
+When the Lencode field is absent, the physical layer SHOULD provide the
+length of the frame.  If the physical layer does not provide the length
+of the frame, the length of the frame MAY be estimated from the information
+given in the Frame Control field and an empty payload.
+
 ### Version and Sequence
 
 When the Version and Sequence field is present, it is an 8-bit unsigned value
 consisting of two sub-fields.
-The Version subfield is an unsigned 4-bit value indicating the HeyMac protocol version.
-The Sequence subfield is an unsigned 4-bit sequence number.
-The Version subfield occupies the upper 4 bits, while Sequence occupies the lower 4 bits.
+The Version subfield occupies the upper 4 bits and indicates the HeyMac protocol version.
+The Sequence subfield occupies the lower 4 bits and is an unsigned sequence number.
 
 ### Extended Type
 
@@ -132,7 +136,7 @@ representing the address of the destination for this frame.
 ### Source Address
 
 When the Source Address field is present, it is a 16- or 64-bit unsigned value
-representing the address of the destination for this frame.
+representing the address of the source for this frame.
 
 ### Network ID
 
