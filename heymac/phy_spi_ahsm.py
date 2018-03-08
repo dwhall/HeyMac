@@ -111,6 +111,8 @@ class SX127xSpiAhsm(pq.Ahsm):
         get regs and FIFO ready for RX.
         Always transfer to Frequency Synth RX mode.
         """
+        MAX_BLOCK_TIME = 0.050 # secs
+
         sig = event.signal
         if sig == pq.Signal.ENTRY:
 
@@ -131,7 +133,7 @@ class SX127xSpiAhsm(pq.Ahsm):
 
         elif sig == pq.Signal.ALWAYS:
             tiny_sleep = me.rx_time - pq.Framework._event_loop.time()
-            if 0.0 < tiny_sleep < 0.050: # mac layer uses .04s PREP time
+            if 0.0 < tiny_sleep < MAX_BLOCK_TIME:
                 time.sleep(tiny_sleep)
             return me.tran(me, SX127xSpiAhsm.receiving)
 
@@ -144,8 +146,8 @@ class SX127xSpiAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            print("rx_time        ", me.rx_time)
-            print("rxonce         ", pq.Framework._event_loop.time())
+#            print("rx_time        ", me.rx_time)
+#            print("rxonce         ", pq.Framework._event_loop.time())
             me.sx127x.set_op_mode(mode="rxonce")
             return me.handled(me, event)
         
@@ -157,7 +159,8 @@ class SX127xSpiAhsm(pq.Ahsm):
                 pq.Framework.publish(pq.Event(pq.Signal.PHY_RX_DATA, pkt_data))
             else:
                 # TODO: crc error stats
-                pass
+                print("rx CRC error")
+
             return me.tran(me, SX127xSpiAhsm.idling)
 
         elif sig == pq.Signal.PHY_DIO1: # RX_TIMEOUT
