@@ -18,8 +18,8 @@ class HeyMacCmdBeacon(dpkt.Packet):
         ('cmd', 'B', HEYMAC_CMD_BEACON),
         ('asn', 'I', 0),
         ('slotmap', 'I', 0), # REMOVE after old beacon is deprecated
-#        ('disc_src', 'B', b"\x00"),     # 0:None, 1:RF, 2:GPS
-#        ('disc_hops', 'B', b"\x00"),
+#        ('dscpln_src', 'B', b"\x00"),     # 0:None, 1:RF, 2:GPS
+#        ('dscpln_hops', 'B', b"\x00"),
 #        ('caps', 'I', 0),   # capabilities
 #        ('flags', 'I', 0),  # status flags
 #        ('sframe_nchnls', 'B', b"\x01"),
