@@ -4,7 +4,7 @@ import lora_driver
 tx_freq = 432.550e6
 rx_freq = 432.550e6
 
-tx_margin = 0.010 # secs
+tx_margin = 0.005 # secs
 
 # Modem configuration
 sx127x_cfg = lora_driver.SX127xConfig(
@@ -13,7 +13,7 @@ sx127x_cfg = lora_driver.SX127xConfig(
     implct_hdr_mode=False,
     spread_factor=128,
     tx_cont=False,
-    en_crc=False,
+    en_crc=True,
     symbol_count=255, # rx timeout about 1 full frame size
     preamble_len=8, # chip adds 4 more symbol lengths to this
     en_ldr=False,
