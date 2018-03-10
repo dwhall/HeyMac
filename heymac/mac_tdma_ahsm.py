@@ -140,8 +140,8 @@ class HeyMacAhsm(pq.Ahsm):
             return me.handled(me, event)
 
         elif sig == pq.Signal.TM_EVT_TMOUT: # listen time has expired
-            # If PPS received, transfer to scheduling state
-            if me.time_of_last_pps:
+            # If two PPS have been received, transfer to scheduling state
+            if me.pps_err:
                 return me.tran(me, me.scheduling)
             else:
                 print("remain listening")
@@ -275,7 +275,6 @@ class HeyMacAhsm(pq.Ahsm):
         since the previous beacon.  Calculates the amount of error
         between the two and generates an average error, .bcn_err
         """
-        print("calc_bcn_timing", time_of_bcn)
         # If there are two beacons within the following amount of time [secs],
         # then use the delta between beacons to calculate the
         # computer clock time per second.
@@ -347,8 +346,8 @@ class HeyMacAhsm(pq.Ahsm):
 
         if isinstance(f.data, mac_cmds.HeyMacCmdBeacon):
             self.calc_bcn_timing(rx_time)
-            print("rx_time        ", rx_time)
-            print("RXD %d bytes, rssi=%d dBm, snr=%.3f dB\t%s" % (len(payld), rssi, snr, repr(f)))
+            print("rx_done        ", rx_time,
+                  "RXD %d bytes, rssi=%d dBm, snr=%.3f dB\t%s" % (len(payld), rssi, snr, repr(f)))
             # TODO: add to ngbr data
         else:
             print("rxd pkt is not a bcn")
