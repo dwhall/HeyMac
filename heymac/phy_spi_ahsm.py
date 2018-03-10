@@ -27,6 +27,9 @@ class SX127xSpiAhsm(pq.Ahsm):
         # Outgoing
         pq.Signal.register("PHY_RX_DATA")
 
+        # Incoming
+        pq.Signal.register("CANCEL")
+
         # Incoming from higher layer
         pq.Framework.subscribe("CFG_LORA", me)
         pq.Framework.subscribe("SLEEP", me)
@@ -107,9 +110,10 @@ class SX127xSpiAhsm(pq.Ahsm):
     @staticmethod
     def rx_prepping(me, event):
         """State: SX127xSpiAhsm:idling:rx_prepping
-        While still in radio's standby mode,
-        get regs and FIFO ready for RX.
-        Always transfer to Frequency Synth RX mode.
+        While still in radio's standby mode, get regs and FIFO ready for RX.
+        If a positive rx_time is given, sleep (blocking) for a tiny amount.
+        If rx_time is zero or less, receive immediately.
+        Always transfer to the Receiving state.
         """
         MAX_BLOCK_TIME = 0.050 # secs
 
@@ -132,25 +136,45 @@ class SX127xSpiAhsm(pq.Ahsm):
             return me.handled(me, event)
 
         elif sig == pq.Signal.ALWAYS:
-            tiny_sleep = me.rx_time - pq.Framework._event_loop.time()
-            if 0.0 < tiny_sleep < MAX_BLOCK_TIME:
-                time.sleep(tiny_sleep)
+            if me.rx_time >= 0:
+                tiny_sleep = me.rx_time - pq.Framework._event_loop.time()
+                if 0.0 < tiny_sleep < MAX_BLOCK_TIME:
+                    time.sleep(tiny_sleep)
             return me.tran(me, SX127xSpiAhsm.receiving)
 
         return me.super(me, me.idling)
 
 
     @staticmethod
-    def receiving(me, event):
-        """State SX127xSpiAhsm:receiving
+    def working(me, event):
+        """State SX127xSpiAhsm:working
+        This state provides a CANCEL handler that returns the radio to stdby.
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-#            print("rx_time        ", me.rx_time)
-#            print("rxonce         ", pq.Framework._event_loop.time())
-            me.sx127x.set_op_mode(mode="rxonce")
             return me.handled(me, event)
-        
+
+        elif sig == pq.Signal.CANCEL:
+            me.sx127x.set_op_mode(mode="stdby")
+            return me.tran(me, me.idling)
+
+        return me.super(me, me.top)
+
+
+    @staticmethod
+    def receiving(me, event):
+        """State SX127xSpiAhsm:working:receiving
+        If the rx_time is less than zero, receive continuously;
+        the caller must establish a way to end the continuous mode.
+        """
+        sig = event.signal
+        if sig == pq.Signal.ENTRY:
+            if me.rx_time < 0:
+                me.sx127x.set_op_mode(mode="rxcont")
+            else:
+                me.sx127x.set_op_mode(mode="rxonce")
+            return me.handled(me, event)
+
         elif sig == pq.Signal.PHY_DIO0: # RX_DONE
             rxd_time = event.value
             if me.sx127x.check_rx_flags():
@@ -171,7 +195,7 @@ class SX127xSpiAhsm(pq.Ahsm):
             # TODO: future: DIO3  for earlier rx_time capture
             return me.handled(me, event)
 
-        return me.super(me, me.top)
+        return me.super(me, me.working)
 
 
 #### Transmit chain
@@ -229,5 +253,5 @@ class SX127xSpiAhsm(pq.Ahsm):
         elif sig == pq.Signal.PHY_DIO0: # TX_DONE
             return me.tran(me, SX127xSpiAhsm.idling)
 
-        return me.super(me, me.top)
+        return me.super(me, me.working)
 

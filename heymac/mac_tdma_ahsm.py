@@ -39,7 +39,7 @@ class HeyMacAhsm(pq.Ahsm):
         pq.Framework.subscribe("PHY_RX_DATA", me)
 
         # Initialize a timer event
-        me.tm_evt = pq.TimeEvent("MAC_TMR_PRDC")
+        me.tm_evt = pq.TimeEvent("TM_EVT_TMOUT")
         
         # Calculate the 128-bit source address from the identity's pub_key
         h = hashlib.sha512()
@@ -125,26 +125,30 @@ class HeyMacAhsm(pq.Ahsm):
     @staticmethod
     def listening(me, event):
         """State: HeyMacAhsm:running:listening
-        Listens to radio and GPS for timing indicators.
-        Transitions to Scheduling after listening for two superframes
+        Listens to radio and GPS for timing discipline sources.
+        Transitions to Scheduling after listening for N superframes.
         """
-        N_SFRAMES = 0.1 # 1.0
-        LISTEN_PRD_SECS = 0.750
+        N_SFRAMES_TO_LISTEN = 1.0
 
         sig = event.signal
         if sig == pq.Signal.ENTRY:
             print("LISTENING")
-            me.tm_evt.postEvery(me, LISTEN_PRD_SECS)  # TODO: ensure this is longer than the rx timeout
-            me.tries = int(N_SFRAMES * mac_cfg.tslots_per_sframe / mac_cfg.tslots_per_sec / LISTEN_PRD_SECS)
+            value = (-1, phy_cfg.rx_freq) # rx continuously on the rx_freq
+            pq.Framework.post(pq.Event(pq.Signal.RECEIVE, value), "SX127xSpiAhsm")
+            listen_secs = N_SFRAMES_TO_LISTEN * mac_cfg.tslots_per_sframe / mac_cfg.tslots_per_sec
+            me.tm_evt.postIn(me, listen_secs)
             return me.handled(me, event)
 
-        elif sig == pq.Signal.MAC_TMR_PRDC:
-            me.tries -= 1
-            if me.tries == 0:
-                return me.tran(me, me.scheduling)
-            else:
-                value = (0, phy_cfg.rx_freq) # rx time and freq
-                pq.Framework.post(pq.Event(pq.Signal.RECEIVE, value), "SX127xSpiAhsm")
+        elif sig == pq.Signal.TM_EVT_TMOUT: # listen time has expired
+            return me.tran(me, me.scheduling)
+ 
+        elif sig == pq.Signal.PHY_RX_DATA:
+            rx_time, payld, rssi, snr = event.value
+            me.on_rxd_frame(rx_time, payld, rssi, snr)
+
+            # rx continuously again
+            value = (-1, phy_cfg.rx_freq)
+            pq.Framework.post(pq.Event(pq.Signal.RECEIVE, value), "SX127xSpiAhsm")
             return me.handled(me, event)
 
         elif sig == pq.Signal.PHY_GPS_PPS:
@@ -153,8 +157,8 @@ class HeyMacAhsm(pq.Ahsm):
             return me.super(me, me.running)
 
         elif sig == pq.Signal.EXIT:
-            del me.tries
-            me.tm_evt.disarm()
+            # cancel continuous rx
+            pq.Framework.post(pq.Event(pq.Signal.CANCEL, None), "SX127xSpiAhsm")
             return me.handled(me, event)
 
         return me.super(me, me.running)
@@ -194,10 +198,9 @@ class HeyMacAhsm(pq.Ahsm):
             # Set the TimeEvent to expire at the next Prep Time
             me.next_tslot = me.time_of_last_pps + (1 + me.tslots_since_last_pps) * (1.0 - me.pps_err) / mac_cfg.tslots_per_sec
             me.tm_evt.postAt(me, me.next_tslot - TSLOT_PREP_TIME)
-
             return me.handled(me, event)
 
-        elif sig == pq.Signal.MAC_TMR_PRDC:
+        elif sig == pq.Signal.TM_EVT_TMOUT:
             """Handler for the periodic timer which is set to elapse at TSLOT_PREP_TIME
             number of seconds before the beginning of every Tslot.  This "prep time"
             allows the scheduler to select the MAC action for the next Tslot and
@@ -263,6 +266,7 @@ class HeyMacAhsm(pq.Ahsm):
         since the previous beacon.  Calculates the amount of error
         between the two and generates an average error, .bcn_err
         """
+        print("calc_bcn_timing", time_of_bcn)
         # If there are two beacons within the following amount of time [secs],
         # then use the delta between beacons to calculate the
         # computer clock time per second.
@@ -334,7 +338,7 @@ class HeyMacAhsm(pq.Ahsm):
 
         if isinstance(f.data, mac_cmds.HeyMacCmdBeacon):
             self.calc_bcn_timing(rx_time)
-            print("MAC_TMR_PRDC Rx %d bytes, rssi=%d dBm, snr=%.3f dB\t%s" % (len(payld), rssi, snr, repr(f)))
+            print("RXD %d bytes, rssi=%d dBm, snr=%.3f dB\t%s" % (len(payld), rssi, snr, repr(f)))
             # TODO: add to ngbr data
         else:
             print("rxd pkt is not a bcn")
