@@ -128,7 +128,7 @@ class HeyMacAhsm(pq.Ahsm):
         Listens to radio and GPS for timing discipline sources.
         Transitions to Scheduling after listening for N superframes.
         """
-        N_SFRAMES_TO_LISTEN = 1.0
+        N_SFRAMES_TO_LISTEN = 0.1 # 1.0
 
         sig = event.signal
         if sig == pq.Signal.ENTRY:
@@ -140,9 +140,17 @@ class HeyMacAhsm(pq.Ahsm):
             return me.handled(me, event)
 
         elif sig == pq.Signal.TM_EVT_TMOUT: # listen time has expired
-            return me.tran(me, me.scheduling)
+            # If PPS received, transfer to scheduling state
+            if me.time_of_last_pps:
+                return me.tran(me, me.scheduling)
+            else:
+                print("remain listening")
+                listen_secs = N_SFRAMES_TO_LISTEN * mac_cfg.tslots_per_sframe / mac_cfg.tslots_per_sec
+                me.tm_evt.postIn(me, listen_secs)
+                return me.handled(me, event)
  
         elif sig == pq.Signal.PHY_RX_DATA:
+            # handle received frame
             rx_time, payld, rssi, snr = event.value
             me.on_rxd_frame(rx_time, payld, rssi, snr)
 
@@ -151,6 +159,7 @@ class HeyMacAhsm(pq.Ahsm):
             pq.Framework.post(pq.Event(pq.Signal.RECEIVE, value), "SX127xSpiAhsm")
             return me.handled(me, event)
 
+        # This handler is for debug-print only and may be removed
         elif sig == pq.Signal.PHY_GPS_PPS:
             print("pps            ", event.value)
             # process PPS in the running state, too
@@ -189,7 +198,7 @@ class HeyMacAhsm(pq.Ahsm):
 
             # If there has been a PPS, initialize this variable
             else:
-                me.tslots_since_last_pps = math.floor((now - me.time_of_last_pps) * mac_cfg.tslots_per_sec)
+                me.tslots_since_last_pps = round((now - me.time_of_last_pps) * mac_cfg.tslots_per_sec)
 
                 # If no rx'd MAC frames have updated the ASN, init it to match latest PPS edge
                 if me.asn == 0:
@@ -338,6 +347,7 @@ class HeyMacAhsm(pq.Ahsm):
 
         if isinstance(f.data, mac_cmds.HeyMacCmdBeacon):
             self.calc_bcn_timing(rx_time)
+            print("rx_time        ", rx_time)
             print("RXD %d bytes, rssi=%d dBm, snr=%.3f dB\t%s" % (len(payld), rssi, snr, repr(f)))
             # TODO: add to ngbr data
         else:
