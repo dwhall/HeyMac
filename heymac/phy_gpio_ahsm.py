@@ -42,6 +42,9 @@ class GpioAhsm(pq.Ahsm):
         me.sig_dio0 = pq.Signal.register(phy_cfg.dio0["sig_name"])
         me.sig_dio1 = pq.Signal.register(phy_cfg.dio1["sig_name"])
         me.sig_dio2 = pq.Signal.register(phy_cfg.dio2["sig_name"])
+        me.sig_dio3 = pq.Signal.register(phy_cfg.dio3["sig_name"])
+        me.sig_dio4 = pq.Signal.register(phy_cfg.dio4["sig_name"])
+        me.sig_dio5 = pq.Signal.register(phy_cfg.dio5["sig_name"])
         me.sig_pps = pq.Signal.register(phy_cfg.pps["sig_name"])
 
         return me.tran(me, GpioAhsm.initializing)
@@ -58,6 +61,9 @@ class GpioAhsm(pq.Ahsm):
             GPIO.setup(phy_cfg.dio0["pin"], GPIO.IN)
             GPIO.setup(phy_cfg.dio1["pin"], GPIO.IN)
             GPIO.setup(phy_cfg.dio2["pin"], GPIO.IN)
+            GPIO.setup(phy_cfg.dio3["pin"], GPIO.IN)
+            GPIO.setup(phy_cfg.dio4["pin"], GPIO.IN)
+            GPIO.setup(phy_cfg.dio5["pin"], GPIO.IN)
             GPIO.setup(phy_cfg.pps["pin"], GPIO.IN)
             GPIO.setup(phy_cfg.reset["pin"], GPIO.OUT, initial=GPIO.HIGH)
 
@@ -65,6 +71,9 @@ class GpioAhsm(pq.Ahsm):
             GPIO.add_event_detect(phy_cfg.dio0["pin"], edge=GPIO.RISING, callback=lambda x: gpio_input_handler(me.sig_dio0))
             GPIO.add_event_detect(phy_cfg.dio1["pin"], edge=GPIO.RISING, callback=lambda x: gpio_input_handler(me.sig_dio1))
             GPIO.add_event_detect(phy_cfg.dio2["pin"], edge=GPIO.RISING, callback=lambda x: gpio_input_handler(me.sig_dio2))
+            GPIO.add_event_detect(phy_cfg.dio3["pin"], edge=GPIO.RISING, callback=lambda x: gpio_input_handler(me.sig_dio3))
+            GPIO.add_event_detect(phy_cfg.dio4["pin"], edge=GPIO.RISING, callback=lambda x: gpio_input_handler(me.sig_dio4))
+            GPIO.add_event_detect(phy_cfg.dio5["pin"], edge=GPIO.RISING, callback=lambda x: gpio_input_handler(me.sig_dio5))
             GPIO.add_event_detect(phy_cfg.pps["pin"], edge=GPIO.RISING, callback=lambda x: gpio_input_handler(me.sig_pps))
 
             me.postFIFO(pq.Event(pq.Signal.ALWAYS, None))

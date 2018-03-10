@@ -40,8 +40,10 @@ class SX127xSpiAhsm(pq.Ahsm):
         # Incoming from GPIO (SX127x's DIO pins)
         pq.Framework.subscribe("PHY_DIO0", me)
         pq.Framework.subscribe("PHY_DIO1", me)
+        pq.Framework.subscribe("PHY_DIO2", me)
         pq.Framework.subscribe("PHY_DIO3", me)
         pq.Framework.subscribe("PHY_DIO4", me)
+        pq.Framework.subscribe("PHY_DIO5", me)
 
         me.sx127x = lora_driver.SX127xSpi()
 
@@ -124,10 +126,11 @@ class SX127xSpiAhsm(pq.Ahsm):
             me.sx127x.disable_irqs()
             me.sx127x.enable_irqs(lora_driver.IRQFLAGS_RXTIMEOUT_MASK
                 | lora_driver.IRQFLAGS_RXDONE_MASK
-                | lora_driver.IRQFLAGS_PAYLOADCRCERROR_MASK)
+                | lora_driver.IRQFLAGS_PAYLOADCRCERROR_MASK
+                | lora_driver.IRQFLAGS_VALIDHEADER_MASK)
 
-            # Prepare DIO0,1 to cause RxDone, RxTimeout interrupts
-            me.sx127x.set_dio_mapping(dio0=0, dio1=0)
+            # Prepare DIO0,1 to cause RxDone, RxTimeout, ValidHeader interrupts
+            me.sx127x.set_dio_mapping(dio0=0, dio1=0, dio3=1)
             me.sx127x.set_rx_fifo()
             me.sx127x.set_rx_freq(me.rx_freq)
 
@@ -176,7 +179,9 @@ class SX127xSpiAhsm(pq.Ahsm):
             return me.handled(me, event)
 
         elif sig == pq.Signal.PHY_DIO0: # RX_DONE
-            rxd_time = event.value
+            # The ValidHeader time is closer to start of rx'd pkt 
+            # than RX_DONE's event time
+            rxd_time = me.hdr_time
             if me.sx127x.check_rx_flags():
                 payld, rssi, snr = me.sx127x.get_rx()
                 pkt_data = (rxd_time, payld, rssi, snr)
@@ -192,7 +197,9 @@ class SX127xSpiAhsm(pq.Ahsm):
             return me.tran(me, SX127xSpiAhsm.idling)
 
         elif sig == pq.Signal.PHY_DIO3: # ValidHeader
-            # TODO: future: DIO3  for earlier rx_time capture
+            me.hdr_time = event.value
+#            print("hdr_time       ", me.hdr_time)
+            me.sx127x.clear_irqs(lora_driver.IRQFLAGS_VALIDHEADER_MASK)
             return me.handled(me, event)
 
         return me.super(me, me.working)

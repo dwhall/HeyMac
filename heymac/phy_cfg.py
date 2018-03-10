@@ -25,4 +25,7 @@ reset = {"pin":17, "sig_name":"GPS_RST"}
 dio0 = {"pin":4, "sig_name":"PHY_DIO0"}
 dio1 = {"pin":23, "sig_name":"PHY_DIO1"}
 dio2 = {"pin":24, "sig_name":"PHY_DIO2"}
+dio3 = {"pin":6, "sig_name":"PHY_DIO3"}
+dio4 = {"pin":5, "sig_name":"PHY_DIO4"}
+dio5 = {"pin":22, "sig_name":"PHY_DIO5"}
 pps = {"pin":26, "sig_name":"PHY_GPS_PPS"}
