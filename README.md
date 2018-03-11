@@ -1,9 +1,9 @@
 # HeyMac
 
-HeyMac is a TDMA-style Data Link Layer (2) designed for use with
+HeyMac is a TDMA-style Data Link Layer (Layer 2) designed for use with
 low data rate radio modems such as a LoRa radio module on a Raspberry Pi 3.
-HeyMac will build on top of [lora_driver](https://github.com/dwhall/lora_driver)
-the Physical Layer (1) LoRa radio driver. 
+HeyMac builds on top of [lora_driver](https://github.com/dwhall/lora_driver)
+the Physical Layer (Layer 1) LoRa radio driver. 
 HeyMac is written in Python3 using the [pq](https://github.com/dwhall/pq) 
 hierarchical state machine framework.
 

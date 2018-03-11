@@ -128,7 +128,7 @@ class HeyMacAhsm(pq.Ahsm):
         Listens to radio and GPS for timing discipline sources.
         Transitions to Scheduling after listening for N superframes.
         """
-        N_SFRAMES_TO_LISTEN = 0.1 # 1.0
+        N_SFRAMES_TO_LISTEN = 0.3 # 1.0
 
         sig = event.signal
         if sig == pq.Signal.ENTRY:
@@ -139,7 +139,7 @@ class HeyMacAhsm(pq.Ahsm):
             me.tm_evt.postIn(me, listen_secs)
             return me.handled(me, event)
 
-        elif sig == pq.Signal.TM_EVT_TMOUT: # listen time has expired
+        elif sig == pq.Signal.TM_EVT_TMOUT: # timer has expired
             # If two PPS have been received, transfer to scheduling state
             if me.pps_err:
                 return me.tran(me, me.scheduling)
@@ -222,6 +222,7 @@ class HeyMacAhsm(pq.Ahsm):
 
             # Transmit a beacon during this node's beacon slot
             if me.asn % mac_cfg.tslots_per_sframe == me.bcn_slot:
+                print("bcn_tslot (pps)", me.next_tslot)
                 me.tx_bcn(me.next_tslot)
 
             # Listen after every PPS
@@ -346,7 +347,7 @@ class HeyMacAhsm(pq.Ahsm):
 
         if isinstance(f.data, mac_cmds.HeyMacCmdBeacon):
             self.calc_bcn_timing(rx_time)
-            print("rx_done        ", rx_time,
+            print("rx_time        ", rx_time,
                   "RXD %d bytes, rssi=%d dBm, snr=%.3f dB\t%s" % (len(payld), rssi, snr, repr(f)))
             # TODO: add to ngbr data
         else:

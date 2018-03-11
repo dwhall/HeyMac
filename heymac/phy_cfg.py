@@ -4,6 +4,9 @@ import lora_driver
 tx_freq = 432.550e6
 rx_freq = 432.550e6
 
+# Transmit Margin:
+# A transmit beings this amount of time after the beginning of a Tslot
+# to allow other nodes time to enable their receiver
 tx_margin = 0.005 # secs
 
 # Modem configuration
@@ -20,7 +23,9 @@ sx127x_cfg = lora_driver.SX127xConfig(
     agc_auto=True,
     sync_word=0x12)
 
-# GPIO configuration
+# RaspberryPi GPIO configuration.
+# This configuration is for the Dragino LoRa GPS Hat v1.3
+# with extra connections for DIO3-5 made by the author
 reset = {"pin":17, "sig_name":"GPS_RST"}
 dio0 = {"pin":4, "sig_name":"PHY_DIO0"}
 dio1 = {"pin":23, "sig_name":"PHY_DIO1"}

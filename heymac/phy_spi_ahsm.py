@@ -252,7 +252,6 @@ class SX127xSpiAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            print("tx_time        ", me.tx_time)
             print("tx             ", pq.Framework._event_loop.time())
             me.sx127x.set_op_mode(mode="tx")
             return me.handled(me, event)
