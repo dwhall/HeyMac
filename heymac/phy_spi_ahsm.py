@@ -25,7 +25,7 @@ class SX127xSpiAhsm(pq.Ahsm):
         pq.Signal.register("ALWAYS")
 
         # Outgoing
-        pq.Signal.register("PHY_RX_DATA")
+        pq.Signal.register("PHY_RXD_DATA")
 
         # Incoming
         pq.Signal.register("CANCEL")
@@ -185,7 +185,7 @@ class SX127xSpiAhsm(pq.Ahsm):
             if me.sx127x.check_rx_flags():
                 payld, rssi, snr = me.sx127x.get_rx()
                 pkt_data = (rxd_time, payld, rssi, snr)
-                pq.Framework.publish(pq.Event(pq.Signal.PHY_RX_DATA, pkt_data))
+                pq.Framework.publish(pq.Event(pq.Signal.PHY_RXD_DATA, pkt_data))
             else:
                 # TODO: crc error stats
                 print("rx CRC error")

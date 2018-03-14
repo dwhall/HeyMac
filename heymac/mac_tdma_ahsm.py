@@ -36,7 +36,7 @@ class HeyMacAhsm(pq.Ahsm):
 
         # Incoming signals
         pq.Framework.subscribe("PHY_GPS_PPS", me)
-        pq.Framework.subscribe("PHY_RX_DATA", me)
+        pq.Framework.subscribe("PHY_RXD_DATA", me)
 
         # Initialize a timer event
         me.tm_evt = pq.TimeEvent("TM_EVT_TMOUT")
@@ -108,7 +108,7 @@ class HeyMacAhsm(pq.Ahsm):
             me.on_pps(event.value)
             return me.handled(me, event)
 
-        elif sig == pq.Signal.PHY_RX_DATA:
+        elif sig == pq.Signal.PHY_RXD_DATA:
             rx_time, payld, rssi, snr = event.value
             me.on_rxd_frame(rx_time, payld, rssi, snr)
             return me.handled(me, event)
@@ -149,7 +149,7 @@ class HeyMacAhsm(pq.Ahsm):
                 me.tm_evt.postIn(me, listen_secs)
                 return me.handled(me, event)
  
-        elif sig == pq.Signal.PHY_RX_DATA:
+        elif sig == pq.Signal.PHY_RXD_DATA:
             # handle received frame
             rx_time, payld, rssi, snr = event.value
             me.on_rxd_frame(rx_time, payld, rssi, snr)
