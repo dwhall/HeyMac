@@ -108,6 +108,23 @@ class SX127xSpiAhsm(pq.Ahsm):
 
         return me.super(me, me.top)
 
+
+    @staticmethod
+    def working(me, event):
+        """State SX127xSpiAhsm:working
+        This state provides a CANCEL handler that returns the radio to stdby.
+        """
+        sig = event.signal
+        if sig == pq.Signal.ENTRY:
+            return me.handled(me, event)
+
+        elif sig == pq.Signal.CANCEL:
+            me.sx127x.set_op_mode(mode="stdby")
+            return me.tran(me, me.idling)
+
+        return me.super(me, me.top)
+
+
 #### Receive chain
     @staticmethod
     def rx_prepping(me, event):
@@ -146,22 +163,6 @@ class SX127xSpiAhsm(pq.Ahsm):
             return me.tran(me, SX127xSpiAhsm.receiving)
 
         return me.super(me, me.idling)
-
-
-    @staticmethod
-    def working(me, event):
-        """State SX127xSpiAhsm:working
-        This state provides a CANCEL handler that returns the radio to stdby.
-        """
-        sig = event.signal
-        if sig == pq.Signal.ENTRY:
-            return me.handled(me, event)
-
-        elif sig == pq.Signal.CANCEL:
-            me.sx127x.set_op_mode(mode="stdby")
-            return me.tran(me, me.idling)
-
-        return me.super(me, me.top)
 
 
     @staticmethod
@@ -248,7 +249,7 @@ class SX127xSpiAhsm(pq.Ahsm):
 
     @staticmethod
     def transmitting(me, event):
-        """State: SX127xSpiAhsm:transmitting
+        """State: SX127xSpiAhsm:working:transmitting
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
