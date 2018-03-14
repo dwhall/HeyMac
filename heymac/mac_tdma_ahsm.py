@@ -16,13 +16,18 @@ import pq
 
 import mac_cfg, mac_cmds, mac_frame
 import phy_cfg
-import cfg
+import cfg, lr
 
 
 # Turn user JSON config files into Python dicts
 mac_identity = cfg.get_from_json("mac_identity.json")
 # Convert hex bytes to bytearray since JSON can't do binary strings
 mac_identity['pub_key'] = bytearray.fromhex(mac_identity['pub_key'])
+
+
+# The following value was determined through experimentation to cause
+# the least amount of error (PHY rx_time - GPS PPS), 3.8 ms on avg.
+TSLOT_PREP_TIME = 0.040 # secs.
 
 
 class HeyMacAhsm(pq.Ahsm):
@@ -73,6 +78,10 @@ class HeyMacAhsm(pq.Ahsm):
         me.bcn_err = 0.0
         # Time of the previous BCN
         me.time_of_last_bcn = None
+
+        # Linear Regression on CPU time when PPS arrives
+        # using the 8 most recent data points
+        pps_lr = lr.LinearRegression(8)
 
         return me.tran(me, HeyMacAhsm.initializing)
 
@@ -176,69 +185,15 @@ class HeyMacAhsm(pq.Ahsm):
     @staticmethod
     def scheduling(me, event):
         """State: HeyMacAhsm:running:scheduling
-        Emits beacon regularly.
-        If this node has received beacons, an open slot is chosen;
-        otherwise, the slot is chosen arbitrarily.
-        If this node has received PPS, tx and rx timeslots are synchronized.
+        Uses timing discipline to schedule packet tx and rx actions.
         """
-        # The following value was determined through experimentation to cause
-        # the least amount of error (PHY rx_time - GPS PPS), 3.8 ms on avg.
-        TSLOT_PREP_TIME = 0.040 # secs.
-
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            print("SCHEDULING")
-            
-            now = pq.Framework._event_loop.time()
-
-            # If there has been no PPS, use now as a pseudo edge
-            if not me.time_of_last_pps:
-                me.time_of_last_pps = now
-                me.tslots_since_last_pps = 0
-
-            # If there has been a PPS, initialize this variable
-            else:
-                me.tslots_since_last_pps = round((now - me.time_of_last_pps) * mac_cfg.tslots_per_sec)
-
-                # If no rx'd MAC frames have updated the ASN, init it to match latest PPS edge
-                if me.asn == 0:
-                    me.asn = me.tslots_since_last_pps
-
-            # Set the TimeEvent to expire at the next Prep Time
-            me.next_tslot = me.time_of_last_pps + (1 + me.tslots_since_last_pps) * (1.0 - me.pps_err) / mac_cfg.tslots_per_sec
-            me.tm_evt.postAt(me, me.next_tslot - TSLOT_PREP_TIME)
+            me.scheduling_and_entry(me)
             return me.handled(me, event)
 
         elif sig == pq.Signal.TM_EVT_TMOUT:
-            """Handler for the periodic timer which is set to elapse at TSLOT_PREP_TIME
-            number of seconds before the beginning of every Tslot.  This "prep time"
-            allows the scheduler to select the MAC action for the next Tslot and
-            optionally message the physical layer.  If active, the PHY will do
-            some preparation which reduces its warm-up time (allowing more precise
-            control of TX and RX time).
-            """
-            # Count the Absolute Slot Number
-            me.asn += 1
-
-            # Transmit a beacon during this node's beacon slot
-            if me.asn % mac_cfg.tslots_per_sframe == me.bcn_slot:
-                print("bcn_tslot (pps)", me.next_tslot)
-                me.tx_bcn(me.next_tslot)
-
-            # Listen after every PPS
-            elif me.asn % 4 == 0:
-                value = (me.next_tslot, phy_cfg.rx_freq) # rx time and freq
-                pq.Framework.post(pq.Event(pq.Signal.RECEIVE, value), "SX127xSpiAhsm")
-
-            # Do nothing during this Tslot
-            else:
-                pass
-
-            # Count this Tslot and set the TimeEvent to expire at the next Prep Time
-            me.tslots_since_last_pps += 1
-            me.next_tslot = me.time_of_last_pps + (1 + me.tslots_since_last_pps) * (1.0 - me.pps_err) / mac_cfg.tslots_per_sec
-            me.tm_evt.postAt(me, me.next_tslot - TSLOT_PREP_TIME)
-
+            me.scheduling_and_next_tslot(me)
             return me.handled(me, event)
 
         elif sig == pq.Signal.EXIT:
@@ -259,6 +214,65 @@ class HeyMacAhsm(pq.Ahsm):
 
 
 #### End State Machines
+
+    @staticmethod
+    def scheduling_and_entry(self,):
+        print("SCHEDULING")
+        
+        now = pq.Framework._event_loop.time()
+
+        # If there has been no PPS, use now as a pseudo edge
+        if not self.time_of_last_pps:
+            self.time_of_last_pps = now
+            self.tslots_since_last_pps = 0
+
+        # If there has been a PPS, initialize this variable
+        else:
+            self.tslots_since_last_pps = round((now - self.time_of_last_pps) * mac_cfg.tslots_per_sec)
+
+            # If no rx'd MAC frames have updated the ASN, init it to match latest PPS edge
+            if self.asn == 0:
+                self.asn = self.tslots_since_last_pps
+        self._scheduling_post_tm_evt_for_next_tslot(self)
+
+
+    @staticmethod
+    def scheduling_and_next_tslot(self,):
+        """Handler for the Scheduling state when the next-slot-preperation timer
+        has elapsed.  This method decides what to do in the next Tslot
+        and messages the PHYsical layer with any actions.
+        """
+        # Increment the Absolute Slot Number
+        self.asn += 1
+
+        # Transmit a beacon during this node's beacon slot
+        if self.asn % mac_cfg.tslots_per_sframe == self.bcn_slot:
+            print("bcn_tslot (pps)", self.next_tslot)
+            self.tx_bcn(self.next_tslot)
+
+        # TODO: send the top pkt in the tx que
+
+        # Listen after every PPS (TODO: every tslot?)
+        elif self.asn % 4 == 0:
+            value = (self.next_tslot, phy_cfg.rx_freq) # rx time and freq
+            pq.Framework.post(pq.Event(pq.Signal.RECEIVE, value), "SX127xSpiAhsm")
+
+        # Do nothing during this Tslot
+        else:
+            pass
+
+        # Count this Tslot and set the TimeEvent to expire at the next Prep Time
+        self.tslots_since_last_pps += 1
+        self._scheduling_post_tm_evt_for_next_tslot(self)
+
+
+    @staticmethod
+    def _scheduling_post_tm_evt_for_next_tslot(self,):
+        """Sets the TimeEvent to expire at the next Prep Time
+        """
+        self.next_tslot = self.time_of_last_pps + (1 + self.tslots_since_last_pps) * (1.0 - self.pps_err) / mac_cfg.tslots_per_sec
+        self.tm_evt.postAt(self, self.next_tslot - TSLOT_PREP_TIME)
+
 
     def build_mac_frame(self, seq=0):
         """Returns a generic HeyMac V1 frame with the given sequence number
