@@ -25,11 +25,6 @@ mac_identity = cfg.get_from_json("mac_identity.json")
 mac_identity['pub_key'] = bytearray.fromhex(mac_identity['pub_key'])
 
 
-# The following value was determined through experimentation to cause
-# the least amount of error (PHY rx_time - GPS PPS), 3.8 ms on avg.
-TSLOT_PREP_TIME = 0.040 # secs.
-
-
 class HeyMacAhsm(pq.Ahsm):
 
     @staticmethod
@@ -62,10 +57,10 @@ class HeyMacAhsm(pq.Ahsm):
         # The first couple byte of this node's public key is a pseudo-random 
         # value to use to determine this node's Tslot to use for beaconing.
         me.bcn_slot = (mac_identity['pub_key'][0] << 8 | mac_identity['pub_key'][1]) \
-                      % mac_cfg.tslots_per_sframe
+                      % mac_cfg.TSLOTS_PER_SFRAME
         # Beacon slots are the first slots after a PPS
-        me.bcn_slot = math.floor(me.bcn_slot / mac_cfg.tslots_per_sec) * mac_cfg.tslots_per_sec
-        print("bcn_slot (%d / %d)" % (me.bcn_slot, mac_cfg.tslots_per_sframe))
+        me.bcn_slot = math.floor(me.bcn_slot / mac_cfg.TSLOTS_PER_SEC) * mac_cfg.TSLOTS_PER_SEC
+        print("bcn_slot (%d / %d)" % (me.bcn_slot, mac_cfg.TSLOTS_PER_SFRAME))
 
         # Error of computer clock time [secs]
         # calculated as: time_at_pps - prev_time_at_pps
@@ -144,7 +139,7 @@ class HeyMacAhsm(pq.Ahsm):
             print("LISTENING")
             value = (-1, phy_cfg.rx_freq) # rx continuously on the rx_freq
             pq.Framework.post(pq.Event(pq.Signal.RECEIVE, value), "SX127xSpiAhsm")
-            listen_secs = N_SFRAMES_TO_LISTEN * mac_cfg.tslots_per_sframe / mac_cfg.tslots_per_sec
+            listen_secs = N_SFRAMES_TO_LISTEN * mac_cfg.TSLOTS_PER_SFRAME / mac_cfg.TSLOTS_PER_SEC
             me.tm_evt.postIn(me, listen_secs)
             return me.handled(me, event)
 
@@ -154,7 +149,7 @@ class HeyMacAhsm(pq.Ahsm):
                 return me.tran(me, me.scheduling)
             else:
                 print("remain listening")
-                listen_secs = N_SFRAMES_TO_LISTEN * mac_cfg.tslots_per_sframe / mac_cfg.tslots_per_sec
+                listen_secs = N_SFRAMES_TO_LISTEN * mac_cfg.TSLOTS_PER_SFRAME / mac_cfg.TSLOTS_PER_SEC
                 me.tm_evt.postIn(me, listen_secs)
                 return me.handled(me, event)
  
@@ -202,6 +197,7 @@ class HeyMacAhsm(pq.Ahsm):
 
         return me.super(me, me.running)
 
+
     @staticmethod
     def exiting(me, event):
         """State HeyMacAhsm:exiting
@@ -217,8 +213,11 @@ class HeyMacAhsm(pq.Ahsm):
 
     @staticmethod
     def scheduling_and_entry(self,):
+        """Handler for the Scheduling state entry event.
+        Uses timing discipline data to set a time event for the next Tslot.
+        """
         print("SCHEDULING")
-        
+
         now = pq.Framework._event_loop.time()
 
         # If there has been no PPS, use now as a pseudo edge
@@ -228,25 +227,26 @@ class HeyMacAhsm(pq.Ahsm):
 
         # If there has been a PPS, initialize this variable
         else:
-            self.tslots_since_last_pps = round((now - self.time_of_last_pps) * mac_cfg.tslots_per_sec)
+            self.tslots_since_last_pps = round((now - self.time_of_last_pps) * mac_cfg.TSLOTS_PER_SEC)
 
             # If no rx'd MAC frames have updated the ASN, init it to match latest PPS edge
             if self.asn == 0:
                 self.asn = self.tslots_since_last_pps
-        self._scheduling_post_tm_evt_for_next_tslot(self)
+        self._post_time_event_for_next_tslot(self)
 
 
     @staticmethod
     def scheduling_and_next_tslot(self,):
-        """Handler for the Scheduling state when the next-slot-preperation timer
+        """Handler for the Scheduling state when the next-slot-preparation timer
         has elapsed.  This method decides what to do in the next Tslot
         and messages the PHYsical layer with any actions.
         """
-        # Increment the Absolute Slot Number
+        # Increment the Absolute Slot Number and a Tslot counter
         self.asn += 1
+        self.tslots_since_last_pps += 1
 
         # Transmit a beacon during this node's beacon slot
-        if self.asn % mac_cfg.tslots_per_sframe == self.bcn_slot:
+        if self.asn % mac_cfg.TSLOTS_PER_SFRAME == self.bcn_slot:
             print("bcn_tslot (pps)", self.next_tslot)
             self.tx_bcn(self.next_tslot)
 
@@ -262,16 +262,16 @@ class HeyMacAhsm(pq.Ahsm):
             pass
 
         # Count this Tslot and set the TimeEvent to expire at the next Prep Time
-        self.tslots_since_last_pps += 1
-        self._scheduling_post_tm_evt_for_next_tslot(self)
+        self._post_time_event_for_next_tslot(self)
 
 
     @staticmethod
-    def _scheduling_post_tm_evt_for_next_tslot(self,):
+    def _post_time_event_for_next_tslot(self,):
         """Sets the TimeEvent to expire at the next Prep Time
         """
-        self.next_tslot = self.time_of_last_pps + (1 + self.tslots_since_last_pps) * (1.0 - self.pps_err) / mac_cfg.tslots_per_sec
-        self.tm_evt.postAt(self, self.next_tslot - TSLOT_PREP_TIME)
+        TSLOT_PREP_TIME = 0.020 # secs.
+        self.next_tslot = self.time_of_last_pps + (1 + self.tslots_since_last_pps) * (1.0 - self.pps_err) / mac_cfg.TSLOTS_PER_SEC
+        self.tm_evt.postAt(self, self.next_tslot - mac_cfg.TSLOT_PREP_TIME)
 
 
     def build_mac_frame(self, seq=0):
@@ -294,7 +294,7 @@ class HeyMacAhsm(pq.Ahsm):
         # then use the delta between beacons to calculate the
         # computer clock time per second.
         # (assumes beacons happen at top-of-second (same as PPS))
-        BCN_GAP_TOLERANCE = 4 *  mac_cfg.tslots_per_sframe
+        BCN_GAP_TOLERANCE = 4 *  mac_cfg.TSLOTS_PER_SFRAME
 
         if self.time_of_last_bcn:
             delta = time_of_bcn - self.time_of_last_bcn
