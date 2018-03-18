@@ -51,9 +51,9 @@ class LinearRegression(object):
 
     def get_est(self, x):
         """Returns an estimate of f(x) for the given input, x.
-        Returns None if no data points have been fed to the update() method.
+        Returns None if fewere than 2 data points have been fed to the update() method.
         """
-        if self.n == 0:
+        if self.n <= 1:
             return None
         elif self.n > self.depth:
             n = self.depth
