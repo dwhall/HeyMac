@@ -18,7 +18,6 @@ import mac_cfg, mac_cmds, mac_frame
 import phy_cfg
 import cfg, lr
 
-
 # Turn user JSON config files into Python dicts
 mac_identity = cfg.get_from_json("mac_identity.json")
 # Convert hex bytes to bytearray since JSON can't do binary strings
@@ -72,11 +71,7 @@ class HeyMacAhsm(pq.Ahsm):
         # calculated as: time_at_bcn - prev_time_at_bcn
         me.bcn_err = 0.0
         # Time of the previous BCN
-        me.time_of_last_bcn = None
-
-        # Linear Regression on CPU time when PPS arrives
-        # using the 8 most recent data points
-        pps_lr = lr.LinearRegression(8)
+        me.time_of_last_rxd_bcn = None
 
         return me.tran(me, HeyMacAhsm.initializing)
 
@@ -109,12 +104,12 @@ class HeyMacAhsm(pq.Ahsm):
             return me.handled(me, event)
 
         elif sig == pq.Signal.PHY_GPS_PPS:
-            me.on_pps(event.value)
+            me.on_pps(me, event.value)
             return me.handled(me, event)
 
         elif sig == pq.Signal.PHY_RXD_DATA:
             rx_time, payld, rssi, snr = event.value
-            me.on_rxd_frame(rx_time, payld, rssi, snr)
+            me.on_rxd_frame(me, rx_time, payld, rssi, snr)
             return me.handled(me, event)
 
         elif sig == pq.Signal.SIGTERM:
@@ -156,7 +151,7 @@ class HeyMacAhsm(pq.Ahsm):
         elif sig == pq.Signal.PHY_RXD_DATA:
             # handle received frame
             rx_time, payld, rssi, snr = event.value
-            me.on_rxd_frame(rx_time, payld, rssi, snr)
+            me.on_rxd_frame(me, rx_time, payld, rssi, snr)
 
             # rx continuously again
             value = (-1, phy_cfg.rx_freq)
@@ -247,19 +242,16 @@ class HeyMacAhsm(pq.Ahsm):
 
         # Transmit a beacon during this node's beacon slot
         if self.asn % mac_cfg.TSLOTS_PER_SFRAME == self.bcn_slot:
+            print("tm_of_last_pps ", self.time_of_last_pps)
             print("bcn_tslot (pps)", self.next_tslot)
-            self.tx_bcn(self.next_tslot)
+            self.tx_bcn(self, self.next_tslot)
 
         # TODO: send the top pkt in the tx que
 
-        # Listen after every PPS (TODO: every tslot?)
-        elif self.asn % 4 == 0:
+        # Listen during every Tslot
+        else:
             value = (self.next_tslot, phy_cfg.rx_freq) # rx time and freq
             pq.Framework.post(pq.Event(pq.Signal.RECEIVE, value), "SX127xSpiAhsm")
-
-        # Do nothing during this Tslot
-        else:
-            pass
 
         # Count this Tslot and set the TimeEvent to expire at the next Prep Time
         self._post_time_event_for_next_tslot(self)
@@ -274,6 +266,7 @@ class HeyMacAhsm(pq.Ahsm):
         self.tm_evt.postAt(self, self.next_tslot - mac_cfg.TSLOT_PREP_TIME)
 
 
+    @staticmethod
     def build_mac_frame(self, seq=0):
         """Returns a generic HeyMac V1 frame with the given sequence number
         """
@@ -285,9 +278,10 @@ class HeyMacAhsm(pq.Ahsm):
         return frame
 
 
+    @staticmethod
     def calc_bcn_timing(self, time_of_bcn):
         """Measures the amount of computer clock time that has elapsed
-        since the previous beacon.  Calculates the amount of error
+        since the previous received beacon.  Calculates the amount of error
         between the two and generates an average error, .bcn_err
         """
         # If there are two beacons within the following amount of time [secs],
@@ -296,8 +290,8 @@ class HeyMacAhsm(pq.Ahsm):
         # (assumes beacons happen at top-of-second (same as PPS))
         BCN_GAP_TOLERANCE = 4 *  mac_cfg.TSLOTS_PER_SFRAME
 
-        if self.time_of_last_bcn:
-            delta = time_of_bcn - self.time_of_last_bcn
+        if self.time_of_last_rxd_bcn:
+            delta = time_of_bcn - self.time_of_last_rxd_bcn
             if delta < BCN_GAP_TOLERANCE:
 
                 # Remove the whole seconds and divide by the number of secs
@@ -310,14 +304,13 @@ class HeyMacAhsm(pq.Ahsm):
                 self.bcn_err = (self.bcn_err + err) * 0.5
 
         # Save this one for the next time
-        self.time_of_last_bcn = time_of_bcn
+        self.time_of_last_rxd_bcn = time_of_bcn
 
         # Reset this counter used in scheduling state
         self.tslots_since_last_bcn = 0
 
 
-
-
+    @staticmethod
     def on_pps(self, time_of_pps):
         """Measures the amount of computer clock time that has elapsed
         since the previous GPS PPS pulse.  Calculates the amount of error 
@@ -349,6 +342,7 @@ class HeyMacAhsm(pq.Ahsm):
         self.tslots_since_last_pps = 0
 
 
+    @staticmethod
     def on_rxd_frame(self, rx_time, payld, rssi, snr):
         """This function is called when the PHY layer has received a frame
         and passed it to the MAC layer.
@@ -358,20 +352,32 @@ class HeyMacAhsm(pq.Ahsm):
         except:
             print("rxd pkt failed unpacking")
             return
+        print("rx_time        ", rx_time,
+              "RXD %d bytes, rssi=%d dBm, snr=%.3f dB\t%s" % (len(payld), rssi, snr, repr(f)))
 
         if isinstance(f.data, mac_cmds.HeyMacCmdBeacon):
-            self.calc_bcn_timing(rx_time)
-            print("rx_time        ", rx_time,
-                  "RXD %d bytes, rssi=%d dBm, snr=%.3f dB\t%s" % (len(payld), rssi, snr, repr(f)))
-            # TODO: add to ngbr data
+            self.on_rxd_bcn(self, rx_time, f.data, rssi, snr)
         else:
             print("rxd pkt is not a bcn")
 
 
+    @staticmethod
+    def on_rxd_bcn(self, rx_time, bcn_frame, rssi, snr):
+        """Handles reception of a beacon frame.
+        """
+        self.calc_bcn_timing(self, rx_time)
+
+        # Use the largest ASN
+        if bcn_frame.asn > self.asn:
+            self.asn = bcn_frame.asn
+        # TODO: add to ngbr data
+
+
+    @staticmethod
     def tx_bcn(self, abs_time):
         """Builds a HeyMac V1 Beacon and passes it to the PHY for transmit.
         """
-        frame = self.build_mac_frame(self.bcn_seq)
+        frame = self.build_mac_frame(self, self.bcn_seq)
         bcn = mac_cmds.HeyMacCmdBeacon(asn=self.asn)
         frame.data = bcn
         tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data
