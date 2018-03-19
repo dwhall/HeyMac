@@ -73,6 +73,9 @@ class HeyMacAhsm(pq.Ahsm):
         # Time of the previous BCN
         me.time_of_last_rxd_bcn = None
 
+        # Neighbor info
+        me.bcn_ngbr_slotmap = bytearray(mac_cfg.TSLOTS_PER_SFRAME // 8)
+
         return me.tran(me, HeyMacAhsm.initializing)
 
 
@@ -367,9 +370,18 @@ class HeyMacAhsm(pq.Ahsm):
         """
         self.calc_bcn_timing(self, rx_time)
 
-        # Use the largest ASN
+        # Adopt the larger ASN
         if bcn_frame.asn > self.asn:
             self.asn = bcn_frame.asn
+
+        # TEMPORARY:
+        assert bcn_frame.sframe_nTslots == mac_cfg.TSLOTS_PER_SFRAME, "Ngbr's Sframe cfg is incompatible"
+
+        # TEMPORARY: Update Ngbr beacon slots
+        # (this is an incomplete method, it does not allow the slot to be cleared if ngbr is silent)
+        ngbr_bcnslot = self.asn % mac_cfg.TSLOTS_PER_SFRAME
+        self.bcn_ngbr_slotmap[ ngbr_bcnslot // 8 ] |= (1 << (ngbr_bcnslot % 8))
+
         # TODO: add to ngbr data
 
 
@@ -378,7 +390,8 @@ class HeyMacAhsm(pq.Ahsm):
         """Builds a HeyMac V1 Beacon and passes it to the PHY for transmit.
         """
         frame = self.build_mac_frame(self, self.bcn_seq)
-        bcn = mac_cmds.HeyMacCmdBeacon(asn=self.asn)
+        bcn = mac_cmds.HeyMacCmdBeacon(asn=self.asn, sframe_nTslots=mac_cfg.TSLOTS_PER_SFRAME)
+        bcn.ngbr_slotmap = tuple(self.bcn_ngbr_slotmap)
         frame.data = bcn
         tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data
         pq.Framework.post(pq.Event(pq.Signal.TRANSMIT, tx_args), "SX127xSpiAhsm")
