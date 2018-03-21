@@ -14,7 +14,7 @@ import hashlib, math
 
 import pq
 
-import mac_cfg, mac_cmds, mac_frame
+import mac_cfg, mac_cmds, mac_discipline, mac_frame
 import phy_cfg
 import cfg, lr
 
@@ -61,17 +61,9 @@ class HeyMacAhsm(pq.Ahsm):
         me.bcn_slot = math.floor(me.bcn_slot / mac_cfg.TSLOTS_PER_SEC) * mac_cfg.TSLOTS_PER_SEC
         print("bcn_slot (%d / %d)" % (me.bcn_slot, mac_cfg.TSLOTS_PER_SFRAME))
 
-        # Error of computer clock time [secs]
-        # calculated as: time_at_pps - prev_time_at_pps
-        me.pps_err = 0.0
-        # Time of the previous GPS PPS
         me.time_of_last_pps = None
-
-        # Error of computer clock time [secs]
-        # calculated as: time_at_bcn - prev_time_at_bcn
-        me.bcn_err = 0.0
-        # Time of the previous BCN
         me.time_of_last_rxd_bcn = None
+        me.dscpln = mac_discipline.HeyMacDiscipline()
 
         # Neighbor info
         me.bcn_ngbr_slotmap = bytearray(mac_cfg.TSLOTS_PER_SFRAME // 8)
@@ -107,7 +99,10 @@ class HeyMacAhsm(pq.Ahsm):
             return me.handled(me, event)
 
         elif sig == pq.Signal.PHY_GPS_PPS:
-            me.on_pps(me, event.value)
+            time_of_pps = event.value
+            me.dscpln.update_pps(time_of_pps, me.time_of_last_pps)
+            me.time_of_last_pps = time_of_pps
+            me.tslots_since_last_pps = 0
             return me.handled(me, event)
 
         elif sig == pq.Signal.PHY_RXD_DATA:
@@ -143,7 +138,7 @@ class HeyMacAhsm(pq.Ahsm):
 
         elif sig == pq.Signal.TM_EVT_TMOUT: # timer has expired
             # If two PPS have been received, transfer to scheduling state
-            if me.pps_err:
+            if me.time_of_last_pps:
                 return me.tran(me, me.scheduling)
             else:
                 print("remain listening")
@@ -265,7 +260,7 @@ class HeyMacAhsm(pq.Ahsm):
         """Sets the TimeEvent to expire at the next Prep Time
         """
         TSLOT_PREP_TIME = 0.020 # secs.
-        self.next_tslot = self.time_of_last_pps + (1 + self.tslots_since_last_pps) * (1.0 - self.pps_err) / mac_cfg.TSLOTS_PER_SEC
+        self.next_tslot = self.time_of_last_pps + (1 + self.tslots_since_last_pps) * self.dscpln.get_time_per_tslot()
         self.tm_evt.postAt(self, self.next_tslot - mac_cfg.TSLOT_PREP_TIME)
 
 
@@ -279,70 +274,6 @@ class HeyMacAhsm(pq.Ahsm):
         frame.saddr = self.saddr
         frame.seq = seq
         return frame
-
-
-    @staticmethod
-    def calc_bcn_timing(self, time_of_bcn):
-        """Measures the amount of computer clock time that has elapsed
-        since the previous received beacon.  Calculates the amount of error
-        between the two and generates an average error, .bcn_err
-        """
-        # If there are two beacons within the following amount of time [secs],
-        # then use the delta between beacons to calculate the
-        # computer clock time per second.
-        # (assumes beacons happen at top-of-second (same as PPS))
-        BCN_GAP_TOLERANCE = 4 *  mac_cfg.TSLOTS_PER_SFRAME
-
-        if self.time_of_last_rxd_bcn:
-            delta = time_of_bcn - self.time_of_last_rxd_bcn
-            if delta < BCN_GAP_TOLERANCE:
-
-                # Remove the whole seconds and divide by the number of secs
-                # to get the amount of error per second
-                whole_secs = round(delta)
-                err = (delta - whole_secs) / whole_secs
-
-                # TODO: least squares fit
-                # For now, do this cheap IIR average
-                self.bcn_err = (self.bcn_err + err) * 0.5
-
-        # Save this one for the next time
-        self.time_of_last_rxd_bcn = time_of_bcn
-
-        # Reset this counter used in scheduling state
-        self.tslots_since_last_bcn = 0
-
-
-    @staticmethod
-    def on_pps(self, time_of_pps):
-        """Measures the amount of computer clock time that has elapsed
-        since the previous GPS PPS pulse.  Calculates the amount of error 
-        between the computer clock time and the PPS edge.
-        (self.pps_err).
-        """
-        # If there are two PPS pulses within the following amount of time [secs],
-        # then use the delta between PPS pulses to calculate the
-        # computer clock time per second.
-        PPS_GAP_TOLERANCE = 10.0
-
-        if self.time_of_last_pps:
-            delta = time_of_pps - self.time_of_last_pps
-            if delta < PPS_GAP_TOLERANCE:
-
-                # Remove the whole seconds and divide by the number of secs
-                # to get the amount of error per second
-                whole_secs = round(delta)
-                err = (delta - whole_secs) / whole_secs
-
-                # TODO: least squares fit
-                # For now, do this cheap IIR average
-                self.pps_err = (self.pps_err + err) * 0.5
-
-        # Save this one for the next time
-        self.time_of_last_pps = time_of_pps
-
-        # Reset this counter used in scheduling state
-        self.tslots_since_last_pps = 0
 
 
     @staticmethod
@@ -368,7 +299,9 @@ class HeyMacAhsm(pq.Ahsm):
     def on_rxd_bcn(self, rx_time, bcn_frame, rssi, snr):
         """Handles reception of a beacon frame.
         """
-        self.calc_bcn_timing(self, rx_time)
+        self.dscpln.update_bcn(rx_time, self.time_of_last_rxd_bcn)
+        self.time_of_last_rxd_bcn = rx_time
+        self.tslots_since_last_bcn = 0
 
         # Adopt the larger ASN
         if bcn_frame.asn > self.asn:
