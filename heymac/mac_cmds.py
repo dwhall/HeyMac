@@ -46,7 +46,7 @@ class HeyMacCmdBeacon(dpkt.Packet):
         dpkt.Packet.unpack(self, buf)
 
         # Unpack the variable-length fields
-        start_of_geoloc = buf.find(b"$")
+        start_of_geoloc = buf.rfind(b"$")
         self.callsign = buf[self.__hdr_len__:start_of_geoloc]
         self.geoloc = buf[start_of_geoloc:]
         self.data = bytes()
