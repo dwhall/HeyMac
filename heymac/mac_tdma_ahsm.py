@@ -30,12 +30,10 @@ class HeyMacAhsm(pq.Ahsm):
     def initial(me, event):
         """Pseudostate: HeyMacAhsm:initial
         """
-        # Outgoing signals
-        pq.Signal.register("GPS_NMEA") # Value is one NMEA sentence [bytes]
-
         # Incoming signals
         pq.Framework.subscribe("PHY_GPS_PPS", me)
         pq.Framework.subscribe("PHY_RXD_DATA", me)
+        pq.Framework.subscribe("GPS_NMEA", me) # from phy_uart_ahsm.py
 
         # Initialize a timer event
         me.tm_evt = pq.TimeEvent("TM_EVT_TMOUT")
@@ -108,6 +106,10 @@ class HeyMacAhsm(pq.Ahsm):
         elif sig == pq.Signal.PHY_RXD_DATA:
             rx_time, payld, rssi, snr = event.value
             me.on_rxd_frame(me, rx_time, payld, rssi, snr)
+            return me.handled(me, event)
+
+        elif sig == pq.Signal.GPS_NMEA:
+            me.gps_gprmc = event.value
             return me.handled(me, event)
 
         elif sig == pq.Signal.SIGTERM:
@@ -257,7 +259,10 @@ class HeyMacAhsm(pq.Ahsm):
 
     @staticmethod
     def _post_time_event_for_next_tslot(self,):
-        """Sets the TimeEvent to expire at the next Prep Time
+        """Sets the TimeEvent to expire at the next Prep Time.
+        When calculating next_tslot it is important to reference to the
+        source of absolute time (time of most recent PPS) so that there is
+        less accumulated error.
         """
         TSLOT_PREP_TIME = 0.020 # secs.
         self.next_tslot = self.time_of_last_pps + (1 + self.tslots_since_last_pps) * self.dscpln.get_time_per_tslot()
@@ -323,7 +328,15 @@ class HeyMacAhsm(pq.Ahsm):
         """Builds a HeyMac V1 Beacon and passes it to the PHY for transmit.
         """
         frame = self.build_mac_frame(self, self.bcn_seq)
-        bcn = mac_cmds.HeyMacCmdBeacon(asn=self.asn, sframe_nTslots=mac_cfg.TSLOTS_PER_SFRAME)
+        bcn = mac_cmds.HeyMacCmdBeacon(
+            dscpln=0,
+            sframe_nTslots=mac_cfg.TSLOTS_PER_SFRAME,
+            asn=self.asn, 
+            caps=0,
+            flags=0,
+            callsign=mac_cfg.CALLSIGN,
+            geoloc=self.gps_gprmc, #TODO: extract lat/lon from gprmc
+            )
         bcn.ngbr_slotmap = tuple(self.bcn_ngbr_slotmap)
         frame.data = bcn
         tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data

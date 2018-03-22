@@ -16,3 +16,7 @@ TSLOTS_PER_SFRAME = 128
 # It should be great enough to prevent a busy system from mising the time
 # and small enough to not block for a significant amount of time.
 TSLOT_PREP_TIME = 0.020 # secs
+
+# TEMPORARY
+# Amateur radio callsign
+CALLSIGN = b"KC4KSU"
