@@ -10,13 +10,13 @@ MAC (data link layer) (layer 2) State Machine for protocol operations
 """
 
 
-import hashlib, math
+import logging, hashlib, math
 
 import pq
 
-import mac_cfg, mac_cmds, mac_discipline, mac_frame
-import phy_cfg
-import cfg, lr
+import mac_cmds, mac_discipline, mac_frame
+import mac_cfg, phy_cfg, cfg
+
 
 # Turn user JSON config files into Python dicts
 mac_identity = cfg.get_from_json("mac_identity.json")
@@ -57,7 +57,7 @@ class HeyMacAhsm(pq.Ahsm):
                       % mac_cfg.TSLOTS_PER_SFRAME
         # Beacon slots are the first slots after a PPS
         me.bcn_slot = math.floor(me.bcn_slot / mac_cfg.TSLOTS_PER_SEC) * mac_cfg.TSLOTS_PER_SEC
-        print("bcn_slot (%d / %d)" % (me.bcn_slot, mac_cfg.TSLOTS_PER_SFRAME))
+        logging.info("bcn_slot (%d / %d)" % (me.bcn_slot, mac_cfg.TSLOTS_PER_SFRAME))
 
         me.time_of_last_pps = None
         me.time_of_last_rxd_bcn = None
@@ -131,7 +131,7 @@ class HeyMacAhsm(pq.Ahsm):
 
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            print("LISTENING")
+            logging.info("LISTENING")
             value = (-1, phy_cfg.rx_freq) # rx continuously on the rx_freq
             pq.Framework.post(pq.Event(pq.Signal.RECEIVE, value), "SX127xSpiAhsm")
             listen_secs = N_SFRAMES_TO_LISTEN * mac_cfg.TSLOTS_PER_SFRAME / mac_cfg.TSLOTS_PER_SEC
@@ -143,7 +143,7 @@ class HeyMacAhsm(pq.Ahsm):
             if me.time_of_last_pps:
                 return me.tran(me, me.scheduling)
             else:
-                print("remain listening")
+                logging.info("remain listening")
                 listen_secs = N_SFRAMES_TO_LISTEN * mac_cfg.TSLOTS_PER_SFRAME / mac_cfg.TSLOTS_PER_SEC
                 me.tm_evt.postIn(me, listen_secs)
                 return me.handled(me, event)
@@ -160,7 +160,7 @@ class HeyMacAhsm(pq.Ahsm):
 
         # This handler is for debug-print only and may be removed
         elif sig == pq.Signal.PHY_GPS_PPS:
-            print("pps            ", event.value)
+            logging.info("pps            %f", event.value)
             # process PPS in the running state, too
             return me.super(me, me.running)
 
@@ -211,7 +211,7 @@ class HeyMacAhsm(pq.Ahsm):
         """Handler for the Scheduling state entry event.
         Uses timing discipline data to set a time event for the next Tslot.
         """
-        print("SCHEDULING")
+        logging.info("SCHEDULING")
 
         now = pq.Framework._event_loop.time()
 
@@ -242,8 +242,8 @@ class HeyMacAhsm(pq.Ahsm):
 
         # Transmit a beacon during this node's beacon slot
         if self.asn % mac_cfg.TSLOTS_PER_SFRAME == self.bcn_slot:
-            print("tm_of_last_pps ", self.time_of_last_pps)
-            print("bcn_tslot (pps)", self.next_tslot)
+            logging.info("tm_of_last_pps %f", self.time_of_last_pps)
+            logging.info("bcn_tslot (pps)%f", self.next_tslot)
             self.tx_bcn(self, self.next_tslot)
 
         # TODO: send the top pkt in the tx que
@@ -289,15 +289,16 @@ class HeyMacAhsm(pq.Ahsm):
         try:
             f = mac_frame.HeyMacFrame(bytes(payld))
         except:
-            print("rxd pkt failed unpacking")
+            logging.warning("rxd pkt failed unpacking")
             return
-        print("rx_time        ", rx_time,
-              "RXD %d bytes, rssi=%d dBm, snr=%.3f dB\t%s" % (len(payld), rssi, snr, repr(f)))
+        logging.info(
+            "rx_time        %f\tRXD %d bytes, rssi=%d dBm, snr=%.3f dB\t%s",
+            rx_time, len(payld), rssi, snr, repr(f))
 
         if isinstance(f.data, mac_cmds.HeyMacCmdBeacon):
             self.on_rxd_bcn(self, rx_time, f.data, rssi, snr)
         else:
-            print("rxd pkt is not a bcn")
+            logging.warning("rxd pkt is not a bcn")
 
 
     @staticmethod

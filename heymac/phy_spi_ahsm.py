@@ -8,7 +8,7 @@ Physical Layer State Machine for SPI operations to the SX127x device
 - responds to a handful of events (expected from Layer 2 (MAC))
 """
 
-import time
+import logging, time
 
 import lora_driver, pq
 
@@ -189,7 +189,7 @@ class SX127xSpiAhsm(pq.Ahsm):
                 pq.Framework.publish(pq.Event(pq.Signal.PHY_RXD_DATA, pkt_data))
             else:
                 # TODO: crc error stats
-                print("rx CRC error")
+                logging.info("rx CRC error")
 
             return me.tran(me, SX127xSpiAhsm.idling)
 
@@ -199,7 +199,6 @@ class SX127xSpiAhsm(pq.Ahsm):
 
         elif sig == pq.Signal.PHY_DIO3: # ValidHeader
             me.hdr_time = event.value
-#            print("hdr_time       ", me.hdr_time)
             me.sx127x.clear_irqs(lora_driver.IRQFLAGS_VALIDHEADER_MASK)
             return me.handled(me, event)
 
@@ -253,7 +252,7 @@ class SX127xSpiAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            print("tx             ", pq.Framework._event_loop.time())
+            logging.info("tx             %f", pq.Framework._event_loop.time())
             me.sx127x.set_op_mode(mode="tx")
             return me.handled(me, event)
 

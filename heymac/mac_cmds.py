@@ -63,8 +63,8 @@ def test():
         ngbr_slotmap=tuple(range(0x80,0x80+16)),)
     bcn.callsign=b"KC4KSU"
     bcn.geoloc=b"$GPRMC,225446,A,4916.45,N,12311.12,W,000.5,054.7,191194,020.3,E*68"
-    print(bcn)
-    print(HeyMacCmdBeacon(bytes(bcn)))
+    print(repr(bcn))
+    print(repr(HeyMacCmdBeacon(bytes(bcn))))
 
 if __name__ == '__main__':
     test()

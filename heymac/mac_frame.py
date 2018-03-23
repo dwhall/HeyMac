@@ -1,4 +1,4 @@
-import struct
+import logging, struct
 
 import dpkt
 
@@ -159,7 +159,7 @@ class HeyMacFrame(dpkt.Packet):
             if buflen > stated_len:
                 self.excess = self.data[stated_len - buflen:]
                 self.data = self.data[:stated_len - buflen]
-                print("Excess data") # TODO: logging
+                logging.warning("Excess data unpacking a HeyMacFrame")
 
         # Unpack the payload for known frame types
         if self.fctl & FCTL_TYPE_MASK == FCTL_TYPE_MAC:

@@ -66,7 +66,6 @@ class UartAhsm(pq.Ahsm):
                 me.nmea_data = me.nmea_data[n+2:]
                 if b"GPRMC" in nmea_sentence: 
                     pq.Framework.publish(pq.Event(pq.Signal.GPS_NMEA, nmea_sentence))
-#                    print(nmea_sentence) #DBG
                 n = me.nmea_data.find(b"\r\n")
             return me.handled(me, event)
 
