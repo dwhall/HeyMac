@@ -199,6 +199,7 @@ class HeyMacAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
+            logging.info("EXITING")
             return me.handled(me, event)
         
         return me.super(me, me.top)

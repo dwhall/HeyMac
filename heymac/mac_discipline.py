@@ -20,6 +20,10 @@ class HeyMacDiscipline:
 
 
     def update_pps(self, time_of_pps, time_of_last_pps):
+        """This function is called every time the PPS pulses.
+        This function saves the PPS time and calculates the error of the
+        system clock compared to the PPS reference.
+        """
         # If there are two PPS pulses within the following amount of time [secs],
         # then use the delta between PPS pulses to calculate the
         # computer clock time per second.
@@ -59,8 +63,7 @@ class HeyMacDiscipline:
                 whole_secs = round(delta)
                 err = (delta - whole_secs) / whole_secs
 
-                # TODO: least squares fit
-                # For now, do this cheap IIR average
+                # TODO: improve this cheap IIR LP filter
                 self.bcn_err = (self.bcn_err + err) * 0.5
 
 
