@@ -11,6 +11,7 @@ import dpkt
 
 # HeyMac Command IDs
 HEYMAC_CMD_BEACON = 1
+HEYMAC_CMD_TXT = 2
 
 
 class HeyMacCmdBeacon(dpkt.Packet):
@@ -29,7 +30,7 @@ class HeyMacCmdBeacon(dpkt.Packet):
         ('callsign', '0s', b''),
 #        ('_nghbrs', '0s', b''),
 #        ('_ntwks', '0s', b''),
-        ('geoloc', '0s', b'')
+        ('geoloc', '0s', b''),
     )
 
 
@@ -52,6 +53,29 @@ class HeyMacCmdBeacon(dpkt.Packet):
         self.data = bytes()
 
 
+class HeyMacCmdTxt(dpkt.Packet):
+    __hdr__ = (
+        ('cmd', 'B', HEYMAC_CMD_TXT),
+        ('msg', '0s', b''),
+    )
+
+    def __len__(self):
+        return self.__hdr_len__ + len(self.msg)
+
+
+    def __bytes__(self):
+        return self.pack_hdr() + bytes(self.msg)
+
+
+    def unpack(self, buf):
+        # Unpack the fixed-length fields
+        dpkt.Packet.unpack(self, buf)
+
+        # Unpack the variable-length field
+        self.msg = buf[self.__hdr_len__:]
+        self.data = bytes()
+
+
 def test():
     bcn = HeyMacCmdBeacon(
         dscpln=1,
@@ -65,6 +89,11 @@ def test():
     bcn.geoloc=b"$GPRMC,225446,A,4916.45,N,12311.12,W,000.5,054.7,191194,020.3,E*68"
     print(repr(bcn))
     print(repr(HeyMacCmdBeacon(bytes(bcn))))
+
+    txt = HeyMacCmdTxt(msg=b"Hell, oh! whirled")
+    print(repr(txt))
+    print(repr(HeyMacCmdTxt(bytes(txt))))
+
 
 if __name__ == '__main__':
     test()
