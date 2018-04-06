@@ -31,6 +31,7 @@ class HeyMacAhsm(pq.Ahsm):
         """Pseudostate: HeyMacAhsm:initial
         """
         # Incoming signals
+        pq.Signal.register("MAC_TX_REQ")
         pq.Framework.subscribe("PHY_GPS_PPS", me)
         pq.Framework.subscribe("PHY_RXD_DATA", me)
         pq.Framework.subscribe("GPS_NMEA", me) # from phy_uart_ahsm.py
@@ -47,7 +48,7 @@ class HeyMacAhsm(pq.Ahsm):
         
         # Init HeyMac values
         me.asn = 0
-        me.bcn_seq = 0
+        me.mac_seq = 0
 
         # This is the initial value for this node's beacon slot.
         # There may be a slot collision, so the final beacon slot may vary.
@@ -65,6 +66,9 @@ class HeyMacAhsm(pq.Ahsm):
 
         # Neighbor info
         me.bcn_ngbr_slotmap = bytearray(mac_cfg.TSLOTS_PER_SFRAME // 8)
+
+        # Transmit queue
+        me.txq = []
 
         return me.tran(me, HeyMacAhsm.initializing)
 
@@ -186,6 +190,10 @@ class HeyMacAhsm(pq.Ahsm):
             me.scheduling_and_next_tslot(me)
             return me.handled(me, event)
 
+        elif sig == pq.Signal.MAC_TX_REQ:
+            me.txq.insert(0, event.value)
+            return me.handled(me, event)
+
         elif sig == pq.Signal.EXIT:
             me.tm_evt.disarm()
             return me.handled(me, event)
@@ -247,7 +255,9 @@ class HeyMacAhsm(pq.Ahsm):
             logging.info("bcn_tslot (pps)%f", self.next_tslot)
             self.tx_bcn(self, self.next_tslot)
 
-        # TODO: send the top pkt in the tx que
+        # Send the top pkt in the tx queue
+        elif self.txq:
+            self.tx_from_queue(self, self.next_tslot)
 
         # Listen during every Tslot
         else:
@@ -329,7 +339,7 @@ class HeyMacAhsm(pq.Ahsm):
     def tx_bcn(self, abs_time):
         """Builds a HeyMac V1 Beacon and passes it to the PHY for transmit.
         """
-        frame = self.build_mac_frame(self, self.bcn_seq)
+        frame = self.build_mac_frame(self, self.mac_seq)
         bcn = mac_cmds.HeyMacCmdBeacon(
             dscpln=0,
             sframe_nTslots=mac_cfg.TSLOTS_PER_SFRAME,
@@ -343,4 +353,17 @@ class HeyMacAhsm(pq.Ahsm):
         frame.data = bcn
         tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data
         pq.Framework.post(pq.Event(pq.Signal.TRANSMIT, tx_args), "SX127xSpiAhsm")
-        self.bcn_seq += 1
+        self.mac_seq += 1
+
+
+    @staticmethod
+    def tx_from_queue(self, abs_time):
+        """Creates a frame, inserts the payload that is next in the queue
+        and dispatches the frame to the PHY for transmission.
+        Assumes caller checked that the queue is not empty.
+        """
+        frame = self.build_mac_frame(self, self.mac_seq)
+        self.mac_seq += 1
+        frame.data = self.txq.pop()
+        tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data
+        pq.Framework.post(pq.Event(pq.Signal.TRANSMIT, tx_args), "SX127xSpiAhsm")

@@ -15,6 +15,7 @@ HEYMAC_CMD_TXT = 2
 
 
 class HeyMacCmdBeacon(dpkt.Packet):
+    __byte_order__ = '!' # Network order
     __hdr__ = (
         ('cmd', 'B', HEYMAC_CMD_BEACON),
         ('dscpln', 'B', 0),     # 0x0X:None, 0x1X:RF, 0x2X:GPS (lower nibble is nhops to GPS)
@@ -54,6 +55,7 @@ class HeyMacCmdBeacon(dpkt.Packet):
 
 
 class HeyMacCmdTxt(dpkt.Packet):
+    __byte_order__ = '!' # Network order
     __hdr__ = (
         ('cmd', 'B', HEYMAC_CMD_TXT),
         ('msg', '0s', b''),
