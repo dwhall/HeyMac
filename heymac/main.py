@@ -7,13 +7,13 @@ Launches all the state machines to run the HeyMac network
 """
 
 
-import asyncio, logging
-
+import logging, socket
 logging.basicConfig(
-        filename = __file__ + ".log",
+        filename = __file__ + "." + socket.gethostname() + ".log",
         format = "%(asctime)s %(message)s",
         level = logging.INFO)
 
+import asyncio
 import mac_tdma_ahsm, mac_chat_ahsm
 import phy_gpio_ahsm, phy_spi_ahsm, phy_uart_ahsm
 
