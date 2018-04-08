@@ -118,10 +118,10 @@ class ChatAhsm(pq.Ahsm):
                 f = mac_frame.HeyMacFrame(bytes(payld))
                 if isinstance(f.data, mac_cmds.HeyMacCmdTxt):
                     scrnmsg = "<rssi=%d dBm, snr=%.3f dB>: %s" \
-                        % (rssi, snr, f.data.msg.decode("utf-8"))
+                        % (rssi, snr, f.data.msg.decode())
                 elif isinstance(f.data, mac_cmds.HeyMacCmdBeacon):
                     scrnmsg = "<bcn from %s: rssi=%d dBm, snr=%.3f dB, asn=%d>" \
-                        % (f.data.callsign, rssi, snr, f.data.asn)
+                        % (f.data.station_id, rssi, snr, f.data.asn)
                 else:
                     scrnmsg = b"<pkt not a known MAC cmd>"
             except Exception as e:

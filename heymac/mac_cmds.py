@@ -28,7 +28,7 @@ class HeyMacCmdBeacon(dpkt.Packet):
 #        ('sframe_nchnls', 'B', b"\x01"), # Nmbr RF channels
 #        ('sframe_hopLutId', 'B', b"\x00"), # Channel HOP lookup table ID
         # TODO: variable-length fields
-        ('callsign', '0s', b''),
+        ('station_id', '0s', b''),
 #        ('_nghbrs', '0s', b''),
 #        ('_ntwks', '0s', b''),
         ('geoloc', '0s', b''),
@@ -36,11 +36,11 @@ class HeyMacCmdBeacon(dpkt.Packet):
 
 
     def __len__(self):
-        return self.__hdr_len__ + len(self.callsign) + len(self.geoloc)
+        return self.__hdr_len__ + len(self.station_id) + len(self.geoloc)
 
 
     def __bytes__(self):
-        return self.pack_hdr() + bytes(self.callsign) + bytes(self.geoloc)
+        return self.pack_hdr() + bytes(self.station_id) + bytes(self.geoloc)
 
 
     def unpack(self, buf):
@@ -49,8 +49,8 @@ class HeyMacCmdBeacon(dpkt.Packet):
 
         # Unpack the variable-length fields
         start_of_geoloc = buf.rfind(b"$")
-        self.callsign = buf[self.__hdr_len__:start_of_geoloc].decode("utf-8")
-        self.geoloc = buf[start_of_geoloc:].decode("utf-8")
+        self.station_id = buf[self.__hdr_len__:start_of_geoloc].decode()
+        self.geoloc = buf[start_of_geoloc:].decode()
         self.data = bytes()
 
 
@@ -87,7 +87,7 @@ def test():
         flags=5,
         tx_slotmap=tuple(range(16)),
         ngbr_slotmap=tuple(range(0x80,0x80+16)),)
-    bcn.callsign=b"KC4KSU"
+    bcn.station_id=b"KC4KSU-1"
     bcn.geoloc=b"$GPRMC,225446,A,4916.45,N,12311.12,W,000.5,054.7,191194,020.3,E*68"
     print(repr(bcn))
     print(repr(HeyMacCmdBeacon(bytes(bcn))))

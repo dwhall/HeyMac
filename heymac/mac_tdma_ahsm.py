@@ -10,7 +10,7 @@ MAC (data link layer) (layer 2) State Machine for protocol operations
 """
 
 
-import logging, hashlib, math
+import logging, hashlib, math, socket
 
 import pq
 
@@ -348,7 +348,7 @@ class HeyMacAhsm(pq.Ahsm):
             asn=self.asn, 
             caps=0,
             flags=0,
-            callsign=mac_cfg.CALLSIGN,
+            station_id=socket.gethostname().encode(),
             geoloc=self.gps_gprmc, #TODO: extract lat/lon from gprmc
             )
         bcn.ngbr_slotmap = tuple(self.bcn_ngbr_slotmap)
