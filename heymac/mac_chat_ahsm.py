@@ -72,12 +72,14 @@ class ChatAhsm(pq.Ahsm):
             while c >= 0:
                 c = me.inwin.getch()
 
-                # If the user hits enter, send the message
+                # If the user hits enter, collect the bytes and clear the array
                 if c in (10, curses.KEY_ENTER):
+                    msg = bytes(me.inmsg)
+                    me.inmsg = bytearray()
 
                     # Send the payload to the MAC layer
-                    msg = bytes(me.inmsg)
-                    txt = mac_cmds.HeyMacCmdTxt(msg)
+                    txt = mac_cmds.HeyMacCmdTxt()
+                    txt.msg = msg
                     pq.Framework.post(pq.Event(pq.Signal.MAC_TX_REQ, txt), "HeyMacAhsm")
 
                     # Echo the message to the outwin
@@ -89,9 +91,16 @@ class ChatAhsm(pq.Ahsm):
                     me.outwin.refresh()
 
                     # Cleanup the inwin
-                    me.inmsg = bytearray()
                     me.inwin.erase()
                     me.inwin.refresh()
+
+                # FIXME:
+                # If the user hits backspace, perform screen backspace
+                # and remove the last char collected
+                #elif c is 127:
+                #    if me.inmsg:
+                #        backspace(me.inwin)
+                #        me.inmsg.pop()
 
                 # Echo input to the inwin and
                 # accumulate characters into the message
@@ -102,13 +111,29 @@ class ChatAhsm(pq.Ahsm):
             return me.handled(me, event)
 
         elif sig == pq.Signal.PHY_RXD_DATA:
+
+            # Unpack the rxd data to see if it is a CmdTxt
             rx_time, payld, rssi, snr = event.value
             try:
                 f = mac_frame.HeyMacFrame(bytes(payld))
-                scrnmsg = b"%f (%d Bytes, rssi=%d dBm, snr=%.3f dB): %s" % \
-                    rx_time, len(payld), rssi, snr, repr(f)
-            except:
-                scrnmsg = b"rxd pkt failed unpacking"
+                if isinstance(f.data, mac_cmds.HeyMacCmdTxt):
+                    scrnmsg = "<rssi=%d dBm, snr=%.3f dB>: %s" \
+                        % (rssi, snr, f.data.msg.decode("utf-8"))
+                elif isinstance(f.data, mac_cmds.HeyMacCmdBeacon):
+                    scrnmsg = "<bcn from %s: rssi=%d dBm, snr=%.3f dB, asn=%d>" \
+                        % (f.data.callsign, rssi, snr, f.data.asn)
+                else:
+                    scrnmsg = b"<pkt not a known MAC cmd>"
+            except Exception as e:
+                scrnmsg = "# Exception:" + str(e)
+
+            # Echo the message to the outwin
+            outy,_ = me.outwin.getmaxyx()
+            me.outwin.scroll()
+            me.outwin.addstr(outy-2, 1, scrnmsg)
+            me.outwin.border()
+            me.outwin.addstr(0,4, "[ github.com/dwhall/HeyMac ]", curses.A_BOLD)
+            me.outwin.refresh()
 
             return me.handled(me, event)
 
@@ -132,3 +157,14 @@ class ChatAhsm(pq.Ahsm):
             return me.handled(me, event)
 
         return me.super(me, me.top)
+
+
+# FIXME:
+#def backspace(win):
+#    curses.nocbreak()
+#    y,x = win.getyx(win)
+#    win.move(y, x)
+#    win.delch(); 
+#    curses.cbreak()
+#    win.refresh()
+#    curses.echo()

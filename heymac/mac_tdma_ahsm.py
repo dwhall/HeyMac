@@ -308,8 +308,10 @@ class HeyMacAhsm(pq.Ahsm):
 
         if isinstance(f.data, mac_cmds.HeyMacCmdBeacon):
             self.on_rxd_bcn(self, rx_time, f.data, rssi, snr)
+        elif isinstance(f.data, mac_cmds.HeyMacCmdTxt):
+            pass
         else:
-            logging.warning("rxd pkt is not a bcn")
+            logging.warning("rxd pkt has an unknown MAC cmd")
 
 
     @staticmethod

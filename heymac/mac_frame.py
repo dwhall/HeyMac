@@ -163,8 +163,10 @@ class HeyMacFrame(dpkt.Packet):
 
         # Unpack the payload for known frame types
         if self.fctl & FCTL_TYPE_MASK == FCTL_TYPE_MAC:
-            if self.data and self.data[0] == 1: #HEYMAC_CMD_BEACON:
+            if self.data and self.data[0] == mac_cmds.HEYMAC_CMD_BEACON:
                 self.data = mac_cmds.HeyMacCmdBeacon(self.data)
+            elif self.data and self.data[0] == mac_cmds.HEYMAC_CMD_TXT:
+                self.data = mac_cmds.HeyMacCmdTxt(self.data)
 
 
     def pack_hdr(self):
