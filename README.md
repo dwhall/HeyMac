@@ -42,7 +42,7 @@ connection is made by a trace in the Dragino PCB.
 | LoRa   | SPI MISO | 10  | | 21  | SPI0 MISO |     |
 | LoRa   | SPI MOSI | 11  | | 19  | SPI0 MOSI |     |
 | LoRa   | SPI SCLK | 12  | | 23  | SPI0 SCLK |     |
-| LoRa   | SPI SS   | 13  | | 22  | GPIO 
+| LoRa   | SPI SS   | 13  | | 22  | GPIO 25   | 1   |
 | LoRa   | SPI SS   | 13  | | 24  | SPI0 CS0  | W   |
 | LoRa   | DIO0     | 6   | | 7   | GPIO 4    |     |
 | LoRa   | DIO1     | 7   | | 16  | GPIO 23   |     |
@@ -58,4 +58,4 @@ connection is made by a trace in the Dragino PCB.
 | Fix    | Explanation                              |
 | ------ | ---------------------------------------- |
 | W      | Added a fly wire                         |
-| 1      | 
+| 1      | Either GPIO25 always remains an unusable input, or cut trace to Pi's pin22. |
