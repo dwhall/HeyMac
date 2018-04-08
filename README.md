@@ -37,23 +37,23 @@ LoRa radio and the GPS.  The "fix" column indicates where I needed to solder
 a wire to make the connection.  If the fix column is empty that means the
 connection is made by a trace in the Dragino PCB.
 
-| Device | Signal   | pin | | pin | Pi signal | fix |
-| ------ | -------- | --- | | --- | --------- | --- |
-| LoRa   | SPI MISO | 10  | | 21  | SPI0 MISO |     |
-| LoRa   | SPI MOSI | 11  | | 19  | SPI0 MOSI |     |
-| LoRa   | SPI SCLK | 12  | | 23  | SPI0 SCLK |     |
-| LoRa   | SPI SS   | 13  | | 22  | GPIO 25   | 1   |
-| LoRa   | SPI SS   | 13  | | 24  | SPI0 CS0  | W   |
-| LoRa   | DIO0     | 6   | | 7   | GPIO 4    |     |
-| LoRa   | DIO1     | 7   | | 16  | GPIO 23   |     |
-| LoRa   | DIO2     | 8   | | 18  | GPIO 24   |     |
-| LoRa   | DIO3     | 3   | | 31  | GPIO 6    | W   |
-| LoRa   | DIO4     | 4   | | 29  | GPIO 5    | W   |
-| LoRa   | DIO5     | 15  | | 15  | GPIO 22   | W   |
-| LoRa   | RESET    | 14  | | 11  | GPIO 17   |     |
-| GPS    | RX       | 1   | | 8   | UART TX   |     |
-| GPS    | TX       | 2   | | 10  | UART RX   |     |
-| GPS    | PPS      | 6   | | 37  | GPIO 26   | W   |
+| Device | Signal   | pin |     | pin | Pi signal | fix |
+| ------ | -------- | --- | --- | --- | --------- | --- |
+| LoRa   | SPI MISO | 10  |     | 21  | SPI0 MISO |     |
+| LoRa   | SPI MOSI | 11  |     | 19  | SPI0 MOSI |     |
+| LoRa   | SPI SCLK | 12  |     | 23  | SPI0 SCLK |     |
+| LoRa   | SPI SS   | 13  |     | 22  | GPIO 25   | 1   |
+| LoRa   | SPI SS   | 13  |     | 24  | SPI0 CS0  | W   |
+| LoRa   | DIO0     | 6   |     | 7   | GPIO 4    |     |
+| LoRa   | DIO1     | 7   |     | 16  | GPIO 23   |     |
+| LoRa   | DIO2     | 8   |     | 18  | GPIO 24   |     |
+| LoRa   | DIO3     | 3   |     | 31  | GPIO 6    | W   |
+| LoRa   | DIO4     | 4   |     | 29  | GPIO 5    | W   |
+| LoRa   | DIO5     | 15  |     | 15  | GPIO 22   | W   |
+| LoRa   | RESET    | 14  |     | 11  | GPIO 17   |     |
+| GPS    | RX       | 1   |     | 8   | UART TX   |     |
+| GPS    | TX       | 2   |     | 10  | UART RX   |     |
+| GPS    | PPS      | 6   |     | 37  | GPIO 26   | W   |
 
 | Fix    | Explanation                              |
 | ------ | ---------------------------------------- |
