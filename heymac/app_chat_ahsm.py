@@ -2,10 +2,11 @@
 """
 Copyright 2018 Dean Hall.  See LICENSE for details.
 
-MAC (data link layer) (layer 2) State Machine for a simple text chat app
-- collects user input from the terminal
-- sends a line of text in a HeyMacCmdTxt packet
-- receives text from the RF PHY/MAC layers and displays it on the console
+Application (layer 7) State Machine for a simple text chat app
+- collects a line of text from user input from the terminal
+- dispatchtes the text in a HeyMacCmdTxt packet to the MAC layer for TX scheduling
+- receives text from the MAC layer and displays it on the console
+- shows any received beacons just to let you know who is on the air
 """
 
 

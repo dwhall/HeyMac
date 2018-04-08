@@ -14,7 +14,8 @@ logging.basicConfig(
         level = logging.INFO)
 
 import asyncio
-import mac_tdma_ahsm, mac_chat_ahsm
+import app_chat_ahsm
+import mac_tdma_ahsm
 import phy_gpio_ahsm, phy_spi_ahsm, phy_uart_ahsm
 
 
@@ -24,7 +25,7 @@ def main():
     spiAhsm = phy_spi_ahsm.SX127xSpiAhsm(phy_spi_ahsm.SX127xSpiAhsm.initial)
     uartAhsm = phy_uart_ahsm.UartAhsm(phy_uart_ahsm.UartAhsm.initial)
     macAhsm = mac_tdma_ahsm.HeyMacAhsm(mac_tdma_ahsm.HeyMacAhsm.initial)
-    chatAhsm = mac_chat_ahsm.ChatAhsm(mac_chat_ahsm.ChatAhsm.initial)
+    chatAhsm = app_chat_ahsm.ChatAhsm(app_chat_ahsm.ChatAhsm.initial)
 
     # Start state machines
     spiAhsm.start(10)
