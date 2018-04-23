@@ -13,10 +13,17 @@ TSLOTS_PER_SFRAME = 128
 # so it can decide what to do and perform any preparation so the radio action
 # happens as close to the start of a Tslot as possible.
 # The following value was determined through experimentation.
-# It should be great enough to prevent a busy system from mising the time
+# It should be great enough to prevent a busy system from missing the time
 # and small enough to not block for a significant amount of time.
 TSLOT_PREP_TIME = 0.020 # secs
 
-# TEMPORARY
-# Amateur radio callsign
-CALLSIGN = b"KC4KSU"
+# The amount of time [seconds] since the reception of a PPS signal
+# after which the timing is no longer disciplined.
+# The following value is a guess and can be improved.
+DSCPLN_PPS_TIMEOUT = 5.0 * 60.0 # five minutes
+
+# The amount of time [seconds] since the reception of a HeyMac beacon
+# after which the timing is no longer disciplined.
+# This value SHOULD be greater than DSCPLN_PPS_TIMEOUT to allow the weaker
+# form of discipline more time to operate.
+DSCPLN_BCN_TIMEOUT = 10.0 * 60.0 # ten minutes

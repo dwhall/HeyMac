@@ -60,7 +60,7 @@ class HeyMacAhsm(pq.Ahsm):
         me.bcn_slot = math.floor(me.bcn_slot / mac_cfg.TSLOTS_PER_SEC) * mac_cfg.TSLOTS_PER_SEC
         logging.info("bcn_slot (%d / %d)" % (me.bcn_slot, mac_cfg.TSLOTS_PER_SFRAME))
 
-        me.time_of_last_pps = None
+#        me.time_of_last_pps = None
         me.time_of_last_rxd_bcn = None
         me.dscpln = mac_discipline.HeyMacDiscipline()
 
@@ -102,9 +102,7 @@ class HeyMacAhsm(pq.Ahsm):
 
         elif sig == pq.Signal.PHY_GPS_PPS:
             time_of_pps = event.value
-            me.dscpln.update_pps(time_of_pps, me.time_of_last_pps)
-            me.time_of_last_pps = time_of_pps
-            me.tslots_since_last_pps = 0
+            me.dscpln.update_pps(time_of_pps)
             return me.handled(me, event)
 
         elif sig == pq.Signal.PHY_RXD_DATA:
@@ -143,14 +141,7 @@ class HeyMacAhsm(pq.Ahsm):
             return me.handled(me, event)
 
         elif sig == pq.Signal.TM_EVT_TMOUT: # timer has expired
-            # If two PPS have been received, transfer to scheduling state
-            if me.time_of_last_pps:
-                return me.tran(me, me.scheduling)
-            else:
-                logging.info("remain listening")
-                listen_secs = N_SFRAMES_TO_LISTEN * mac_cfg.TSLOTS_PER_SFRAME / mac_cfg.TSLOTS_PER_SEC
-                me.tm_evt.postIn(me, listen_secs)
-                return me.handled(me, event)
+            return me.tran(me, me.scheduling)
  
         elif sig == pq.Signal.PHY_RXD_DATA:
             # handle received frame
@@ -162,7 +153,7 @@ class HeyMacAhsm(pq.Ahsm):
             pq.Framework.post(pq.Event(pq.Signal.RECEIVE, value), "SX127xSpiAhsm")
             return me.handled(me, event)
 
-        # This handler is for debug-print only and may be removed
+        # This handler is for logging print and may be removed
         elif sig == pq.Signal.PHY_GPS_PPS:
             logging.info("pps            %f", event.value)
             # process PPS in the running state, too
@@ -183,7 +174,7 @@ class HeyMacAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            me.scheduling_and_entry(me)
+            me._post_time_event_for_next_tslot(me)
             return me.handled(me, event)
 
         elif sig == pq.Signal.TM_EVT_TMOUT:
@@ -216,30 +207,6 @@ class HeyMacAhsm(pq.Ahsm):
 #### End State Machines
 
     @staticmethod
-    def scheduling_and_entry(self,):
-        """Handler for the Scheduling state entry event.
-        Uses timing discipline data to set a time event for the next Tslot.
-        """
-        logging.info("SCHEDULING")
-
-        now = pq.Framework._event_loop.time()
-
-        # If there has been no PPS, use now as a pseudo edge
-        if not self.time_of_last_pps:
-            self.time_of_last_pps = now
-            self.tslots_since_last_pps = 0
-
-        # If there has been a PPS, initialize this variable
-        else:
-            self.tslots_since_last_pps = round((now - self.time_of_last_pps) * mac_cfg.TSLOTS_PER_SEC)
-
-            # If no rx'd MAC frames have updated the ASN, init it to match latest PPS edge
-            if self.asn == 0:
-                self.asn = self.tslots_since_last_pps
-        self._post_time_event_for_next_tslot(self)
-
-
-    @staticmethod
     def scheduling_and_next_tslot(self,):
         """Handler for the Scheduling state when the next-slot-preparation timer
         has elapsed.  This method decides what to do in the next Tslot
@@ -247,11 +214,9 @@ class HeyMacAhsm(pq.Ahsm):
         """
         # Increment the Absolute Slot Number and a Tslot counter
         self.asn += 1
-        self.tslots_since_last_pps += 1
 
         # Transmit a beacon during this node's beacon slot
         if self.asn % mac_cfg.TSLOTS_PER_SFRAME == self.bcn_slot:
-            logging.info("tm_of_last_pps %f", self.time_of_last_pps)
             logging.info("bcn_tslot (pps)%f", self.next_tslot)
             self.tx_bcn(self, self.next_tslot)
 
@@ -275,8 +240,8 @@ class HeyMacAhsm(pq.Ahsm):
         source of absolute time (time of most recent PPS) so that there is
         less accumulated error.
         """
-        TSLOT_PREP_TIME = 0.020 # secs.
-        self.next_tslot = self.time_of_last_pps + (1 + self.tslots_since_last_pps) * self.dscpln.get_time_per_tslot()
+        now = pq.Framework._event_loop.time()
+        self.next_tslot = self.dscpln.get_time_of_next_tslot(now)
         self.tm_evt.postAt(self, self.next_tslot - mac_cfg.TSLOT_PREP_TIME)
 
 
@@ -318,11 +283,11 @@ class HeyMacAhsm(pq.Ahsm):
     def on_rxd_bcn(self, rx_time, bcn_frame, rssi, snr):
         """Handles reception of a beacon frame.
         """
-        self.dscpln.update_bcn(rx_time, self.time_of_last_rxd_bcn)
+        self.dscpln.update_bcn(rx_time)
         self.time_of_last_rxd_bcn = rx_time
         self.tslots_since_last_bcn = 0
 
-        # Adopt the larger ASN
+        # Adopt the greater ASN
         if bcn_frame.asn > self.asn:
             self.asn = bcn_frame.asn
 

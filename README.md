@@ -21,23 +21,25 @@ these experiments.
 ## Hardware
 
 During the prototyping stage of development, I'm using a Raspberry Pi 3 Model B.
-The radio board is a Dragino LoRa/GPS Hat that I bought
-[here](https://www.tindie.com/products/edwin/loragps-hat/).
-They sent me v 1.3 (there are later versions) of the PCB and I had to make 
-a few simple mods.  The first and most important fix is to connect the radio's
-SPI Chip Select (CS) signal to the Pi's SPI0 CS0.  Without that, you'd have to
-programmatically control the radio's CS before and after every transaction
-(that's a PITA that slows hardware and software).  It's better to connect the
-Pi's CS so the Pi's SPI peripheral can control the CS signal automatically.
-The other mods are straight connections from the radio's DIOn pins to the Pi's
-GPIO and the GPS's Pulse Per Second (PPS) signal to  the Pi.
+The radio board is a
+[Dragino LoRa/GPS Hat](http://wiki.dragino.com/index.php?title=Lora/GPS_HAT)
+that I bought [here](https://www.tindie.com/products/edwin/loragps-hat/).
+They sent me version 1.3 of the PCB eventhough there are later versions.
+So I had to make a couple fixes and a few additions.  The first and most
+important fix is to connect the radio's SPI Chip Select (CS) signal to the Pi's
+SPI0 CS0.  Without that, you have to programmatically control the radio's CS
+before and after every transaction (that's a PITA that slows hardware and
+software).  It's better to connect the Pi's CS so the Pi's SPI peripheral
+(hardware) can control the CS signal automatically. The additions are direct
+connections from the radio's DIOn pins to the Pi's GPIO and the GPS's Pulse Per
+Second (PPS) signal to the Pi.
 
 Below is a table of the connections between the Raspberry Pi, the
-LoRa radio and the GPS.  The "fix" column indicates where I needed to solder
-a wire to make the connection.  If the fix column is empty that means the
+LoRa radio and the GPS.  The "Mod" column indicates where I needed to solder
+a wire to make the connection.  If the Mod column is empty that means the
 connection is made by a trace in the Dragino PCB.
 
-| Device | Signal   | pin |     | pin | Pi signal | fix |
+| Device | Signal   | pin |     | pin | Pi signal | Mod |
 | ------ | -------- | --- | --- | --- | --------- | --- |
 | LoRa   | SPI MISO | 10  |     | 21  | SPI0 MISO |     |
 | LoRa   | SPI MOSI | 11  |     | 19  | SPI0 MOSI |     |
@@ -55,7 +57,7 @@ connection is made by a trace in the Dragino PCB.
 | GPS    | TX       | 2   |     | 10  | UART RX   |     |
 | GPS    | PPS      | 6   |     | 37  | GPIO 26   | W   |
 
-| Fix    | Explanation                              |
+| Mod    | Explanation                              |
 | ------ | ---------------------------------------- |
 | W      | Added a fly wire                         |
 | 1      | Either GPIO25 always remains an unusable input, or cut trace to Pi's pin22. |
