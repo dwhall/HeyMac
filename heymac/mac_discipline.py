@@ -55,10 +55,10 @@ class HeyMacDiscipline:
         if self.time_of_last_rxd_bcn:
             assert time_now > self.time_of_last_rxd_bcn
 
-        if time_now - self.time_of_last_pps < mac_cfg.DSCPLN_PPS_TIMEOUT:
+        if self.time_of_last_pps and time_now - self.time_of_last_pps < mac_cfg.DSCPLN_PPS_TIMEOUT:
             st = "pps"
         
-        elif time_now - self.time_of_last_rxd_bcn < mac_cfg.DSCPLN_BCN_TIMEOUT:
+        elif self.time_of_last_rxd_bcn and time_now - self.time_of_last_rxd_bcn < mac_cfg.DSCPLN_BCN_TIMEOUT:
             st = "bcn"
 
         else:
@@ -75,6 +75,9 @@ class HeyMacDiscipline:
         of a discipline mode that had been reached in the past.
         If none of that is available, use this node's CPU time as the discipline
         source.  This will be a somewhat arbitrary timing edge.
+
+        REMINDER: time_now is approx TSLOT_PREP_TIME before the active Tslot.
+        So, if we want to calc the _next_ Tslot, we need to think 2 edges ahead.
         """
         st = self.get_discipline_st(time_now)
         if st == "gps":
@@ -83,9 +86,9 @@ class HeyMacDiscipline:
             tm = self.time_of_last_pps + (1 + tslots_since_last_pps) * cpu_time_per_tslot
 
         elif st == "bcn":
-            tslots_since_last_bcn = round((time_now - self.time_of_last_bcn) * mac_cfg.TSLOTS_PER_SEC)
+            tslots_since_last_bcn = round((time_now - self.time_of_last_rxd_bcn) * mac_cfg.TSLOTS_PER_SEC)
             cpu_time_per_tslot = (1.0 - self.bcn_err) / mac_cfg.TSLOTS_PER_SEC
-            tm = self.time_of_last_bcn + (1 + tslots_since_last_bcn) * cpu_time_per_tslot
+            tm = self.time_of_last_rxd_bcn + (1 + tslots_since_last_bcn) * cpu_time_per_tslot
 
         else:
             # If PPS discipline was ever achieved, use its time
@@ -95,17 +98,18 @@ class HeyMacDiscipline:
                 tm = self.time_of_last_pps + (1 + tslots_since_last_pps) * cpu_time_per_tslot
 
             # otherwise, if beacon discipline was ever achieved, use its time
-            elif self.time_of_last_bcn:
-                tslots_since_last_bcn = round((time_now - self.time_of_last_bcn) * mac_cfg.TSLOTS_PER_SEC)
+            elif self.time_of_last_rxd_bcn:
+                tslots_since_last_bcn = round((time_now - self.time_of_last_rxd_bcn) * mac_cfg.TSLOTS_PER_SEC)
                 cpu_time_per_tslot = (1.0 - self.bcn_err) / mac_cfg.TSLOTS_PER_SEC
-                tm = self.time_of_last_bcn + (1 + tslots_since_last_bcn) * cpu_time_per_tslot
+                tm = self.time_of_last_rxd_bcn + (1 + tslots_since_last_bcn) * cpu_time_per_tslot
 
-            # otherwise use this node's CPU time as the discipline source
+            # otherwise use this node's CPU time as the discipline source.
+            # 
             else:
                 tslot_period = (1.0 / mac_cfg.TSLOTS_PER_SEC)
                 remainder = time_now % tslot_period
                 time_of_prev_tslot = time_now - remainder
-                tm = time_of_prev_tslot + tslot_period
+                tm = time_of_prev_tslot + 2 * tslot_period
 
         # If the next tslot time is too soon to do anything, get the next one.
         # This should only happen when transitioning between HeyMac's Listening
