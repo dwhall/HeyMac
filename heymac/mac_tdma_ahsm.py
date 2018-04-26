@@ -129,7 +129,7 @@ class HeyMacAhsm(pq.Ahsm):
         Listens to radio and GPS for timing discipline sources.
         Transitions to Scheduling after listening for N superframes.
         """
-        N_SFRAMES_TO_LISTEN = 0.3 # 1.0
+        N_SFRAMES_TO_LISTEN = 2.0
 
         sig = event.signal
         if sig == pq.Signal.ENTRY:
@@ -217,7 +217,7 @@ class HeyMacAhsm(pq.Ahsm):
 
         # Transmit a beacon during this node's beacon slot
         if self.asn % mac_cfg.TSLOTS_PER_SFRAME == self.bcn_slot:
-            logging.info("bcn_tslot (pps)%f", self.next_tslot)
+            logging.info("bcn_tslot      %f", self.next_tslot)
             self.tx_bcn(self, self.next_tslot)
 
         # Send the top pkt in the tx queue
@@ -308,7 +308,7 @@ class HeyMacAhsm(pq.Ahsm):
         """
         frame = self.build_mac_frame(self, self.mac_seq)
         bcn = mac_cmds.HeyMacCmdBeacon(
-            dscpln=0,
+            dscpln=self.dscpln.get_dscpln_as_int(),
             sframe_nTslots=mac_cfg.TSLOTS_PER_SFRAME,
             asn=self.asn, 
             caps=0,

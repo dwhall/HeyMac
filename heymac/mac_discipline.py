@@ -1,3 +1,5 @@
+import logging
+
 import mac_cfg
 
 
@@ -41,31 +43,22 @@ class HeyMacDiscipline:
         self.consec_bcn_cnt = 0
 
         # Discipline state describes the source of timing discipline
-        self.dscpln_st = "none"
+        self._dscpln_st = "none"
 
 
-    def get_discipline_st(self, time_now):
-        """Returns the discipline state as one of ("none", "bcn", "pps").
-        The state is determined by having received a signal from a discipline
-        source within a defined range of time.  If the range of time has
-        elapsed, a lower form of discipline is considered.
+    def get_dscpln_as_int(self,):
+        """Returns the current state of timing discpline
+        as an integer where:
+            "none" --> 0
+            "bcn"  --> 1
+            "pps"  --> 2
         """
-        if self.time_of_last_pps:
-            assert time_now > self.time_of_last_pps
-        if self.time_of_last_rxd_bcn:
-            assert time_now > self.time_of_last_rxd_bcn
-
-        if self.time_of_last_pps and time_now - self.time_of_last_pps < mac_cfg.DSCPLN_PPS_TIMEOUT:
-            st = "pps"
-        
-        elif self.time_of_last_rxd_bcn and time_now - self.time_of_last_rxd_bcn < mac_cfg.DSCPLN_BCN_TIMEOUT:
-            st = "bcn"
-
-        else:
-            st = "none"
-
-        assert st in ("none", "bcn", "pps")
-        return st
+        dscpln_int = {
+            "none": 0,
+            "bcn": 1,
+            "pps": 2
+        }
+        return dscpln_int[self._dscpln_st]
 
 
     def get_time_of_next_tslot(self, time_now):
@@ -79,32 +72,42 @@ class HeyMacDiscipline:
         REMINDER: time_now is approx TSLOT_PREP_TIME before the active Tslot.
         So, if we want to calc the _next_ Tslot, we need to think 2 edges ahead.
         """
-        st = self.get_discipline_st(time_now)
-        if st == "gps":
+        if self.time_of_last_pps:
+            assert time_now > self.time_of_last_pps
+        if self.time_of_last_rxd_bcn:
+            assert time_now > self.time_of_last_rxd_bcn
+
+        # PPS discipline
+        if self.time_of_last_pps and time_now - self.time_of_last_pps < mac_cfg.DSCPLN_PPS_TIMEOUT:
+            self._dscpln_st = "pps"
             tslots_since_last_pps = round((time_now - self.time_of_last_pps) * mac_cfg.TSLOTS_PER_SEC)
             cpu_time_per_tslot = (1.0 - self.pps_err) / mac_cfg.TSLOTS_PER_SEC
             tm = self.time_of_last_pps + (1 + tslots_since_last_pps) * cpu_time_per_tslot
 
-        elif st == "bcn":
+        # BCN discipline
+        elif self.time_of_last_rxd_bcn and time_now - self.time_of_last_rxd_bcn < mac_cfg.DSCPLN_BCN_TIMEOUT:
+            self._dscpln_st = "bcn"
             tslots_since_last_bcn = round((time_now - self.time_of_last_rxd_bcn) * mac_cfg.TSLOTS_PER_SEC)
             cpu_time_per_tslot = (1.0 - self.bcn_err) / mac_cfg.TSLOTS_PER_SEC
             tm = self.time_of_last_rxd_bcn + (1 + tslots_since_last_bcn) * cpu_time_per_tslot
 
+        # no discipline
         else:
-            # If PPS discipline was ever achieved, use its time
-            if self.time_of_last_pps:
+            self._dscpln_st = "none"
+
+            # If PPS discipline was ever achieved and is more recent, use its time
+            if self.time_of_last_pps and self.time_of_last_pps > self.time_of_last_rxd_bcn:
                 tslots_since_last_pps = round((time_now - self.time_of_last_pps) * mac_cfg.TSLOTS_PER_SEC)
                 cpu_time_per_tslot = (1.0 - self.pps_err) / mac_cfg.TSLOTS_PER_SEC
                 tm = self.time_of_last_pps + (1 + tslots_since_last_pps) * cpu_time_per_tslot
 
-            # otherwise, if beacon discipline was ever achieved, use its time
-            elif self.time_of_last_rxd_bcn:
+            # otherwise, if beacon discipline was ever achieved and is more recent, use its time
+            elif self.time_of_last_rxd_bcn and self.time_of_last_rxd_bcn > self.time_of_last_pps:
                 tslots_since_last_bcn = round((time_now - self.time_of_last_rxd_bcn) * mac_cfg.TSLOTS_PER_SEC)
                 cpu_time_per_tslot = (1.0 - self.bcn_err) / mac_cfg.TSLOTS_PER_SEC
                 tm = self.time_of_last_rxd_bcn + (1 + tslots_since_last_bcn) * cpu_time_per_tslot
 
-            # otherwise use this node's CPU time as the discipline source.
-            # 
+            # otherwise use this node's CPU time as the source.
             else:
                 tslot_period = (1.0 / mac_cfg.TSLOTS_PER_SEC)
                 remainder = time_now % tslot_period
@@ -131,6 +134,13 @@ class HeyMacDiscipline:
         duration of a timeslot.  Calculates the error between the measured and
         the ideal times and keeps an average error, .bcn_err
         """
+        # The DIO3/ValidHeader signal used to capture the RX time arrives some
+        # amount of time after the beginning of the Beacon frame.  We must
+        # remove that time in order to get a good estimate of the Beacon arrival
+        time_of_rxd_bcn -= mac_cfg.TIME_TO_VALID_HEADER
+        logging.info("adj rxd_bcn    %f" % (time_of_rxd_bcn))
+
+
         # Must have received at least one previous bcn in order to measure delta
         if self.time_of_last_rxd_bcn:
             delta = time_of_rxd_bcn - self.time_of_last_rxd_bcn

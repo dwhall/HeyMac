@@ -27,3 +27,11 @@ DSCPLN_PPS_TIMEOUT = 5.0 * 60.0 # five minutes
 # This value SHOULD be greater than DSCPLN_PPS_TIMEOUT to allow the weaker
 # form of discipline more time to operate.
 DSCPLN_BCN_TIMEOUT = 10.0 * 60.0 # ten minutes
+
+# The amount of time between the true start of a Beacon frame
+# and the point when the receiver detects reception via DIO3/ValidHeader.
+# This time must be accounted for by Beacon discipline.
+# This time was determined by comparing 1 receiver's log file:
+#   2018-04-25 23:13:42,998 pps            898898.480569
+#   2018-04-25 23:13:43,394 rx_time        898898.748040    RXD 139 bytes...
+TIME_TO_VALID_HEADER = 0.0175
