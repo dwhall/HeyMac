@@ -1,6 +1,6 @@
 import logging, struct
 
-import dpkt
+import dpkt # pip install dpkt
 
 import mac_cmds
 
@@ -10,25 +10,18 @@ HEYMAC_VERSION = 1
 
 # Frame Control Field (Fctl) subfield values
 FCTL_TYPE_MIN = 0
-FCTL_TYPE_MAC = 0b01 << 6
-FCTL_TYPE_NLH = 0b10 << 6
-FCTL_TYPE_EXT = 0b11 << 6
-FCTL_TYPE_MASK = 0b11 << 6
+FCTL_TYPE_SHIFT = 6
+FCTL_TYPE_MAC = 0b01 << FCTL_TYPE_SHIFT
+FCTL_TYPE_NLH = 0b10 << FCTL_TYPE_SHIFT
+FCTL_TYPE_EXT = 0b11 << FCTL_TYPE_SHIFT
+FCTL_TYPE_MASK = 0b11 << FCTL_TYPE_SHIFT
 
-FCTL_LENCODE_BIT = 1 << 5
-FCTL_PEND_BIT = 1 << 4
-
-FCTL_DADDR_MASK = 0b11 << 2
-FCTL_DADDR_MODE_NONE = 0
-FCTL_DADDR_MODE_64BIT = 0b01 << 2
-FCTL_DADDR_MODE_16BIT = 0b10 << 2
-FCTL_DADDR_MODE_16BIT_NET = 0b11 << 2
-
-FCTL_SADDR_MASK = 0b11
-FCTL_SADDR_MODE_NONE = 0
-FCTL_SADDR_MODE_64BIT = 0b01
-FCTL_SADDR_MODE_16BIT = 0b10
-FCTL_SADDR_MODE_16BIT_NET = 0b11
+FCTL_IE_PRESENT = 1 << 5
+FCTL_NETID_PRESENT = 1 << 4
+FCTL_EXT_ADDR_EN = 1 << 3
+FCTL_DST_ADDR_PRESENT = 1 << 2
+FCTL_SRC_ADDR_PRESENT = 1 << 1
+FCTL_PEND_BIT = 1 << 0
 
 
 class HeyMacFrame(dpkt.Packet):
@@ -37,7 +30,6 @@ class HeyMacFrame(dpkt.Packet):
         ('fctl', 'B', 0),
         # Fctl is the only field guaranteed to be present
         # Below this are optional fields
-        ('_lencode', '0s', b''),
         ('_ver_seq', '0s', b''), # accessed via .ver and .seq properties
         ('exttype', '0s', b''),
         ('daddr', '0s', b''),
@@ -45,38 +37,38 @@ class HeyMacFrame(dpkt.Packet):
         ('netid', '0s', b''),
     )
 
-    # An instance should override omit_lencode with True
-    # to make a packet that omits the lencode field.
-    # Fctl will be modified automatically.
-    omit_lencode = False
-
     # Functions to help determine which fields are present
-    def _has_lencode_field(self,):
-        return (self.fctl &  FCTL_LENCODE_BIT) != 0
     def _has_verseq_field(self,): # VerSeq exists in all but Min frame types
-        return (self.fctl & FCTL_TYPE_MASK) != 0
+        return (self.fctl & FCTL_TYPE_MASK) != FCTL_TYPE_MIN
     def _has_exttype_field(self,): # ExtType exists when Fctl type is Extended
         return (self.fctl & FCTL_TYPE_MASK) == FCTL_TYPE_EXT
     def _has_daddr_field(self,):
-        return (self.fctl & FCTL_DADDR_MASK) != 0
+        return (self.fctl & FCTL_DST_ADDR_PRESENT) != 0
     def _has_saddr_field(self,):
-        return (self.fctl & FCTL_SADDR_MASK) != 0
+        return (self.fctl & FCTL_SRC_ADDR_PRESENT) != 0
     def _has_netid_field(self,):
-        return (self.fctl & FCTL_DADDR_MASK) == FCTL_DADDR_MODE_16BIT_NET \
-            or (self.fctl & FCTL_SADDR_MASK) == FCTL_SADDR_MODE_16BIT_NET
+        return (self.fctl & FCTL_NETID_PRESENT) != 0
 
     # Functions to determine size of variable-size fields
     def _sizeof_saddr_field(self,):
-        sz = (0, 8, 2, 2)
-        sam = (self.fctl & FCTL_SADDR_MASK)
-        return sz[sam]
+        if self._has_saddr_field():
+            if(self.fctl & FCTL_EXT_ADDR_EN) != 0:
+                sz = 8
+            else:
+                sz = 2
+        else:
+            sz = 0
+        return sz
     def _sizeof_daddr_field(self,):
-        sz = (0, 8, 2, 2)
-        dam = (self.fctl & FCTL_DADDR_MASK) >> 2
-        return sz[dam]
+        if self._has_daddr_field():
+            if(self.fctl & FCTL_EXT_ADDR_EN) != 0:
+                sz = 8
+            else:
+                sz = 2
+        else:
+            sz = 0
+        return sz
 
-    def __len__(self):
-        return self._lencode[0] + 1
 
     # Getters/setters for _<private> fields
     @property
@@ -98,27 +90,14 @@ class HeyMacFrame(dpkt.Packet):
         vs = (HEYMAC_VERSION << 4) | (s & 0x0F)
         self._ver_seq = vs.to_bytes(1, "big")
 
-    @property
-    def lencode(self,):
-        if self._lencode:
-            return self._lencode[0]
-        else:
-            return None
 
-    # Upack/Pack methods needed by dpkt
     def unpack(self, buf):
         """Unpacks a bytes object into component attributes.
-        This function is called when a HeyMacFrame instance is created
+        This function is called when an instance of this class is created
         by passing a bytes object to the constructor
         """
         buflen = len(buf)
         super(HeyMacFrame, self).unpack(buf)
-
-        if self._has_lencode_field():
-            if len(self.data) < 1:
-                raise dpkt.NeedData('for lencode')
-            self._lencode = self.data[0:1]
-            self.data = self.data[1:]
 
         if self._has_verseq_field():
             if len(self.data) < 1:
@@ -153,20 +132,16 @@ class HeyMacFrame(dpkt.Packet):
             self.netid = self.data[0:2]
             self.data = self.data[2:]
 
-        # If the Length is known, separate out any excess data (EXPERIMENTAL may want to reject such frames)
-        if self._has_lencode_field():
-            stated_len = self.lencode + 1
-            if buflen > stated_len:
-                self.excess = self.data[stated_len - buflen:]
-                self.data = self.data[:stated_len - buflen]
-                logging.warning("Excess data unpacking a HeyMacFrame")
+        # TODO: IEs
 
         # Unpack the payload for known frame types
         if self.fctl & FCTL_TYPE_MASK == FCTL_TYPE_MAC:
-            if self.data and self.data[0] == mac_cmds.HEYMAC_CMD_BEACON:
-                self.data = mac_cmds.HeyMacCmdBeacon(self.data)
+            if self.data and self.data[0] == mac_cmds.HEYMAC_CMD_SM_BCN:
+                self.data = mac_cmds.HmCmdPktSmallBcn(self.data)
+            elif self.data and self.data[0] == mac_cmds.HEYMAC_CMD_EXT_BCN:
+                self.data = mac_cmds.HmCmdPktExtBcn(self.data)
             elif self.data and self.data[0] == mac_cmds.HEYMAC_CMD_TXT:
-                self.data = mac_cmds.HeyMacCmdTxt(self.data)
+                self.data = mac_cmds.HmCmdPktTxt(self.data)
 
 
     def pack_hdr(self):
@@ -200,46 +175,28 @@ class HeyMacFrame(dpkt.Packet):
             len_daddr = len(self.daddr)
             nbytes += len_daddr
             if len_daddr == 8:
-                self.fctl |= FCTL_DADDR_MODE_64BIT
+                self.fctl |= FCTL_EXT_ADDR_EN
+                self.fctl |= FCTL_DST_ADDR_PRESENT
             elif len_daddr == 2:
-                if self.netid:
-                    self.fctl |= FCTL_DADDR_MODE_16BIT_NET
-                else:
-                    self.fctl |= FCTL_DADDR_MODE_16BIT
-            else:
-                raise dpkt.PackError("invalid daddr length")
+                self.fctl |= FCTL_DST_ADDR_PRESENT
             l.append(self.daddr)
 
         if self.saddr:
             len_saddr = len(self.saddr)
             nbytes += len_saddr
             if len_saddr == 8:
-                self.fctl |= FCTL_SADDR_MODE_64BIT
+                self.fctl |= FCTL_EXT_ADDR_EN
+                self.fctl |= FCTL_SRC_ADDR_PRESENT
             elif len_saddr == 2:
-                if self.netid:
-                    self.fctl |= FCTL_SADDR_MODE_16BIT_NET
-                else:
-                    self.fctl |= FCTL_SADDR_MODE_16BIT
-            else:
-                raise dpkt.PackError("invalid saddr length")
+                self.fctl |= FCTL_SRC_ADDR_PRESENT
             l.append(self.saddr)
 
         if self.netid:
             nbytes += len(self.netid)
+            self.fctl |= FCTL_NETID_PRESENT
             if len(self.netid) != 2:
                 raise dpkt.PackError("invalid netid length")
             l.append(self.netid)
-
-        # Pack Lencode second-to-last so length can be calc'd
-        if not self.omit_lencode:
-            nbytes += 1
-            if hasattr(self, "data") and self.data:
-                nbytes += len(self.data)
-            if nbytes > 256:
-                raise dpkt.PackError("frame length exceeds 256 bytes")
-            self._lencode = nbytes.to_bytes(1, "big")
-            l.insert(0, self._lencode)
-            self.fctl |= FCTL_LENCODE_BIT
 
         # Pack Fctl last because we modify above
         l.insert(0, super(HeyMacFrame, self).pack_hdr())
