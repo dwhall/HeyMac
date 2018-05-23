@@ -28,9 +28,11 @@ class HeyMacFrame(dpkt.Packet):
     __byte_order__ = '!' # Network order
     __hdr__ = (
         ('fctl', 'B', 0),
-        # Fctl is the only field guaranteed to be present
-        # Below this are optional fields
-        ('_ver_seq', '0s', b''), # accessed via .ver and .seq properties
+        # Fctl is the only field guaranteed to be present.
+        # Below this are optional fields as indicated by '0s'.
+        # The underscore prefix means do not access that field directly,
+        # access via .ver and .seq properties instead.
+        ('_ver_seq', '0s', b''),
         ('exttype', '0s', b''),
         ('daddr', '0s', b''),
         ('saddr', '0s', b''),
@@ -52,16 +54,17 @@ class HeyMacFrame(dpkt.Packet):
     # Functions to determine size of variable-size fields
     def _sizeof_saddr_field(self,):
         if self._has_saddr_field():
-            if(self.fctl & FCTL_EXT_ADDR_EN) != 0:
+            if (self.fctl & FCTL_EXT_ADDR_EN) != 0:
                 sz = 8
             else:
                 sz = 2
         else:
             sz = 0
         return sz
+
     def _sizeof_daddr_field(self,):
         if self._has_daddr_field():
-            if(self.fctl & FCTL_EXT_ADDR_EN) != 0:
+            if (self.fctl & FCTL_EXT_ADDR_EN) != 0:
                 sz = 8
             else:
                 sz = 2
@@ -70,9 +73,11 @@ class HeyMacFrame(dpkt.Packet):
         return sz
 
 
-    # Getters/setters for _<private> fields
+    # Getters/setters for underscore-prefixed fields
     @property
     def ver(self,):
+        """Gets the version value from the VerSeq field.
+        """
         if self._ver_seq:
             return (self._ver_seq[0] & 0xF0) >> 4
         else:
@@ -80,6 +85,8 @@ class HeyMacFrame(dpkt.Packet):
 
     @property
     def seq(self,):
+        """Gets the sequence value from the VerSeq field.
+        """
         if self._ver_seq:
             return self._ver_seq[0] & 0x0F
         else:
@@ -87,6 +94,8 @@ class HeyMacFrame(dpkt.Packet):
 
     @seq.setter
     def seq(self, s):
+        """Sets the sequence value in the VerSeq field.
+        """
         vs = (HEYMAC_VERSION << 4) | (s & 0x0F)
         self._ver_seq = vs.to_bytes(1, "big")
 
@@ -154,7 +163,8 @@ class HeyMacFrame(dpkt.Packet):
 
         # If Fctl indicates VerSeq should be present
         # and VerSeq was not set by the caller,
-        # set the version to fixed value and zero the sequence
+        # set the sequence to zero
+        # (which also implicitly sets the version)
         if self._has_verseq_field() and not self._ver_seq:
             self.seq = 0
 
@@ -166,7 +176,9 @@ class HeyMacFrame(dpkt.Packet):
             nbytes += 1
             l.append(self._ver_seq)
 
-        if self.exttype:
+        if self._has_exttype_field() and not self.exttype:
+            self.exttype = b'\x00'
+        if self.exttype or self._has_exttype_field():
             nbytes += 1
             self.fctl |= FCTL_TYPE_EXT
             l.append(self.exttype)

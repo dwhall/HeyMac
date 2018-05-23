@@ -15,7 +15,7 @@ HEYMAC_CMD_EXT_BCN = 2
 HEYMAC_CMD_TXT = 3
 
 
-class HmCmdPktSmallBcn(dpkt.Packet):
+class CmdPktSmallBcn(dpkt.Packet):
     """HeyMac Small Beacon command packet
     """
 
@@ -53,7 +53,7 @@ class HmCmdPktSmallBcn(dpkt.Packet):
         b.append(self.dscpln)
         b.append(self.caps)
         b.append(self.status)
-        b.extend(struct.pack(HmCmdPktSmallBcn.__byte_order__ + "i", self.asn))
+        b.extend(struct.pack(CmdPktSmallBcn.__byte_order__ + "i", self.asn))
         # Pack the variable-length fields
         b.extend(self.tx_slots)
         b.extend(self.ngbr_tx_slots)
@@ -67,11 +67,11 @@ class HmCmdPktSmallBcn(dpkt.Packet):
         by passing a bytes object to the constructor
         """
         # Unpack the fixed-length fields
-        super(HmCmdPktSmallBcn, self).unpack(buf)
+        super(CmdPktSmallBcn, self).unpack(buf)
 
         # The Frame Spec defines the size of tx_slots and ngbr_tx_slots
-        frOrder = (HmCmdPktSmallBcn.FRAME_SPEC_FR_ORDER_MASK & self.frame_spec) \
-                >> HmCmdPktSmallBcn.FRAME_SPEC_FR_ORDER_SHIFT
+        frOrder = (CmdPktSmallBcn.FRAME_SPEC_FR_ORDER_MASK & self.frame_spec) \
+                >> CmdPktSmallBcn.FRAME_SPEC_FR_ORDER_SHIFT
         sz = (2 ** frOrder) // 8
         if sz < 1: sz = 1
 
@@ -84,7 +84,7 @@ class HmCmdPktSmallBcn(dpkt.Packet):
         self.data = bytes()
 
 
-class HmCmdPktExtBcn(dpkt.Packet):
+class CmdPktExtBcn(dpkt.Packet):
     """HeyMac Extended Beacon command packet
     """
     FRAME_SPEC_BCN_EN = 0b10000000
@@ -114,7 +114,7 @@ class HmCmdPktExtBcn(dpkt.Packet):
     )
 
 
-class HmCmdPktTxt(dpkt.Packet):
+class CmdPktTxt(dpkt.Packet):
     __byte_order__ = '!' # Network order
     __hdr__ = (
         ('cmd', 'B', HEYMAC_CMD_TXT),
@@ -139,9 +139,9 @@ class HmCmdPktTxt(dpkt.Packet):
 
 
 def test():
-    bcn = HmCmdPktSmallBcn(
-        frame_spec = HmCmdPktSmallBcn.FRAME_SPEC_BCN_EN \
-                | 5 << HmCmdPktSmallBcn.FRAME_SPEC_FR_ORDER_SHIFT \
+    bcn = CmdPktSmallBcn(
+        frame_spec = CmdPktSmallBcn.FRAME_SPEC_BCN_EN \
+                | 5 << CmdPktSmallBcn.FRAME_SPEC_FR_ORDER_SHIFT \
                 | 10,
         dscpln=2,
         caps=3,
@@ -153,11 +153,11 @@ def test():
 
     print(repr(bcn))
     b = bytes(bcn)
-    print(repr(HmCmdPktSmallBcn(b)))
+    print(repr(CmdPktSmallBcn(b)))
 
-    txt = HmCmdPktTxt(msg=b"Hell, oh! whirled")
+    txt = CmdPktTxt(msg=b"Hell, oh! whirled")
     print(repr(txt))
-    print(repr(HmCmdPktTxt(bytes(txt))))
+    print(repr(CmdPktTxt(bytes(txt))))
 
 
 if __name__ == '__main__':
