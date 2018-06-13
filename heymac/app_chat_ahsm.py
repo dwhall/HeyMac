@@ -117,10 +117,10 @@ class ChatAhsm(pq.Ahsm):
             rx_time, payld, rssi, snr = event.value
             try:
                 f = mac_frame.HeyMacFrame(bytes(payld))
-                if isinstance(f.data, mac_cmds.HeyMacCmdTxt):
+                if isinstance(f.data, mac_cmds.CmdPktTxt):
                     scrnmsg = "<rssi=%d dBm, snr=%.3f dB>: %s" \
                         % (rssi, snr, f.data.msg.decode())
-                elif isinstance(f.data, mac_cmds.HeyMacCmdBeacon):
+                elif isinstance(f.data, mac_cmds.CmdPktSmallBcn):
                     scrnmsg = "<bcn from %s: rssi=%d dBm, snr=%.3f dB, asn=%d>" \
                         % (f.data.station_id, rssi, snr, f.data.asn)
                 else:
@@ -165,7 +165,7 @@ class ChatAhsm(pq.Ahsm):
 #    curses.nocbreak()
 #    y,x = win.getyx(win)
 #    win.move(y, x)
-#    win.delch(); 
+#    win.delch();
 #    curses.cbreak()
 #    win.refresh()
 #    curses.echo()

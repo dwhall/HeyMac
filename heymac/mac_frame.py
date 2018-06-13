@@ -16,10 +16,10 @@ FCTL_TYPE_NLH = 0b10 << FCTL_TYPE_SHIFT
 FCTL_TYPE_EXT = 0b11 << FCTL_TYPE_SHIFT
 FCTL_TYPE_MASK = 0b11 << FCTL_TYPE_SHIFT
 
-FCTL_IE_PRESENT = 1 << 5
+FCTL_EXT_ADDR_EN = 1 << 5
 FCTL_NETID_PRESENT = 1 << 4
-FCTL_EXT_ADDR_EN = 1 << 3
-FCTL_DST_ADDR_PRESENT = 1 << 2
+FCTL_DST_ADDR_PRESENT = 1 << 3
+FCTL_IE_PRESENT = 1 << 2
 FCTL_SRC_ADDR_PRESENT = 1 << 1
 FCTL_PEND_BIT = 1 << 0
 
@@ -27,29 +27,36 @@ FCTL_PEND_BIT = 1 << 0
 class HeyMacFrame(dpkt.Packet):
     __byte_order__ = '!' # Network order
     __hdr__ = (
-        ('fctl', 'B', 0),
+        ('fctl', 'B', FCTL_TYPE_MAC),
         # Fctl is the only field guaranteed to be present.
         # Below this are optional fields as indicated by '0s'.
         # The underscore prefix means do not access that field directly,
         # access via .ver and .seq properties instead.
         ('_ver_seq', '0s', b''),
+        ('raddr', '0s', b''),
         ('exttype', '0s', b''),
-        ('daddr', '0s', b''),
-        ('saddr', '0s', b''),
         ('netid', '0s', b''),
+        ('daddr', '0s', b''),
+        ('hie', '0s', b''),
+        ('bie', '0s', b''),
+        ('saddr', '0s', b''),
     )
 
     # Functions to help determine which fields are present
     def _has_verseq_field(self,): # VerSeq exists in all but Min frame types
         return (self.fctl & FCTL_TYPE_MASK) != FCTL_TYPE_MIN
+    def _has_raddr_field(self,): # Resender addr exists in all but Min frame types
+        return (self.fctl & FCTL_TYPE_MASK) != FCTL_TYPE_MIN
     def _has_exttype_field(self,): # ExtType exists when Fctl type is Extended
         return (self.fctl & FCTL_TYPE_MASK) == FCTL_TYPE_EXT
-    def _has_daddr_field(self,):
-        return (self.fctl & FCTL_DST_ADDR_PRESENT) != 0
-    def _has_saddr_field(self,):
-        return (self.fctl & FCTL_SRC_ADDR_PRESENT) != 0
     def _has_netid_field(self,):
         return (self.fctl & FCTL_NETID_PRESENT) != 0
+    def _has_daddr_field(self,):
+        return (self.fctl & FCTL_DST_ADDR_PRESENT) != 0
+    def _has_ie_field(self,):
+        return (self.fctl & FCTL_IE_PRESENT) != 0
+    def _has_saddr_field(self,):
+        return (self.fctl & FCTL_SRC_ADDR_PRESENT) != 0
 
     # Functions to determine size of variable-size fields
     def _sizeof_saddr_field(self,):
@@ -72,8 +79,21 @@ class HeyMacFrame(dpkt.Packet):
             sz = 0
         return sz
 
+    def _sizeof_raddr_field(self,):
+        if self._has_raddr_field():
+            if (self.fctl & FCTL_EXT_ADDR_EN) != 0:
+                sz = 8
+            else:
+                sz = 2
+        else:
+            sz = 0
+        return sz
 
-    # Getters/setters for underscore-prefixed fields
+    def _sizeof_ie_fields(self,):
+        # FIXME
+        return (0,0)
+
+    # Getters for underscore-prefixed fields
     @property
     def ver(self,):
         """Gets the version value from the VerSeq field.
@@ -92,6 +112,7 @@ class HeyMacFrame(dpkt.Packet):
         else:
             return None
 
+    # Setters for underscore-prefixed fields
     @seq.setter
     def seq(self, s):
         """Sets the sequence value in the VerSeq field.
@@ -106,7 +127,7 @@ class HeyMacFrame(dpkt.Packet):
         by passing a bytes object to the constructor
         """
         buflen = len(buf)
-        super(HeyMacFrame, self).unpack(buf)
+        super().unpack(buf)
 
         if self._has_verseq_field():
             if len(self.data) < 1:
@@ -114,26 +135,18 @@ class HeyMacFrame(dpkt.Packet):
             self._ver_seq = self.data[0:1]
             self.data = self.data[1:]
 
+        if self._has_raddr_field():
+            sz = self._sizeof_raddr_field()
+            if len(self.data) < sz:
+                raise dpkt.NeedData("for raddr")
+            self.raddr = self.data[0:sz]
+            self.data = self.data[sz:]
+
         if self._has_exttype_field():
             if len(self.data) < 1:
                 raise dpkt.NeedData("for exttype")
             self.exttype = self.data[0]
             self.data = self.data[1:]
-
-        if self._has_daddr_field():
-            sz = self._sizeof_daddr_field()
-            if len(self.data) < sz:
-                raise dpkt.NeedData("for daddr")
-            sz = self._sizeof_daddr_field()
-            self.daddr = self.data[0:sz]
-            self.data = self.data[sz:]
-
-        if self._has_saddr_field():
-            if len(self.data) < 1:
-                raise dpkt.NeedData("for saddr")
-            sz = self._sizeof_saddr_field()
-            self.saddr = self.data[0:sz]
-            self.data = self.data[sz:]
 
         if self._has_netid_field():
             if len(self.data) < 2:
@@ -141,7 +154,27 @@ class HeyMacFrame(dpkt.Packet):
             self.netid = self.data[0:2]
             self.data = self.data[2:]
 
-        # TODO: IEs
+        if self._has_daddr_field():
+            sz = self._sizeof_daddr_field()
+            if len(self.data) < sz:
+                raise dpkt.NeedData("for daddr")
+            self.daddr = self.data[0:sz]
+            self.data = self.data[sz:]
+
+        if self._has_ie_field():
+            sz_hie, sz_bie = self._sizeof_ie_fields()
+            if len(self.data) < sz_hie + sz_bie:
+                raise dpkt.NeedData("for IEs")
+            self.hie = self.data[0:sz_hie]
+            self.bie = self.data[sz_hie:sz_hie + sz_bie]
+            self.data = self.data[sz_hie + sz_bie:]
+
+        if self._has_saddr_field():
+            sz = self._sizeof_saddr_field()
+            if len(self.data) < sz:
+                raise dpkt.NeedData("for saddr")
+            self.saddr = self.data[0:sz]
+            self.data = self.data[sz:]
 
         # Unpack the payload for known frame types
         if self.fctl & FCTL_TYPE_MASK == FCTL_TYPE_MAC:
@@ -158,8 +191,8 @@ class HeyMacFrame(dpkt.Packet):
         This function is called when bytes() or len() is called
         on an instance of HeyMacFrame.
         """
+        d = []
         nbytes = 0
-        l = []
 
         # If Fctl indicates VerSeq should be present
         # and VerSeq was not set by the caller,
@@ -174,14 +207,27 @@ class HeyMacFrame(dpkt.Packet):
             if not self._has_verseq_field():
                 raise dpkt.PackError("VerSeq set but Fctl type is MIN")
             nbytes += 1
-            l.append(self._ver_seq)
+            d.append(self._ver_seq)
+
+        if self._has_raddr_field():
+            if not self.raddr:
+                raise dpkt.PackError("Resender addr not specified")
+            nbytes += len(self.raddr)
+            d.append(self.raddr)
 
         if self._has_exttype_field() and not self.exttype:
             self.exttype = b'\x00'
         if self.exttype or self._has_exttype_field():
             nbytes += 1
             self.fctl |= FCTL_TYPE_EXT
-            l.append(self.exttype)
+            d.append(self.exttype)
+
+        if self.netid:
+            nbytes += len(self.netid)
+            self.fctl |= FCTL_NETID_PRESENT
+            if len(self.netid) != 2:
+                raise dpkt.PackError("invalid netid length")
+            d.append(self.netid)
 
         if self.daddr:
             len_daddr = len(self.daddr)
@@ -191,7 +237,9 @@ class HeyMacFrame(dpkt.Packet):
                 self.fctl |= FCTL_DST_ADDR_PRESENT
             elif len_daddr == 2:
                 self.fctl |= FCTL_DST_ADDR_PRESENT
-            l.append(self.daddr)
+            d.append(self.daddr)
+
+        # TODO: add IEs
 
         if self.saddr:
             len_saddr = len(self.saddr)
@@ -201,15 +249,9 @@ class HeyMacFrame(dpkt.Packet):
                 self.fctl |= FCTL_SRC_ADDR_PRESENT
             elif len_saddr == 2:
                 self.fctl |= FCTL_SRC_ADDR_PRESENT
-            l.append(self.saddr)
+            d.append(self.saddr)
 
-        if self.netid:
-            nbytes += len(self.netid)
-            self.fctl |= FCTL_NETID_PRESENT
-            if len(self.netid) != 2:
-                raise dpkt.PackError("invalid netid length")
-            l.append(self.netid)
+        # Repack Fctl because we modify it above
+        d.insert(0, super().pack_hdr())
 
-        # Pack Fctl last because we modify above
-        l.insert(0, super(HeyMacFrame, self).pack_hdr())
-        return b''.join(l)
+        return b''.join(d)

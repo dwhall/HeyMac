@@ -25,23 +25,29 @@ The following diagram shows the order of the HeyMac frame fields.
 The topmost field in the diagram is transmitted first.
 
 ```
-        +----+----+----+----+----+----+----+----+
-        |  Frame Control (1 octet)              |
-        +----+----+----+----+----+----+----+----+
-        |  Version and Sequence (0 or 1 octet)  |
-        +----+----+----+----+----+----+----+----+
-        |  Extended Type (0 or 1 octet)         |
-        +----+----+----+----+----+----+----+----+
-        |  Destination Address (0,2 or 8 octets)|
-        +----+----+----+----+----+----+----+----+
-        |  Source Address (0, 2 or 8 octets)    |
-        +----+----+----+----+----+----+----+----+
-        |  Network ID (0 or 2 octets)           |
-        +----+----+----+----+----+----+----+----+
-        |  Information Elements (variable)      |
-        +----+----+----+----+----+----+----+----+
-        |  Payload (variable)                   |
-        +----+----+----+----+----+----+----+----+
+    +----+----+----+----+----+----+----+----+---+
+    |  Frame Control (1 octet)              |   |
+    +----+----+----+----+----+----+----+----+   +
+    |  Version and Sequence (0 or 1 octet)  | C |
+    +----+----+----+----+----+----+----+----+ l +
+    |  Resender Address (0, 2 or 8 octets)  | e |
+    +----+----+----+----+----+----+----+----+ a +---+
+    |  Extended Type (0 or 1 octet)         | r |   |
+    +----+----+----+----+----+----+----+----+ t +   +
+    |  Network ID (0 or 2 octets)           | e |   |
+    +----+----+----+----+----+----+----+----+ x + A +
+    |  Destination Address (0,2 or 8 octets)| t | u |
+    +----+----+----+----+----+----+----+----+   + t +
+    |  Hdr Information Elements (variable)  |   | h |
+    +----+----+----+----+----+----+----+----+---+ ' +
+    |  Bdy Information Elements (variable)  | C | d |
+    +----+----+----+----+----+----+----+----+ r +   +
+    |  Source Address (0, 2 or 8 octets)    | y |   |
+    +----+----+----+----+----+----+----+----+ p +   +
+    |  Payload (variable)                   | t |   |
+    +----+----+----+----+----+----+----+----+---+---+
+    |  Msg Integrity Check (0 or N octets)  |
+    +----+----+----+----+----+----+----+----+
 ```
 
 The following sections explain each field in detail.
@@ -54,16 +60,16 @@ the presence, absence, size or type of the other fields in the frame.
 Furthermore, the Pending flag is an indication of more frames to follow.
 
 ```
-          7   6   5   4   3   2   1   0 (bit)
-        +---+---+---+---+---+---+---+---+
-        |  Type | I | N | X | D | S | P |
-        +-------+---+---+-------+-------+
-        I := IE(s) follow header
-        N := Net ID present
-        X := eXtended (64 bit) addressing for Src and Dst
-        D := Dst addr present
-        S := Src addr present
-        P := Pending frame
+      7   6   5   4   3   2   1   0 (bit)
+    +---+---+---+---+---+---+---+---+
+    |  Type | X | N | D | I | S | P |
+    +-------+---+---+-------+-------+
+    X := eXtended addressing (Src, Dst, Resender: 8 octets)
+    N := Net ID present
+    D := Dst addr present
+    I := IE(s) present
+    S := Src addr present
+    P := Pending frame
 ```
 
 Legend:
@@ -77,25 +83,22 @@ Legend:
     <li>2b10: Next Layer Higher (NLH) frame</li>
     <li>2b11: Extended frame type</li>
     </ul>
-    If Frame Type is 2b00, then the Version and Sequence field is absent;
-    otherwise the Version and Sequence field is present.
+    If Frame Type is 2b00, then the Version and Sequence field
+    and the Resender Address field are absent;
+    otherwise those fields are present.
     If Frame Type is 2b11, then the Extended Type field is present in the frame;
     otherwise the Extended Type field is absent.
   </dd>
 
-  <dt><strong>I</strong></dt>
-  <dd>Information Elements:  If 1, a string of IEs follow the header
-  (including any optional field of the header).
+  <dt><strong>X</strong></dt>
+  <dd>eXtended Addressing:  If 1, the source, destination and/or resender addresses
+  are 8 octets (64 bits) in size, if present.
+  If 0, the addresses are 2 octets (16 bits) in size, if present.
+  The Resender address is present unless the Frame Type is Minimum (2b00).
   </dd>
 
   <dt><strong>N</strong></dt>
   <dd>Net ID:  If 1, the two-octet Net ID is present in the header.
-  </dd>
-
-  <dt><strong>X</strong></dt>
-  <dd>eXtended Addressing:  If 1, the the source and/or destination addresses
-  are 8 octets (64 bits) in size, if present.
-  If 0, the addresses are 2 octets (16 bits) in size, if present.
   </dd>
 
   <dt><strong>D</strong></dt>
@@ -104,6 +107,10 @@ Legend:
   from the destination in the NLH.
   If the Destination Address is not present and there is no destination information
   in the NLH, the Destination Address is assumed to be the Root address (0x0000).
+  </dd>
+
+  <dt><strong>I</strong></dt>
+  <dd>Information Elements:  If 1, a string of IEs follow the Destination Address.
   </dd>
 
   <dt><strong>S</strong></dt>
@@ -143,6 +150,17 @@ consisting of two sub-fields.
 The Version subfield occupies the upper 4 bits and indicates the HeyMac protocol version.
 The Sequence subfield occupies the lower 4 bits and is an unsigned sequence number.
 
+### Resender Address Field
+
+The Resender Address field is present unless the Fctl Frame Type is Minimum (2b00).
+When the Resender Address field is present, it is a two or eight octet (16 or 64 bits)
+unsigned value representing the address of the re-sender for this frame.
+If the Fctl X bit is set (1b1), the Resender Address field is 8 octets
+The value of the re-sender address is either the source node's address
+or the address of intermediate node that has identified itself
+as responsible for routing the frame along the next hop in its journey
+to the to the destination.
+
 ### Extended Type Field
 
 The Extended Type field is present when the Fctl Frame Type is Extended (2b11).
@@ -168,7 +186,54 @@ When the Network ID field is present, it is a two octet (16 bits) unsigned value
 representing this network's identity.
 TBD: subfields may indicate network type and instance.
 
+### HeyMac Information Elements
+
+Information Elements provide meta information about the frame
+and the data carried within the frame.
+
+There are optionally Header Information Elements and
+optionally Body Information Elements
+and a way to delineate between the two.
+TODO: Add more details.
+
 ### Payload
 
 When the Payload field is present, it is a stream of payload octets.
-The sum of the header, IE and payload octets MUST fit within the Physical layer's payload.
+The sum of the header, IE, payload and MIC octets MUST fit within the Physical layer's payload.
+
+## HeyMac Frame Security
+
+HeyMac offers data confidentiality and data authenticity security services.
+Encryption and authentication may be applied independently to a HeyMac frame.
+However, an intermediate node may disturb an encrypted frame
+if it is not also authenticated.
+If both encryption and authentication are enabled, encryption is performed first
+and authentication is performed afterward on the cleartext header data and then the
+encrypted data.
+
+The HeyMac frame structure is organized so that encryption and authentication are
+performed on contiguous frame octets.
+
+### HeyMac Encryption
+
+An entry in the Header Information Elements indicates encryption is enabled
+for a frame.  The IE also gives the encryption method details.
+
+When encryption is enabled, the Body IEs, Source Address and Payload fields
+are encrypted.
+
+### HeyMac Authentcation
+
+An entry in the Header Information Elements indicates authentication is enabled
+for a frame.  The IE also gives the authentication method details.
+
+When authentication is enabled, the authentication is calculated over every field
+after (not including) the Resender Address.
+
+Performing authentication generates a Message Integrity Code (MIC)
+that must be appended to the frame (and fit withing the physical payload).
+HeyMac offers a method to append a truncated MIC if there is limited space
+remaining in the physical payload.
+Statistical assurances are reduced when the MIC is truncated,
+but may be partially regained through chaining and succesful authentication of
+numerous consecutive frames (not specified by HeyMac).

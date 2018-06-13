@@ -38,21 +38,21 @@ class HeyMacAhsm(pq.Ahsm):
 
         # Initialize a timer event
         me.tm_evt = pq.TimeEvent("TM_EVT_TMOUT")
-        
+
         # Calculate the 128-bit source address from the identity's pub_key
         h = hashlib.sha512()
         h.update(mac_identity['pub_key'])
         h.update(h.digest())
         me.saddr = h.digest()[:8]
         assert me.saddr[0] in (0xfc, 0xfd)
-        
+
         # Init HeyMac values
         me.asn = 0
         me.mac_seq = 0
 
         # This is the initial value for this node's beacon slot.
         # There may be a slot collision, so the final beacon slot may vary.
-        # The first couple byte of this node's public key is a pseudo-random 
+        # The first couple byte of this node's public key is a pseudo-random
         # value to use to determine this node's Tslot to use for beaconing.
         me.bcn_slot = (mac_identity['pub_key'][0] << 8 | mac_identity['pub_key'][1]) \
                       % mac_cfg.TSLOTS_PER_SFRAME
@@ -142,7 +142,7 @@ class HeyMacAhsm(pq.Ahsm):
 
         elif sig == pq.Signal.TM_EVT_TMOUT: # timer has expired
             return me.tran(me, me.scheduling)
- 
+
         elif sig == pq.Signal.PHY_RXD_DATA:
             # handle received frame
             rx_time, payld, rssi, snr = event.value
@@ -200,7 +200,7 @@ class HeyMacAhsm(pq.Ahsm):
         if sig == pq.Signal.ENTRY:
             logging.info("EXITING")
             return me.handled(me, event)
-        
+
         return me.super(me, me.top)
 
 
@@ -249,9 +249,7 @@ class HeyMacAhsm(pq.Ahsm):
     def build_mac_frame(self, seq=0):
         """Returns a generic HeyMac V1 frame with the given sequence number
         """
-        frame = mac_frame.HeyMacFrame(fctl=mac_frame.FCTL_TYPE_MAC
-            | mac_frame.FCTL_LENCODE_BIT
-            | mac_frame.FCTL_SADDR_MODE_64BIT)
+        frame = mac_frame.HeyMacFrame()
         frame.saddr = self.saddr
         frame.seq = seq
         return frame
@@ -271,9 +269,9 @@ class HeyMacAhsm(pq.Ahsm):
             "rx_time        %f\tRXD %d bytes, rssi=%d dBm, snr=%.3f dB\t%s",
             rx_time, len(payld), rssi, snr, repr(f))
 
-        if isinstance(f.data, mac_cmds.HeyMacCmdBeacon):
+        if isinstance(f.data, mac_cmds.CmdPktSmallBcn):
             self.on_rxd_bcn(self, rx_time, f.data, rssi, snr)
-        elif isinstance(f.data, mac_cmds.HeyMacCmdTxt):
+        elif isinstance(f.data, mac_cmds.CmdPktTxt):
             pass
         else:
             logging.warning("rxd pkt has an unknown MAC cmd")
@@ -307,10 +305,10 @@ class HeyMacAhsm(pq.Ahsm):
         """Builds a HeyMac V1 Beacon and passes it to the PHY for transmit.
         """
         frame = self.build_mac_frame(self, self.mac_seq)
-        bcn = mac_cmds.HeyMacCmdBeacon(
+        bcn = mac_cmds.CmdPktSmallBcn(
             dscpln=self.dscpln.get_dscpln_as_int(),
             sframe_nTslots=mac_cfg.TSLOTS_PER_SFRAME,
-            asn=self.asn, 
+            asn=self.asn,
             caps=0,
             flags=0,
             station_id=socket.gethostname().encode(),
