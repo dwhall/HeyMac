@@ -13,8 +13,8 @@ class HeyMacDiscipline:
     transmit, receive or rest.
 
     PPS is considered the most highly trusted source of timing in HeyMac
-    because of its high accuracy and wide availability.  A PPS signal can 
-    potentially be heard by every node; whereas an RF Beacon from a single 
+    because of its high accuracy and wide availability.  A PPS signal can
+    potentially be heard by every node; whereas an RF Beacon from a single
     source can only be heard by nodes within range of the source.
 
     When a PPS is not available, a node should attempt RF Beacon discipline
@@ -62,7 +62,7 @@ class HeyMacDiscipline:
 
 
     def get_time_of_next_tslot(self, time_now):
-        """Returns the corrected time [float secs] for the next Tslot 
+        """Returns the corrected time [float secs] for the next Tslot
         according to the best discipline source.
         If this node is out of discipline fall back to using the time
         of a discipline mode that had been reached in the past.
@@ -151,7 +151,7 @@ class HeyMacDiscipline:
             else:
                 self.consec_bcn_cnt += 1
 
-                # Remove the whole number of tslots and divide by the number 
+                # Remove the whole number of tslots and divide by the number
                 # of slots to get the amount of error per slot
                 # in order to maximize significant digits of floating point
                 delta *= mac_cfg.TSLOTS_PER_SEC
@@ -160,7 +160,7 @@ class HeyMacDiscipline:
                 # Then restore the error to cpu-counts per second
                 err /= mac_cfg.TSLOTS_PER_SEC
 
-                # TODO: improve this cheap IIR LP filter
+                # A cheap IIR low-pass filter
                 self.bcn_err = (self.bcn_err + err) * 0.5
 
         self.time_of_last_rxd_bcn = time_of_rxd_bcn
@@ -168,7 +168,7 @@ class HeyMacDiscipline:
 
     def update_pps(self, time_of_pps):
         """Measures the amount of computer clock time that has elapsed
-        between this and the previous PPS which should be an whole number
+        between this and the previous PPS which should be a whole number
         of seconds.  Calculates the error between the measured and the ideal
         times and keeps an average error, .pps_err
         """
@@ -183,12 +183,12 @@ class HeyMacDiscipline:
                 self.consec_pps_cnt += 1
 
                 # Remove the whole seconds and divide by the number of secs
-                # to get the amount of error per second 
+                # to get the amount of error per second
                 # in order to maximize significant digits of floating point
                 whole_secs = float(round(delta))
                 err = (delta - whole_secs) / whole_secs
 
-                # TODO: improve this cheap IIR LP filter
+                # A cheap IIR low-pass filter
                 self.pps_err = (self.pps_err + err) * 0.5
 
         self.time_of_last_pps = time_of_pps

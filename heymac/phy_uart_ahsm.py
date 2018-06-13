@@ -34,7 +34,7 @@ class UartAhsm(pq.Ahsm):
 
         # Initialize a timer event used to schedule the NMEA handler
         me.te_nmea = pq.TimeEvent("GPS_NMEA_PRDC")
-        
+
         return me.tran(me, UartAhsm.running)
 
 
@@ -64,7 +64,7 @@ class UartAhsm(pq.Ahsm):
             while n >= 0:
                 nmea_sentence = bytes(me.nmea_data[0:n+2])
                 me.nmea_data = me.nmea_data[n+2:]
-                if b"GPRMC" in nmea_sentence: 
+                if b"GPRMC" in nmea_sentence:
                     pq.Framework.publish(pq.Event(pq.Signal.GPS_NMEA, nmea_sentence))
                 n = me.nmea_data.find(b"\r\n")
             return me.handled(me, event)
@@ -87,7 +87,7 @@ class UartAhsm(pq.Ahsm):
         sig = event.signal
         if sig == pq.Signal.ENTRY:
             return me.handled(me, event)
-        
+
         return me.super(me, me.top)
 
 

@@ -51,7 +51,7 @@ class LinearRegression(object):
 
     def get_est(self, x):
         """Returns an estimate of f(x) for the given input, x.
-        Returns None if fewere than 2 data points have been fed to the update() method.
+        Returns None if fewer than 2 data points have been fed to the update() method.
         """
         if self.n <= 1:
             return None
@@ -67,23 +67,3 @@ class LinearRegression(object):
         b = inv_det * (-self.sumx * self.sumy + n * self.sumxy)
 
         return a + b * x
-
-
-def test():
-    """Test values come from "Why all the math?", Jack Crenshaw, embedded.com, 2009/06/05
-    """
-    import math
-
-    lr = LinearRegression(4)
-
-    lr.update(0, 1.23)
-    lr.update(1, 1.51)
-    lr.update(2, 1.88)
-    lr.update(3, 2.60)
-
-    assert math.isclose(lr.get_est(0), 1.133)
-    assert math.isclose(lr.get_est(5), 3.373)
-
-
-if __name__ == '__main__':
-    test()
