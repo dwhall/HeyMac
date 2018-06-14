@@ -126,7 +126,6 @@ class HeyMacFrame(dpkt.Packet):
         This function is called when an instance of this class is created
         by passing a bytes object to the constructor
         """
-        buflen = len(buf)
         super().unpack(buf)
 
         if self._has_verseq_field():
@@ -179,11 +178,11 @@ class HeyMacFrame(dpkt.Packet):
         # Unpack the payload for known frame types
         if self.fctl & FCTL_TYPE_MASK == FCTL_TYPE_MAC:
             if self.data and self.data[0] == mac_cmds.HEYMAC_CMD_SM_BCN:
-                self.data = mac_cmds.HmCmdPktSmallBcn(self.data)
+                self.data = mac_cmds.CmdPktSmallBcn(self.data)
             elif self.data and self.data[0] == mac_cmds.HEYMAC_CMD_EXT_BCN:
-                self.data = mac_cmds.HmCmdPktExtBcn(self.data)
+                self.data = mac_cmds.CmdPktExtBcn(self.data)
             elif self.data and self.data[0] == mac_cmds.HEYMAC_CMD_TXT:
-                self.data = mac_cmds.HmCmdPktTxt(self.data)
+                self.data = mac_cmds.CmdPktTxt(self.data)
 
 
     def pack_hdr(self):

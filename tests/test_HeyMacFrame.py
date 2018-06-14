@@ -223,24 +223,26 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(f.daddr, b"\xff\xff")
         self.assertEqual(f.data, b"hello world")
 
-    def test_nlh_len_data(self,):
+    def test_nlh_data(self,):
         # Pack
         f = mac_frame.HeyMacFrame()
-        f.fctl |= mac_frame.FCTL_TYPE_NLH
+        f.fctl = mac_frame.FCTL_TYPE_NLH
+        f.raddr = b"\x11\x11"
         f.data = b"ipv6_hdr_compression"
         b = bytes(f)
-        self.assertEqual(b, b"\xA0\x16\x10ipv6_hdr_compression")
+        self.assertEqual(b, b"\x80\x10\x11\x11ipv6_hdr_compression")
         # Unpack
         f = mac_frame.HeyMacFrame(b)
         self.assertEqual(f.fctl, mac_frame.FCTL_TYPE_NLH )
         self.assertEqual(f.ver, 1)
         self.assertEqual(f.seq, 0)
+        self.assertEqual(f.raddr, b"\x11\x11")
         self.assertEqual(f.saddr, b"")
         self.assertEqual(f.daddr, b"")
         self.assertEqual(f.data, b"ipv6_hdr_compression")
 
 
-    def test_nlh_len_data(self,):
+    def test_ext_data(self,):
         # Pack
         f = mac_frame.HeyMacFrame()
         f.fctl |= mac_frame.FCTL_TYPE_EXT
