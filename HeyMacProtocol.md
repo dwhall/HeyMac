@@ -155,11 +155,11 @@ The Sequence subfield occupies the lower 4 bits and is an unsigned sequence numb
 The Resender Address field is present unless the Fctl Frame Type is Minimum (2b00).
 When the Resender Address field is present, it is a two or eight octet (16 or 64 bits)
 unsigned value representing the address of the re-sender for this frame.
-If the Fctl X bit is set (1b1), the Resender Address field is 8 octets
+If the Fctl X bit is set (1b1), the Resender Address field is 8 octets.
 The value of the re-sender address is either the source node's address
-or the address of intermediate node that has identified itself
+or the address of an intermediate node that has identified itself
 as responsible for routing the frame along the next hop in its journey
-to the to the destination.
+to the destination.
 
 ### Extended Type Field
 
@@ -168,23 +168,18 @@ When the Extended Type field is present, it is an 8-bit unsigned value
 that encodes the type of contents contained in the Payload field.
 Values and their meanings are TBD.
 
+### Network ID Field
+
+When the Network ID field is present, it is a two octet (16 bits) unsigned value
+representing this network's identity.
+TBD: subfields may indicate network type and instance.
+
 ### Destination Address Field
 
 The Destination Address field is present when the Fctl D bit is set (1b1).
 When the Destination Address field is present, it is a two or eight octet (16 or 64 bits)
 unsigned value representing the address of the destination for this frame.
 If the Fctl X bit is set (1b1), the Destination Address field is 8 octets
-
-### Source Address Field
-
-When the Source Address field is present, it is a two or eight octet (16 or 64 bits)
-unsigned value representing the address of the source for this frame.
-
-### Network ID Field
-
-When the Network ID field is present, it is a two octet (16 bits) unsigned value
-representing this network's identity.
-TBD: subfields may indicate network type and instance.
 
 ### HeyMac Information Elements
 
@@ -195,6 +190,12 @@ There are optionally Header Information Elements and
 optionally Body Information Elements
 and a way to delineate between the two.
 TODO: Add more details.
+
+### Source Address Field
+
+When the Source Address field is present, it is a two or eight octet (16 or 64 bits)
+unsigned value representing the address of the source for this frame.
+
 
 ### Payload
 
