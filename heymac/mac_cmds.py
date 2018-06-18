@@ -6,7 +6,8 @@ HeyMac Commands for MAC frame type:
 """
 
 import struct
-import dpkt
+
+import dpkt # pip install dpkt
 
 
 # HeyMac Command IDs
@@ -33,7 +34,7 @@ class CmdPktSmallBcn(dpkt.Packet):
         ('dscpln', 'B', 0), # 0x0X:None, 0x1X:RF, 0x2X:GPS (lower nibble is nhops to GPS)
         ('caps', 'B', 0),
         ('status', 'B', 0),
-        ('asn', '4B', 0),
+        ('asn', 'I', 0),
         # variable-length fields:
         ('tx_slots', '0s', b''),
         ('ngbr_tx_slots', '0s', b''),
@@ -136,29 +137,3 @@ class CmdPktTxt(dpkt.Packet):
         # Unpack the variable-length field
         self.msg = buf[self.__hdr_len__:]
         self.data = bytes()
-
-
-def test():
-    bcn = CmdPktSmallBcn(
-        frame_spec = CmdPktSmallBcn.FRAME_SPEC_BCN_EN \
-                | 5 << CmdPktSmallBcn.FRAME_SPEC_FR_ORDER_SHIFT \
-                | 10,
-        dscpln=2,
-        caps=3,
-        status=4,
-        asn=42,
-    )
-    bcn.tx_slots = list(range(4))
-    bcn.ngbr_tx_slots = list(range(0x80, 0x80 + 4))
-
-    print(repr(bcn))
-    b = bytes(bcn)
-    print(repr(CmdPktSmallBcn(b)))
-
-    txt = CmdPktTxt(msg=b"Hell, oh! whirled")
-    print(repr(txt))
-    print(repr(CmdPktTxt(bytes(txt))))
-
-
-if __name__ == '__main__':
-    test()

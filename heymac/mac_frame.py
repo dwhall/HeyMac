@@ -25,6 +25,8 @@ FCTL_PEND_BIT = 1 << 0
 
 
 class HeyMacFrame(dpkt.Packet):
+    """HeyMac frame definition
+    """
     __byte_order__ = '!' # Network order
     __hdr__ = (
         ('fctl', 'B', FCTL_TYPE_MAC),
@@ -90,6 +92,11 @@ class HeyMacFrame(dpkt.Packet):
         return sz
 
     def _sizeof_ie_fields(self,):
+        """Returns the sizes of the hIE and bIE fields
+        as a tuple (size_of_hIE, size_of_bIE).
+        These sizes are dynamic and are calculated by
+        parsing the contents of the hIE and bIE fields.
+        """
         # FIXME
         return (0,0)
 
