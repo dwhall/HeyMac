@@ -1,6 +1,12 @@
-import logging
+import enum, logging
 
 import mac_cfg
+
+
+class HeyMacDscplnVal(enum.IntEnum):
+    NONE = 0
+    BCN = 1
+    PPS = 2
 
 
 class HeyMacDiscipline:
@@ -30,7 +36,7 @@ class HeyMacDiscipline:
         self.pps_err = 0.0
         # Time of the last received GPS PPS
         self.time_of_last_pps = None
-        # Count of received PPS edges without a loss of disciplien in between
+        # Count of received PPS edges without a loss of discipline in between
         self.consec_pps_cnt = 0
 
         # BCN discipline
@@ -39,34 +45,25 @@ class HeyMacDiscipline:
         self.bcn_err = 0.0
         # Time of the last received BCN
         self.time_of_last_rxd_bcn = None
-        # Count of received beacons without a loss of disciplien in between
+        # Count of received beacons without a loss of discipline in between
         self.consec_bcn_cnt = 0
 
         # Discipline state describes the source of timing discipline
-        self._dscpln_st = "none"
+        self._dscpln = HeyMacDscplnVal.NONE
 
 
-    def get_dscpln_as_int(self,):
-        """Returns the current state of timing discpline
-        as an integer where:
-            "none" --> 0
-            "bcn"  --> 1
-            "pps"  --> 2
+    def get_dscpln_value(self,):
+        """Returns the current timing discpline as an integer value
         """
-        dscpln_int = {
-            "none": 0,
-            "bcn": 1,
-            "pps": 2
-        }
-        return dscpln_int[self._dscpln_st]
+        return self._dscpln.value
 
 
     def get_time_of_next_tslot(self, time_now):
         """Returns the corrected time [float secs] for the next Tslot
         according to the best discipline source.
-        If this node is out of discipline fall back to using the time
-        of a discipline mode that had been reached in the past.
-        If none of that is available, use this node's CPU time as the discipline
+        If this node is out of discipline, falls back to using
+        a discipline mode that has been reached in the past.
+        If none of that is available, uses this node's CPU time as the discipline
         source.  This will be a somewhat arbitrary timing edge.
 
         REMINDER: time_now is approx TSLOT_PREP_TIME before the active Tslot.
@@ -79,21 +76,21 @@ class HeyMacDiscipline:
 
         # PPS discipline
         if self.time_of_last_pps and time_now - self.time_of_last_pps < mac_cfg.DSCPLN_PPS_TIMEOUT:
-            self._dscpln_st = "pps"
+            self._dscpln = HeyMacDscplnVal.PPS
             tslots_since_last_pps = round((time_now - self.time_of_last_pps) * mac_cfg.TSLOTS_PER_SEC)
             cpu_time_per_tslot = (1.0 - self.pps_err) / mac_cfg.TSLOTS_PER_SEC
             tm = self.time_of_last_pps + (1 + tslots_since_last_pps) * cpu_time_per_tslot
 
         # BCN discipline
         elif self.time_of_last_rxd_bcn and time_now - self.time_of_last_rxd_bcn < mac_cfg.DSCPLN_BCN_TIMEOUT:
-            self._dscpln_st = "bcn"
+            self._dscpln = HeyMacDscplnVal.BCN
             tslots_since_last_bcn = round((time_now - self.time_of_last_rxd_bcn) * mac_cfg.TSLOTS_PER_SEC)
             cpu_time_per_tslot = (1.0 - self.bcn_err) / mac_cfg.TSLOTS_PER_SEC
             tm = self.time_of_last_rxd_bcn + (1 + tslots_since_last_bcn) * cpu_time_per_tslot
 
         # no discipline
         else:
-            self._dscpln_st = "none"
+            self._dscpln = HeyMacDscplnVal.NONE
 
             # If PPS discipline was ever achieved and is more recent, use its time
             if self.time_of_last_pps and self.time_of_last_pps > self.time_of_last_rxd_bcn:

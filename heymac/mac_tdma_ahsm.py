@@ -14,12 +14,11 @@ import logging, hashlib, math, socket
 
 import pq
 
-import mac_cmds, mac_discipline, mac_frame
-import mac_cfg, phy_cfg, cfg
+import cfg, mac_cfg, mac_cmds, mac_discipline, mac_frame, phy_cfg
 
 
 # Turn user JSON config files into Python dicts
-mac_identity = cfg.get_from_json("mac_identity.json")
+mac_identity = cfg.get_from_json("HeyMac", "mac_identity.json")
 # Convert hex bytes to bytearray since JSON can't do binary strings
 mac_identity['pub_key'] = bytearray.fromhex(mac_identity['pub_key'])
 
@@ -55,17 +54,17 @@ class HeyMacAhsm(pq.Ahsm):
         # The first couple byte of this node's public key is a pseudo-random
         # value to use to determine this node's Tslot to use for beaconing.
         me.bcn_slot = (mac_identity['pub_key'][0] << 8 | mac_identity['pub_key'][1]) \
-                      % mac_cfg.TSLOTS_PER_SFRAME
+                      % mac_cfg.FRAME_SPEC_SF_ORDER
         # Beacon slots are the first slots after a PPS
         me.bcn_slot = math.floor(me.bcn_slot / mac_cfg.TSLOTS_PER_SEC) * mac_cfg.TSLOTS_PER_SEC
-        logging.info("bcn_slot (%d / %d)" % (me.bcn_slot, mac_cfg.TSLOTS_PER_SFRAME))
+        logging.info("bcn_slot (%d / %d)" % (me.bcn_slot, mac_cfg.FRAME_SPEC_SF_ORDER))
 
 #        me.time_of_last_pps = None
         me.time_of_last_rxd_bcn = None
         me.dscpln = mac_discipline.HeyMacDiscipline()
 
         # Neighbor info
-        me.bcn_ngbr_slotmap = bytearray(mac_cfg.TSLOTS_PER_SFRAME // 8)
+        me.bcn_ngbr_slotmap = bytearray(mac_cfg.FRAME_SPEC_SF_ORDER // 8)
 
         # Transmit queue
         me.txq = []
@@ -136,7 +135,7 @@ class HeyMacAhsm(pq.Ahsm):
             logging.info("LISTENING")
             value = (-1, phy_cfg.rx_freq) # rx continuously on the rx_freq
             pq.Framework.post(pq.Event(pq.Signal.RECEIVE, value), "SX127xSpiAhsm")
-            listen_secs = N_SFRAMES_TO_LISTEN * mac_cfg.TSLOTS_PER_SFRAME / mac_cfg.TSLOTS_PER_SEC
+            listen_secs = N_SFRAMES_TO_LISTEN * mac_cfg.FRAME_SPEC_SF_ORDER / mac_cfg.TSLOTS_PER_SEC
             me.tm_evt.postIn(me, listen_secs)
             return me.handled(me, event)
 
@@ -216,7 +215,7 @@ class HeyMacAhsm(pq.Ahsm):
         self.asn += 1
 
         # Transmit a beacon during this node's beacon slot
-        if self.asn % mac_cfg.TSLOTS_PER_SFRAME == self.bcn_slot:
+        if self.asn % mac_cfg.FRAME_SPEC_SF_ORDER == self.bcn_slot:
             logging.info("bcn_tslot      %f", self.next_tslot)
             self.tx_bcn(self, self.next_tslot)
 
@@ -281,6 +280,12 @@ class HeyMacAhsm(pq.Ahsm):
     def on_rxd_bcn(self, rx_time, bcn_frame, rssi, snr):
         """Handles reception of a beacon frame.
         """
+        # Exit early if the frame spec is incompatible
+        if( bcn_frame.sf_order != mac_cfg.FRAME_SPEC_SF_ORDER or
+            bcn_frame.eb_order != mac_cfg.FRAME_SPEC_EB_ORDER):
+            logging.info("Ngbr's Frame Spec is incompatible: (0x%x)" % (bcn_frame._frame_spec))
+            return
+
         self.dscpln.update_bcn(rx_time)
         self.time_of_last_rxd_bcn = rx_time
         self.tslots_since_last_bcn = 0
@@ -289,12 +294,9 @@ class HeyMacAhsm(pq.Ahsm):
         if bcn_frame.asn > self.asn:
             self.asn = bcn_frame.asn
 
-        # TEMPORARY:
-        assert bcn_frame.sframe_nTslots == mac_cfg.TSLOTS_PER_SFRAME, "Ngbr's Sframe cfg is incompatible"
-
-        # TEMPORARY: Update Ngbr beacon slots
-        # (this is an incomplete method, it does not allow the slot to be cleared if ngbr is silent)
-        ngbr_bcnslot = self.asn % mac_cfg.TSLOTS_PER_SFRAME
+        # Update Ngbr beacon slots
+        # FIXME: this is an incomplete method, it does not allow the slot to be cleared if ngbr is silent)
+        ngbr_bcnslot = self.asn % (2 ** mac_cfg.FRAME_SPEC_SF_ORDER)
         self.bcn_ngbr_slotmap[ ngbr_bcnslot // 8 ] |= (1 << (ngbr_bcnslot % 8))
 
         # TODO: add to ngbr data
@@ -306,8 +308,8 @@ class HeyMacAhsm(pq.Ahsm):
         """
         frame = self.build_mac_frame(self, self.mac_seq)
         bcn = mac_cmds.CmdPktSmallBcn(
-            dscpln=self.dscpln.get_dscpln_as_int(),
-            sframe_nTslots=mac_cfg.TSLOTS_PER_SFRAME,
+            dscpln=self.dscpln.get_dscpln_value(),
+            sframe_nTslots=mac_cfg.FRAME_SPEC_SF_ORDER,
             asn=self.asn,
             caps=0,
             flags=0,

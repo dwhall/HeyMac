@@ -27,10 +27,10 @@ def get_app_data_path(app_name):
     return app_data_path
 
 
-def get_from_json(fn):
+def get_from_json(app_name, fn):
     """Returns a Python dict built from reading the given file as a JSON object.
     """
-    file_path = os.path.join(get_app_data_path("HeyMac"), fn)
+    file_path = os.path.join(get_app_data_path(app_name), fn)
     with open(file_path) as f:
         data = json.load(f)
     return data

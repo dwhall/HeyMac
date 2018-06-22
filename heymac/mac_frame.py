@@ -32,8 +32,8 @@ class HeyMacFrame(dpkt.Packet):
         ('fctl', 'B', FCTL_TYPE_MAC),
         # Fctl is the only field guaranteed to be present.
         # Below this are optional fields as indicated by '0s'.
-        # The underscore prefix means do not access that field directly,
-        # access via .ver and .seq properties instead.
+        # The underscore prefix means do not access that field directly.
+        # Access properties .ver and .seq, instead.
         ('_ver_seq', '0s', b''),
         ('raddr', '0s', b''),
         ('exttype', '0s', b''),

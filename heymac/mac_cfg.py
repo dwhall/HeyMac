@@ -1,13 +1,22 @@
-# A time slot (tslot) is a window of time to complete a 256 byte frame
+# A time slot (Tslot) is a window of time to complete a 256 byte frame
 # and an acknowledgement frame.  The HeyMac protocol uses a whole number
-# of tslots within one second.
+# of Tslots within one second.
 TSLOTS_PER_SEC = 4
 
-# A whole number of consecutive tlots form a superframe (sframe).
-# There must be enough tslots so that every node in a two-hop range
-# can own at least one tslots in the sframe.
-# Values that are multiples of 32 or powers of 2 are convenient and efficient.
-TSLOTS_PER_SFRAME = 128
+# The log2 of the number of consecutive Tslots that form a superframe (Sframe).
+# In other words, 2^FRAME_SPEC_SF_ORDER == Tslots per Sframe.
+# There must be enough Tslots so that every node in a two-hop range
+# can own at least one Tslots in the Sframe.
+FRAME_SPEC_SF_ORDER = 7
+
+# The log2 of the number of consecutive Tslots between a node's extended beacon.
+# In other words, 2^FRAME_SPEC_EB_ORDER == Tslots per extd_bcn.
+# This value MUST be greater than or equal to FRAME_SPEC_SF_ORDER.
+# This value SHOULD be large enough so that nodes transmit small beacons
+# regularly and extended beacons rarely.
+# This value SHOULD be small enough that an extended beacon is transmitted
+# at least once every 10 minutes (to comply with FCC identification regulations).
+FRAME_SPEC_EB_ORDER = 10
 
 # The amount of time before the start of a Tslot to activate the software
 # so it can decide what to do and perform any preparation so the radio action

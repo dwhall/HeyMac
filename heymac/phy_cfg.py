@@ -5,7 +5,7 @@ tx_freq = 432.550e6
 rx_freq = 432.550e6
 
 # Transmit Margin:
-# A transmit beings this amount of time after the beginning of a Tslot
+# A transmit begins this amount of time after the beginning of a Tslot
 # to allow other nodes time to enable their receiver
 tx_margin = 0.005 # secs
 

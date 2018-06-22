@@ -20,17 +20,19 @@ class CmdPktSmallBcn(dpkt.Packet):
     """HeyMac Small Beacon command packet
     """
 
-    FRAME_SPEC_BCN_EN = 0b10000000
-    FRAME_SPEC_BCN_SHIFT = 7
-    FRAME_SPEC_FR_ORDER_MASK = 0b01110000
-    FRAME_SPEC_FR_ORDER_SHIFT = 4
+    FRAME_SPEC_BCN_EN_MASK = 0b10000000
+    FRAME_SPEC_BCN_EN_SHIFT = 7
+    FRAME_SPEC_SF_ORDER_MASK = 0b01110000
+    FRAME_SPEC_SF_ORDER_SHIFT = 4
     FRAME_SPEC_EB_ORDER_MASK = 0b00001111
     FRAME_SPEC_EB_ORDER_SHIFT = 0
 
     __byte_order__ = '!' # Network order
     __hdr__ = (
         ('cmd', 'B', HEYMAC_CMD_SM_BCN),
-        ('frame_spec', 'B', 0),
+        # The underscore prefix means do not access that field directly.
+        # Access properties: .bcn_en, .sf_order and .eb_order, instead.
+        ('_frame_spec', 'B', 0),
         ('dscpln', 'B', 0), # 0x0X:None, 0x1X:RF, 0x2X:GPS (lower nibble is nhops to GPS)
         ('caps', 'B', 0),
         ('status', 'B', 0),
@@ -39,6 +41,65 @@ class CmdPktSmallBcn(dpkt.Packet):
         ('tx_slots', '0s', b''),
         ('ngbr_tx_slots', '0s', b''),
     )
+
+    # Getters for underscore-prefixed fields
+    @property
+    def bcn_en(self,):
+        """Gets the beacon-enabled subfield from the frame spec
+        """
+        if self._frame_spec:
+            return (self._frame_spec[0] & CmdPktSmallBcn.FRAME_SPEC_BCN_EN_MASK) >> CmdPktSmallBcn.FRAME_SPEC_BCN_EN_SHIFT
+        else:
+            return None
+
+    @property
+    def sf_order(self,):
+        """Gets the Sframe-order subfield from the frame spec
+        """
+        if self._frame_spec:
+            return (self._frame_spec[0] & CmdPktSmallBcn.FRAME_SPEC_SF_ORDER_MASK) >> CmdPktSmallBcn.FRAME_SPEC_SF_ORDER_SHIFT
+        else:
+            return None
+
+    @property
+    def eb_order(self,):
+        """Gets the extended-beacon-order subfield from the frame spec
+        """
+        if self._frame_spec:
+            return (self._frame_spec[0] & CmdPktSmallBcn.FRAME_SPEC_EB_ORDER_MASK) >> CmdPktSmallBcn.FRAME_SPEC_EB_ORDER_SHIFT
+        else:
+            return None
+
+    # Setters for underscore-prefixed fields
+    @bcn_en.setter
+    def bcn_en(self, val):
+        """Sets the beacon-enabled subfield in the frame spec
+        """
+        if self._frame_spec:
+            v = self._frame_spec & ~CmdPktSmallBcn.FRAME_SPEC_BCN_EN_MASK
+        else:
+            v = 0
+        self._frame_spec = v | (val << CmdPktSmallBcn.FRAME_SPEC_BCN_EN_SHIFT)
+
+    @sf_order.setter
+    def sf_order(self, val):
+        """Sets the Sframe-order subfield in the frame spec
+        """
+        if self._frame_spec:
+            v = self._frame_spec & ~CmdPktSmallBcn.FRAME_SPEC_SF_ORDER_MASK
+        else:
+            v = 0
+        self._frame_spec = v | (val << CmdPktSmallBcn.FRAME_SPEC_SF_ORDER_SHIFT)
+
+    @eb_order.setter
+    def eb_order(self, val):
+        """Sets the extended-beacon-order subfield in the frame spec
+        """
+        if self._frame_spec:
+            v = self._frame_spec & ~CmdPktSmallBcn.FRAME_SPEC_EB_ORDER_MASK
+        else:
+            v = 0
+        self._frame_spec = v | (val << CmdPktSmallBcn.FRAME_SPEC_EB_ORDER_SHIFT)
 
 
     def pack_hdr(self):
@@ -71,8 +132,8 @@ class CmdPktSmallBcn(dpkt.Packet):
         super(CmdPktSmallBcn, self).unpack(buf)
 
         # The Frame Spec defines the size of tx_slots and ngbr_tx_slots
-        frOrder = (CmdPktSmallBcn.FRAME_SPEC_FR_ORDER_MASK & self.frame_spec) \
-                >> CmdPktSmallBcn.FRAME_SPEC_FR_ORDER_SHIFT
+        frOrder = (CmdPktSmallBcn.FRAME_SPEC_SF_ORDER_MASK & self.frame_spec) \
+                >> CmdPktSmallBcn.FRAME_SPEC_SF_ORDER_SHIFT
         sz = (2 ** frOrder) // 8
         if sz < 1: sz = 1
 
@@ -89,9 +150,9 @@ class CmdPktExtBcn(dpkt.Packet):
     """HeyMac Extended Beacon command packet
     """
     FRAME_SPEC_BCN_EN = 0b10000000
-    FRAME_SPEC_BCN_SHIFT = 7
-    FRAME_SPEC_FR_ORDER_MASK = 0b01110000
-    FRAME_SPEC_FR_ORDER_SHIFT = 4
+    FRAME_SPEC_BCN_EN_SHIFT = 7
+    FRAME_SPEC_SF_ORDER_MASK = 0b01110000
+    FRAME_SPEC_SF_ORDER_SHIFT = 4
     FRAME_SPEC_EB_ORDER_MASK = 0b00001111
     FRAME_SPEC_EB_ORDER_SHIFT = 0
 

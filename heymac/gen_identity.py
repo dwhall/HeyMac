@@ -56,3 +56,4 @@ if __name__ == "__main__":
             '"pub_key": "%s"\n'
             '}\n'
             % (name, callsign, pub_key))
+    print("Wrote: %s" % fn)

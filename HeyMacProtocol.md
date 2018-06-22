@@ -200,7 +200,8 @@ unsigned value representing the address of the source for this frame.
 ### Payload
 
 When the Payload field is present, it is a stream of payload octets.
-The sum of the header, IE, payload and MIC octets MUST fit within the Physical layer's payload.
+The sum of the header, IE, payload and MIC octets MUST fit
+within the Physical layer's payload.
 
 ## HeyMac Frame Security
 
