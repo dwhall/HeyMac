@@ -9,18 +9,14 @@ Physical Layer State Machine for UART operations on the RasPi
 
 import serial
 
-import pq
+import phy_cfg, pq
 
-
-# TODO: move to config file
-uart_port = "/dev/serial0"
-uart_baud = 9600
 
 # Time period to check UART for NMEA data
 GPS_NMEA_PERIOD = 0.100 # [secs]
 
 # UART buffer size depends on baud rate (2X for margin)
-SER_FIFO_MAX = 2 * round(uart_baud * GPS_NMEA_PERIOD)
+SER_FIFO_MAX = 2 * round(phy_cfg.uart_baud * GPS_NMEA_PERIOD)
 
 
 class UartAhsm(pq.Ahsm):
@@ -49,7 +45,7 @@ class UartAhsm(pq.Ahsm):
             me.nmea_data = bytearray()
 
             # Open the port where NMEA input is expected
-            me.ser = serial.Serial(port=uart_port, baudrate=uart_baud, timeout=0)
+            me.ser = serial.Serial(port=phy_cfg.uart_port, baudrate=phy_cfg.uart_baud, timeout=0)
 
             # Start the repeating timer event
             me.te_nmea.postEvery(me, GPS_NMEA_PERIOD)
@@ -89,5 +85,3 @@ class UartAhsm(pq.Ahsm):
             return me.handled(me, event)
 
         return me.super(me, me.top)
-
-
