@@ -5,15 +5,17 @@ HeyMac Commands for MAC frame type:
 - HeyMac Small Beacon
 """
 
-import struct
+import enum, struct
 
 import dpkt # pip install dpkt
 
 
 # HeyMac Command IDs
-HEYMAC_CMD_SM_BCN = 1
-HEYMAC_CMD_EXT_BCN = 2
-HEYMAC_CMD_TXT = 3
+class HeyMacCmdId(enum.IntEnum):
+    INVAL = 0
+    SM_BCN = 1
+    EXT_BCN = 2
+    TXT = 3
 
 
 class CmdPktSmallBcn(dpkt.Packet):
@@ -29,7 +31,7 @@ class CmdPktSmallBcn(dpkt.Packet):
 
     __byte_order__ = '!' # Network order
     __hdr__ = (
-        ('cmd', 'B', HEYMAC_CMD_SM_BCN),
+        ('cmd', 'B', HeyMacCmdId.SM_BCN),
         # The underscore prefix means do not access that field directly.
         # Access properties: .bcn_en, .sf_order and .eb_order, instead.
         ('_frame_spec', 'B', 0),
@@ -48,7 +50,7 @@ class CmdPktSmallBcn(dpkt.Packet):
         """Gets the beacon-enabled subfield from the frame spec
         """
         if self._frame_spec:
-            return (self._frame_spec[0] & CmdPktSmallBcn.FRAME_SPEC_BCN_EN_MASK) >> CmdPktSmallBcn.FRAME_SPEC_BCN_EN_SHIFT
+            return (self._frame_spec & CmdPktSmallBcn.FRAME_SPEC_BCN_EN_MASK) >> CmdPktSmallBcn.FRAME_SPEC_BCN_EN_SHIFT
         else:
             return None
 
@@ -57,7 +59,7 @@ class CmdPktSmallBcn(dpkt.Packet):
         """Gets the Sframe-order subfield from the frame spec
         """
         if self._frame_spec:
-            return (self._frame_spec[0] & CmdPktSmallBcn.FRAME_SPEC_SF_ORDER_MASK) >> CmdPktSmallBcn.FRAME_SPEC_SF_ORDER_SHIFT
+            return (self._frame_spec & CmdPktSmallBcn.FRAME_SPEC_SF_ORDER_MASK) >> CmdPktSmallBcn.FRAME_SPEC_SF_ORDER_SHIFT
         else:
             return None
 
@@ -66,7 +68,7 @@ class CmdPktSmallBcn(dpkt.Packet):
         """Gets the extended-beacon-order subfield from the frame spec
         """
         if self._frame_spec:
-            return (self._frame_spec[0] & CmdPktSmallBcn.FRAME_SPEC_EB_ORDER_MASK) >> CmdPktSmallBcn.FRAME_SPEC_EB_ORDER_SHIFT
+            return (self._frame_spec & CmdPktSmallBcn.FRAME_SPEC_EB_ORDER_MASK) >> CmdPktSmallBcn.FRAME_SPEC_EB_ORDER_SHIFT
         else:
             return None
 
@@ -111,7 +113,7 @@ class CmdPktSmallBcn(dpkt.Packet):
 
         # Pack the fixed-length fields
         b.append(self.cmd)
-        b.append(self.frame_spec)
+        b.append(self._frame_spec)
         b.append(self.dscpln)
         b.append(self.caps)
         b.append(self.status)
@@ -132,9 +134,7 @@ class CmdPktSmallBcn(dpkt.Packet):
         super(CmdPktSmallBcn, self).unpack(buf)
 
         # The Frame Spec defines the size of tx_slots and ngbr_tx_slots
-        frOrder = (CmdPktSmallBcn.FRAME_SPEC_SF_ORDER_MASK & self.frame_spec) \
-                >> CmdPktSmallBcn.FRAME_SPEC_SF_ORDER_SHIFT
-        sz = (2 ** frOrder) // 8
+        sz = (2 ** self.sf_order) // 8
         if sz < 1: sz = 1
 
         # Unpack the variable-length fields
@@ -146,7 +146,7 @@ class CmdPktSmallBcn(dpkt.Packet):
         self.data = bytes()
 
 
-class CmdPktExtBcn(dpkt.Packet):
+class CmdPktExtBcn(CmdPktSmallBcn):
     """HeyMac Extended Beacon command packet
     """
     FRAME_SPEC_BCN_EN = 0b10000000
@@ -158,7 +158,7 @@ class CmdPktExtBcn(dpkt.Packet):
 
     __byte_order__ = '!' # Network order
     __hdr__ = (
-        ('cmd', 'B', HEYMAC_CMD_EXT_BCN),
+        ('cmd', 'B', HeyMacCmdId.EXT_BCN),
         # Small Beacon fields:
         ('frame_spec', 'B', 0),
         ('dscpln', 'B', 0), # 0x0X:None, 0x1X:RF, 0x2X:GPS (lower nibble is nhops to GPS)
@@ -179,7 +179,7 @@ class CmdPktExtBcn(dpkt.Packet):
 class CmdPktTxt(dpkt.Packet):
     __byte_order__ = '!' # Network order
     __hdr__ = (
-        ('cmd', 'B', HEYMAC_CMD_TXT),
+        ('cmd', 'B', HeyMacCmdId.TXT),
         ('msg', '0s', b''),
     )
 

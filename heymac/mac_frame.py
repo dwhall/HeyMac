@@ -184,11 +184,11 @@ class HeyMacFrame(dpkt.Packet):
 
         # Unpack the payload for known frame types
         if self.fctl & FCTL_TYPE_MASK == FCTL_TYPE_MAC:
-            if self.data and self.data[0] == mac_cmds.HEYMAC_CMD_SM_BCN:
+            if self.data and self.data[0] == mac_cmds.HeyMacCmdId.SM_BCN.value:
                 self.data = mac_cmds.CmdPktSmallBcn(self.data)
-            elif self.data and self.data[0] == mac_cmds.HEYMAC_CMD_EXT_BCN:
+            elif self.data and self.data[0] == mac_cmds.HeyMacCmdId.EXT_BCN.value:
                 self.data = mac_cmds.CmdPktExtBcn(self.data)
-            elif self.data and self.data[0] == mac_cmds.HEYMAC_CMD_TXT:
+            elif self.data and self.data[0] == mac_cmds.HeyMacCmdId.TXT.value:
                 self.data = mac_cmds.CmdPktTxt(self.data)
 
 

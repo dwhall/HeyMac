@@ -7,7 +7,7 @@ TSLOTS_PER_SEC = 4
 # In other words, 2^FRAME_SPEC_SF_ORDER == Tslots per Sframe.
 # There must be enough Tslots so that every node in a two-hop range
 # can own at least one Tslots in the Sframe.
-FRAME_SPEC_SF_ORDER = 7
+FRAME_SPEC_SF_ORDER = 5
 
 # The log2 of the number of consecutive Tslots between a node's extended beacon.
 # In other words, 2^FRAME_SPEC_EB_ORDER == Tslots per extd_bcn.
