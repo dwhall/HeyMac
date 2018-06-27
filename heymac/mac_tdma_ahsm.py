@@ -38,21 +38,21 @@ class HeyMacAhsm(pq.Ahsm):
 
         # Initialize a timer event
         me.tm_evt = pq.TimeEvent("TM_EVT_TMOUT")
-        
+
         # Calculate the 128-bit source address from the identity's pub_key
         h = hashlib.sha512()
         h.update(mac_identity['pub_key'])
         h.update(h.digest())
         me.saddr = h.digest()[:8]
         assert me.saddr[0] in (0xfc, 0xfd)
-        
+
         # Init HeyMac values
         me.asn = 0
         me.mac_seq = 0
 
         # This is the initial value for this node's beacon slot.
         # There may be a slot collision, so the final beacon slot may vary.
-        # The first couple byte of this node's public key is a pseudo-random 
+        # The first couple byte of this node's public key is a pseudo-random
         # value to use to determine this node's Tslot to use for beaconing.
         me.bcn_slot = (mac_identity['pub_key'][0] << 8 | mac_identity['pub_key'][1]) \
                       % mac_cfg.TSLOTS_PER_SFRAME
@@ -95,6 +95,10 @@ class HeyMacAhsm(pq.Ahsm):
     @staticmethod
     def running(me, event):
         """State: HeyMacAhsm:running
+        The running state:
+        - uses PPS events from the GPIO to establish timing discipline
+        - receives continuously (hearing a ngbr will lead to state change)
+        - uses GPS NMEA events to get position information
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
@@ -108,6 +112,9 @@ class HeyMacAhsm(pq.Ahsm):
         elif sig == pq.Signal.PHY_RXD_DATA:
             rx_time, payld, rssi, snr = event.value
             me.on_rxd_frame(me, rx_time, payld, rssi, snr)
+            # immediate rx continuous
+            rx_args = (-1, phy_cfg.rx_freq)
+            pq.Framework.post(pq.Event(pq.Signal.RECEIVE, rx_args), "SX127xSpiAhsm")
             return me.handled(me, event)
 
         elif sig == pq.Signal.GPS_NMEA:
@@ -129,31 +136,23 @@ class HeyMacAhsm(pq.Ahsm):
         Listens to radio and GPS for timing discipline sources.
         Transitions to Scheduling after listening for N superframes.
         """
-        N_SFRAMES_TO_LISTEN = 2.0
+        N_SFRAMES_TO_LISTEN = 0.5
 
         sig = event.signal
         if sig == pq.Signal.ENTRY:
             logging.info("LISTENING")
-            value = (-1, phy_cfg.rx_freq) # rx continuously on the rx_freq
+            # rx continuously on the rx_freq
+            value = (-1, phy_cfg.rx_freq)
             pq.Framework.post(pq.Event(pq.Signal.RECEIVE, value), "SX127xSpiAhsm")
             listen_secs = N_SFRAMES_TO_LISTEN * mac_cfg.TSLOTS_PER_SFRAME / mac_cfg.TSLOTS_PER_SEC
             me.tm_evt.postIn(me, listen_secs)
             return me.handled(me, event)
 
-        elif sig == pq.Signal.TM_EVT_TMOUT: # timer has expired
-            return me.tran(me, me.scheduling)
- 
-        elif sig == pq.Signal.PHY_RXD_DATA:
-            # handle received frame
-            rx_time, payld, rssi, snr = event.value
-            me.on_rxd_frame(me, rx_time, payld, rssi, snr)
+        elif sig == pq.Signal.TM_EVT_TMOUT:
+            # listening timer has expired, transition to beaconing
+            return me.tran(me, me.beaconing)
 
-            # rx continuously again
-            value = (-1, phy_cfg.rx_freq)
-            pq.Framework.post(pq.Event(pq.Signal.RECEIVE, value), "SX127xSpiAhsm")
-            return me.handled(me, event)
-
-        # This handler is for logging print and may be removed
+        # This handler is for logging pps events and may be removed
         elif sig == pq.Signal.PHY_GPS_PPS:
             logging.info("pps            %f", event.value)
             # process PPS in the running state, too
@@ -168,17 +167,18 @@ class HeyMacAhsm(pq.Ahsm):
 
 
     @staticmethod
-    def scheduling(me, event):
-        """State: HeyMacAhsm:running:scheduling
-        Uses timing discipline to schedule packet tx and rx actions.
+    def beaconing(me, event):
+        """State: HeyMacAhsm:running:beaconing
+        Uses timing discipline to tx beacons.
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
+            logging.info("BEACONING")
             me._post_time_event_for_next_tslot(me)
             return me.handled(me, event)
 
         elif sig == pq.Signal.TM_EVT_TMOUT:
-            me.scheduling_and_next_tslot(me)
+            me.beaconing_and_next_tslot(me)
             return me.handled(me, event)
 
         elif sig == pq.Signal.MAC_TX_REQ:
@@ -193,6 +193,23 @@ class HeyMacAhsm(pq.Ahsm):
 
 
     @staticmethod
+    def networking(me, event):
+        """State: HeyMacAhsm:running:beaconing:networking
+        Uses timing discipline to schedule packet tx and rx actions.
+        """
+        sig = event.signal
+        if sig == pq.Signal.ENTRY:
+            logging.info("NETWORKING")
+
+        elif sig == pq.Signal.PHY_RXD_DATA:
+            rx_time, payld, rssi, snr = event.value
+            me.on_rxd_frame(me, rx_time, payld, rssi, snr)
+            return me.handled(me, event)
+
+        return me.super(me, me.running)
+
+
+    @staticmethod
     def exiting(me, event):
         """State HeyMacAhsm:exiting
         """
@@ -200,15 +217,15 @@ class HeyMacAhsm(pq.Ahsm):
         if sig == pq.Signal.ENTRY:
             logging.info("EXITING")
             return me.handled(me, event)
-        
+
         return me.super(me, me.top)
 
 
 #### End State Machines
 
     @staticmethod
-    def scheduling_and_next_tslot(self,):
-        """Handler for the Scheduling state when the next-slot-preparation timer
+    def beaconing_and_next_tslot(self,):
+        """Handler for the Beaconing state when the next-slot-preparation timer
         has elapsed.  This method decides what to do in the next Tslot
         and messages the PHYsical layer with any actions.
         """
@@ -310,7 +327,7 @@ class HeyMacAhsm(pq.Ahsm):
         bcn = mac_cmds.HeyMacCmdBeacon(
             dscpln=self.dscpln.get_dscpln_as_int(),
             sframe_nTslots=mac_cfg.TSLOTS_PER_SFRAME,
-            asn=self.asn, 
+            asn=self.asn,
             caps=0,
             flags=0,
             station_id=socket.gethostname().encode(),
