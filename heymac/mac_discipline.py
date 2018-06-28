@@ -95,24 +95,26 @@ class HeyMacDiscipline:
         else:
             self._dscpln_st = "none"
 
-            # If PPS discipline was ever achieved and is more recent, use its time
-            if self.time_of_last_pps and self.time_of_last_pps > self.time_of_last_rxd_bcn:
+            # if never achieved discipline, use this node's CPU time as the source.
+            if not self.time_of_last_pps and not self.time_of_last_pps:
+                tslot_period = (1.0 / mac_cfg.TSLOTS_PER_SEC)
+                remainder = time_now % tslot_period
+                time_of_prev_tslot = time_now - remainder
+                tm = time_of_prev_tslot + 2 * tslot_period
+
+            # If PPS discipline was achieved and is more recent, use its time
+            elif((self.time_of_last_pps and self.time_of_last_rxd_bcn and self.time_of_self.time_of_last_pps > self.time_of_last_rxd_bcn)
+                or not self.time_of_last_rxd_bcn):
                 tslots_since_last_pps = round((time_now - self.time_of_last_pps) * mac_cfg.TSLOTS_PER_SEC)
                 cpu_time_per_tslot = (1.0 - self.pps_err) / mac_cfg.TSLOTS_PER_SEC
                 tm = self.time_of_last_pps + (1 + tslots_since_last_pps) * cpu_time_per_tslot
 
             # otherwise, if beacon discipline was ever achieved and is more recent, use its time
-            elif self.time_of_last_rxd_bcn and self.time_of_last_rxd_bcn > self.time_of_last_pps:
+            else:
                 tslots_since_last_bcn = round((time_now - self.time_of_last_rxd_bcn) * mac_cfg.TSLOTS_PER_SEC)
                 cpu_time_per_tslot = (1.0 - self.bcn_err) / mac_cfg.TSLOTS_PER_SEC
                 tm = self.time_of_last_rxd_bcn + (1 + tslots_since_last_bcn) * cpu_time_per_tslot
 
-            # otherwise use this node's CPU time as the source.
-            else:
-                tslot_period = (1.0 / mac_cfg.TSLOTS_PER_SEC)
-                remainder = time_now % tslot_period
-                time_of_prev_tslot = time_now - remainder
-                tm = time_of_prev_tslot + 2 * tslot_period
 
         # If the next tslot time is too soon to do anything, get the next one.
         # This should only happen when transitioning between HeyMac's Listening
