@@ -3,7 +3,7 @@ import enum, logging
 import mac_cfg
 
 
-class HeyMacDscplnVal(enum.IntEnum):
+class HeyMacDscplnEnum(enum.IntEnum):
     NONE = 0
     BCN = 1
     PPS = 2
@@ -49,7 +49,7 @@ class HeyMacDiscipline:
         self.consec_bcn_cnt = 0
 
         # Discipline state describes the source of timing discipline
-        self._dscpln = HeyMacDscplnVal.NONE
+        self._dscpln = HeyMacDscplnEnum.NONE
 
 
     def get_dscpln_value(self,):
@@ -76,21 +76,21 @@ class HeyMacDiscipline:
 
         # PPS discipline
         if self.time_of_last_pps and time_now - self.time_of_last_pps < mac_cfg.DSCPLN_PPS_TIMEOUT:
-            self._dscpln = HeyMacDscplnVal.PPS
+            self._dscpln = HeyMacDscplnEnum.PPS
             tslots_since_last_pps = round((time_now - self.time_of_last_pps) * mac_cfg.TSLOTS_PER_SEC)
             cpu_time_per_tslot = (1.0 - self.pps_err) / mac_cfg.TSLOTS_PER_SEC
             tm = self.time_of_last_pps + (1 + tslots_since_last_pps) * cpu_time_per_tslot
 
         # BCN discipline
         elif self.time_of_last_rxd_bcn and time_now - self.time_of_last_rxd_bcn < mac_cfg.DSCPLN_BCN_TIMEOUT:
-            self._dscpln = HeyMacDscplnVal.BCN
+            self._dscpln = HeyMacDscplnEnum.BCN
             tslots_since_last_bcn = round((time_now - self.time_of_last_rxd_bcn) * mac_cfg.TSLOTS_PER_SEC)
             cpu_time_per_tslot = (1.0 - self.bcn_err) / mac_cfg.TSLOTS_PER_SEC
             tm = self.time_of_last_rxd_bcn + (1 + tslots_since_last_bcn) * cpu_time_per_tslot
 
         # no discipline
         else:
-            self._dscpln = HeyMacDscplnVal.NONE
+            self._dscpln = HeyMacDscplnEnum.NONE
 
             # If PPS discipline was ever achieved and is more recent, use its time
             if self.time_of_last_pps and self.time_of_last_pps > self.time_of_last_rxd_bcn:
