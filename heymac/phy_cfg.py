@@ -25,7 +25,7 @@ sx127x_cfg = lora_driver.SX127xConfig(
 
 # RaspberryPi UART (to GPS) configuration.
 uart_port = "/dev/serial0"
-uart_baud = "9600"
+uart_baud = 9600
 
 # RaspberryPi GPIO configuration.
 # This configuration is for the Dragino LoRa GPS Hat v1.3
