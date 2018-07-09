@@ -8,9 +8,11 @@ Physical Layer State Machine for SPI operations to the SX127x device
 - responds to a handful of events (expected from Layer 2 (MAC))
 """
 
-import logging, time
+import logging
+import time
 
-import lora_driver, pq
+import lora_driver
+import pq
 
 import phy_cfg
 

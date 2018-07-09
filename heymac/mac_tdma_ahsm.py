@@ -2,7 +2,8 @@
 """
 Copyright 2017 Dean Hall.  See LICENSE for details.
 
-MAC (data link layer) (layer 2) State Machine for protocol operations
+Data Link Layer (layer 2) Medium Access Control (MAC)
+State Machine for Time-Division Multiple Access (TDMA):
 - listens for PPS signal and RX packet times to synchronize to a network
 - selects an appropriate Timeslot to periodically transmit a beacon frame
 - maintains a schedule of transmit and receive Timeslots
@@ -10,11 +11,19 @@ MAC (data link layer) (layer 2) State Machine for protocol operations
 """
 
 
-import logging, hashlib, math, socket
+import hashlib
+import logging
+import math
+import socket
 
 import pq
 
-import cfg, mac_cfg, mac_cmds, mac_discipline, mac_frame, phy_cfg
+import cfg
+import mac_cfg
+import mac_cmds
+import mac_discipline
+import mac_frame
+import phy_cfg
 
 
 # Turn user JSON config files into Python dicts
@@ -33,7 +42,7 @@ class HeyMacAhsm(pq.Ahsm):
         pq.Signal.register("MAC_TX_REQ")
         pq.Framework.subscribe("PHY_GPS_PPS", me)
         pq.Framework.subscribe("PHY_RXD_DATA", me)
-        pq.Framework.subscribe("GPS_NMEA", me) # from phy_uart_ahsm.py
+        pq.Framework.subscribe("GPS_NMEA", me)
 
         # Initialize a timer event
         me.tm_evt = pq.TimeEvent("TM_EVT_TMOUT")
@@ -142,18 +151,16 @@ class HeyMacAhsm(pq.Ahsm):
         elif sig == pq.Signal.TM_EVT_TMOUT: # timer has expired
             return me.tran(me, me.scheduling)
 
-        elif sig == pq.Signal.PHY_RXD_DATA:
-            # handle received frame
+        elif sig == pq.Signal.PHY_RXD_DATA: # received a data frame
             rx_time, payld, rssi, snr = event.value
             me.on_rxd_frame(me, rx_time, payld, rssi, snr)
-
             # rx continuously again
             value = (-1, phy_cfg.rx_freq)
             pq.Framework.post(pq.Event(pq.Signal.RECEIVE, value), "SX127xSpiAhsm")
             return me.handled(me, event)
 
-        # This handler is for logging print and may be removed
-        elif sig == pq.Signal.PHY_GPS_PPS:
+        # NOTE: This handler is for logging print and may be removed
+        elif sig == pq.Signal.PHY_GPS_PPS: # GPS pulse per second pin event
             logging.info("pps            %f", event.value)
             # process PPS in the running state, too
             return me.super(me, me.running)

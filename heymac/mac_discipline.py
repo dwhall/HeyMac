@@ -1,12 +1,27 @@
-import enum, logging
+"""
+Copyright 2018 Dean Hall.  See LICENSE file for details.
+
+HeyMac Classes for MAC TDMA timing discipline.
+
+In order for nodes to communicate via TDMA,
+they must agree on a common timing source.
+Some nodes have a GPS unit which emits a pulse-per-second (PPS)
+and this is used as the most accurate reference.
+Nodes without a GPS unit will use MAC Beacon packets
+for their discipline source.  Beacon (or RF) discipline
+is less accurate than PPS.
+"""
+
+import enum
+import logging
 
 import mac_cfg
 
 
 class HeyMacDscplnEnum(enum.IntEnum):
-    NONE = 0
-    BCN = 1
-    PPS = 2
+    NONE = 0    # No discipline
+    BCN = 1     # Beacon/RF discipline
+    PPS = 2     # GPS' PPS discipline
 
 
 class HeyMacDiscipline:

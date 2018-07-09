@@ -10,11 +10,13 @@ Application (layer 7) State Machine for a simple text chat app
 """
 
 
-import curses, logging
+import curses
+import logging
 
 import pq
 
-import mac_cmds, mac_frame
+import mac_cmds
+import mac_frame
 
 
 class ChatAhsm(pq.Ahsm):

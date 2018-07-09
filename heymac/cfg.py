@@ -3,7 +3,9 @@
 Copyright 2018 Dean Hall.  See LICENSE for details.
 """
 
-import json, os, sys
+import json
+import os
+import sys
 
 
 def get_app_data_path(app_name):

@@ -5,7 +5,8 @@ HeyMac Commands for MAC frame type:
 - HeyMac Small Beacon
 """
 
-import enum, struct
+import enum
+import struct
 
 import dpkt # pip install dpkt
 

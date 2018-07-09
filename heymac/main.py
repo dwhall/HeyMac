@@ -7,16 +7,20 @@ Launches all the state machines to run the HeyMac network
 """
 
 
-import logging, socket
+import logging
+import socket
 logging.basicConfig(
         filename = __file__ + "." + socket.gethostname() + ".log",
         format = "%(asctime)s %(message)s",
         level = logging.INFO)
 
 import asyncio
+
 import app_chat_ahsm
 import mac_tdma_ahsm
-import phy_gpio_ahsm, phy_spi_ahsm, phy_uart_ahsm
+import phy_gpio_ahsm
+import phy_spi_ahsm
+import phy_uart_ahsm
 
 
 def main():
@@ -27,7 +31,7 @@ def main():
     macAhsm = mac_tdma_ahsm.HeyMacAhsm(mac_tdma_ahsm.HeyMacAhsm.initial)
     chatAhsm = app_chat_ahsm.ChatAhsm(app_chat_ahsm.ChatAhsm.initial)
 
-    # Start state machines
+    # Start state machines (with priorities)
     spiAhsm.start(10)
     gpioAhsm.start(20)
     uartAhsm.start(30)

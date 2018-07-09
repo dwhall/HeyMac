@@ -7,9 +7,10 @@ Physical Layer State Machine for UART operations on the RasPi
 """
 
 
+import pq
 import serial
 
-import phy_cfg, pq
+import phy_cfg
 
 
 # Time period to check UART for NMEA data

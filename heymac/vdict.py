@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
 
-import collections, time
+import collections
+import time
+
 
 class ValueValid(object):
     def __init__(self, value, valid=False):

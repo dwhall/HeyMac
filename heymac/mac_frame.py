@@ -1,4 +1,5 @@
-import logging, struct
+import logging
+import struct
 
 import dpkt # pip install dpkt
 

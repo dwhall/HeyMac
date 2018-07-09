@@ -3,7 +3,8 @@
 
 import unittest
 
-import mac_frame, mac_cmds
+import mac_cmds
+import mac_frame
 
 
 class TestHeyMacCmds(unittest.TestCase):

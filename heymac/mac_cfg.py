@@ -29,13 +29,13 @@ TSLOT_PREP_TIME = 0.020 # secs
 # The amount of time [seconds] since the reception of a PPS signal
 # after which the timing is no longer disciplined.
 # The following value is a guess and can be improved.
-DSCPLN_PPS_TIMEOUT = 5.0 * 60.0 # five minutes
+DSCPLN_PPS_TIMEOUT = 10.0 * 60.0 # ten minutes
 
 # The amount of time [seconds] since the reception of a HeyMac beacon
 # after which the timing is no longer disciplined.
 # This value SHOULD be greater than DSCPLN_PPS_TIMEOUT to allow the weaker
 # form of discipline more time to operate.
-DSCPLN_BCN_TIMEOUT = 10.0 * 60.0 # ten minutes
+DSCPLN_BCN_TIMEOUT = 50.0 * 60.0 # fifty minutes
 
 # The amount of time between the true start of a Beacon frame
 # and the point when the receiver detects reception via DIO3/ValidHeader.
