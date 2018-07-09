@@ -10,14 +10,14 @@ import mac_cmds
 HEYMAC_VERSION = 1
 
 # Frame Control Field (Fctl) subfield values
-FCTL_TYPE_MIN = 0
 FCTL_TYPE_SHIFT = 6
+FCTL_TYPE_MIN = 0b00 << FCTL_TYPE_SHIFT
 FCTL_TYPE_MAC = 0b01 << FCTL_TYPE_SHIFT
-FCTL_TYPE_NLH = 0b10 << FCTL_TYPE_SHIFT
+FCTL_TYPE_NET = 0b10 << FCTL_TYPE_SHIFT
 FCTL_TYPE_EXT = 0b11 << FCTL_TYPE_SHIFT
 FCTL_TYPE_MASK = 0b11 << FCTL_TYPE_SHIFT
 
-FCTL_EXT_ADDR_EN = 1 << 5
+FCTL_LONG_ADDR_EN = 1 << 5
 FCTL_NETID_PRESENT = 1 << 4
 FCTL_DST_ADDR_PRESENT = 1 << 3
 FCTL_IE_PRESENT = 1 << 2
@@ -64,7 +64,7 @@ class HeyMacFrame(dpkt.Packet):
     # Functions to determine size of variable-size fields
     def _sizeof_saddr_field(self,):
         if self._has_saddr_field():
-            if (self.fctl & FCTL_EXT_ADDR_EN) != 0:
+            if (self.fctl & FCTL_LONG_ADDR_EN) != 0:
                 sz = 8
             else:
                 sz = 2
@@ -74,7 +74,7 @@ class HeyMacFrame(dpkt.Packet):
 
     def _sizeof_daddr_field(self,):
         if self._has_daddr_field():
-            if (self.fctl & FCTL_EXT_ADDR_EN) != 0:
+            if (self.fctl & FCTL_LONG_ADDR_EN) != 0:
                 sz = 8
             else:
                 sz = 2
@@ -84,7 +84,7 @@ class HeyMacFrame(dpkt.Packet):
 
     def _sizeof_raddr_field(self,):
         if self._has_raddr_field():
-            if (self.fctl & FCTL_EXT_ADDR_EN) != 0:
+            if (self.fctl & FCTL_LONG_ADDR_EN) != 0:
                 sz = 8
             else:
                 sz = 2
@@ -240,7 +240,7 @@ class HeyMacFrame(dpkt.Packet):
             len_daddr = len(self.daddr)
             nbytes += len_daddr
             if len_daddr == 8:
-                self.fctl |= FCTL_EXT_ADDR_EN
+                self.fctl |= FCTL_LONG_ADDR_EN
                 self.fctl |= FCTL_DST_ADDR_PRESENT
             elif len_daddr == 2:
                 self.fctl |= FCTL_DST_ADDR_PRESENT
@@ -252,7 +252,7 @@ class HeyMacFrame(dpkt.Packet):
             len_saddr = len(self.saddr)
             nbytes += len_saddr
             if len_saddr == 8:
-                self.fctl |= FCTL_EXT_ADDR_EN
+                self.fctl |= FCTL_LONG_ADDR_EN
                 self.fctl |= FCTL_SRC_ADDR_PRESENT
             elif len_saddr == 2:
                 self.fctl |= FCTL_SRC_ADDR_PRESENT

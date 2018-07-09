@@ -43,16 +43,16 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(f.saddr, b"")
         self.assertEqual(f.data, b"")
 
-    def test_nlh(self,):
+    def test_net(self,):
         # Pack
         f = mac_frame.HeyMacFrame()
-        f.fctl = mac_frame.FCTL_TYPE_NLH
+        f.fctl = mac_frame.FCTL_TYPE_NET
         f.raddr = b"\x00\x00"
         b = bytes(f)
         self.assertEqual(b, b"\x80\x10\x00\x00")
         # Unpack
         f = mac_frame.HeyMacFrame(b)
-        self.assertEqual(f.fctl, mac_frame.FCTL_TYPE_NLH)
+        self.assertEqual(f.fctl, mac_frame.FCTL_TYPE_NET)
         self.assertEqual(f.ver, 1)
         self.assertEqual(f.seq, 0)
         self.assertEqual(f.raddr, b"\x00\x00")
@@ -137,7 +137,7 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(b, b"\x22\x01\x02\x03\x04\x05\x06\x07\x08")
         # Unpack
         f = mac_frame.HeyMacFrame(b)
-        self.assertEqual(f.fctl, mac_frame.FCTL_TYPE_MIN | mac_frame.FCTL_EXT_ADDR_EN | mac_frame.FCTL_SRC_ADDR_PRESENT)
+        self.assertEqual(f.fctl, mac_frame.FCTL_TYPE_MIN | mac_frame.FCTL_LONG_ADDR_EN | mac_frame.FCTL_SRC_ADDR_PRESENT)
         self.assertEqual(f.raddr, b"")
         self.assertEqual(f.saddr, b"\x01\x02\x03\x04\x05\x06\x07\x08")
         self.assertEqual(f.daddr, b"")
@@ -154,7 +154,7 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(b, b"\x62\x19\x21\x22\x23\x24\x25\x26\x27\x28\x01\x02\x03\x04\x05\x06\x07\x08")
         # Unpack
         f = mac_frame.HeyMacFrame(b)
-        self.assertEqual(f.fctl, mac_frame.FCTL_TYPE_MAC | mac_frame.FCTL_EXT_ADDR_EN | mac_frame.FCTL_SRC_ADDR_PRESENT)
+        self.assertEqual(f.fctl, mac_frame.FCTL_TYPE_MAC | mac_frame.FCTL_LONG_ADDR_EN | mac_frame.FCTL_SRC_ADDR_PRESENT)
         self.assertEqual(f.ver, 1)
         self.assertEqual(f.seq, 9)
         self.assertEqual(f.raddr, b"\x21\x22\x23\x24\x25\x26\x27\x28")
@@ -163,10 +163,40 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(f.data, b"")
 
     def test_mac_len_verseq_saddr16b_beacon(self,):
-        # Unpack
-        b = b"h\r\x11\xb0\x0b\x01\x00\x00\x00\x02\x00\x00\x00\x00"
+        # Pack
         f = mac_frame.HeyMacFrame()
+        f.fctl |= mac_frame.FCTL_TYPE_MAC
+        f.seq = 2
+        f.raddr = b"\x11\x12"
+        f.saddr = b"\x11\x12"
+        bcn = mac_cmds.CmdPktSmallBcn(
+            bcn_en=1,
+            sf_order=5,
+            eb_order=10,
+            dscpln=2,
+            caps=3,
+            status=4,
+            asn=42,
+        )
+        f.data = bytes(bcn)
+        b = bytes(f)
+        self.assertEqual(b, b"\x42\x12\x11\x12\x11\x12\x01\xda\x02\x03\x04\x00\x00\x00\x2a\x00\x00\x00\x00\x00\x00\x00\x00")
+        # Unpack
+        f = mac_frame.HeyMacFrame(b)
+        self.assertEqual(f.fctl, mac_frame.FCTL_TYPE_MAC | mac_frame.FCTL_SRC_ADDR_PRESENT)
+        self.assertEqual(f.ver, 1)
+        self.assertEqual(f.seq, 2)
+        self.assertEqual(f.raddr, b"\x11\x12")
+        self.assertEqual(f.daddr, b"")
+        self.assertEqual(f.saddr, b"\x11\x12")
         self.assertTrue(type(f.data), mac_cmds.CmdPktSmallBcn)
+        self.assertTrue(f.data.bcn_en, 1)
+        self.assertTrue(f.data.sf_order, 5)
+        self.assertTrue(f.data.eb_order, 10)
+        self.assertTrue(f.data.dscpln, 2)
+        self.assertTrue(f.data.caps, 3)
+        self.assertTrue(f.data.status, 4)
+        self.assertTrue(f.data.asn, 42)
 
     def test_mac_len_verseq_saddr64b(self,):
         # Pack
@@ -179,7 +209,7 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(b, b"\x62\x12\x11\x11\x11\x11\x11\x11\x11\x11\x01\x02\x03\x04\x05\x06\x07\x08")
         # Unpack
         f = mac_frame.HeyMacFrame(b)
-        self.assertEqual(f.fctl, mac_frame.FCTL_TYPE_MAC | mac_frame.FCTL_EXT_ADDR_EN | mac_frame.FCTL_SRC_ADDR_PRESENT)
+        self.assertEqual(f.fctl, mac_frame.FCTL_TYPE_MAC | mac_frame.FCTL_LONG_ADDR_EN | mac_frame.FCTL_SRC_ADDR_PRESENT)
         self.assertEqual(f.ver, 1)
         self.assertEqual(f.seq, 2)
         self.assertEqual(f.saddr, b"\x01\x02\x03\x04\x05\x06\x07\x08")
@@ -198,7 +228,7 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(b, b"\x6A\x10\x11\x11\x11\x11\x11\x11\x11\x11\xff\xff\xff\xff\xff\xff\xff\xff\xab\xcd\xef\x01\x02\x03\x04\x05hi")
         # Unpack
         f = mac_frame.HeyMacFrame(b)
-        self.assertEqual(f.fctl, mac_frame.FCTL_TYPE_MAC | mac_frame.FCTL_EXT_ADDR_EN | mac_frame.FCTL_SRC_ADDR_PRESENT | mac_frame.FCTL_DST_ADDR_PRESENT)
+        self.assertEqual(f.fctl, mac_frame.FCTL_TYPE_MAC | mac_frame.FCTL_LONG_ADDR_EN | mac_frame.FCTL_SRC_ADDR_PRESENT | mac_frame.FCTL_DST_ADDR_PRESENT)
         self.assertEqual(f.ver, 1)
         self.assertEqual(f.seq, 0)
         self.assertEqual(f.saddr, b"\xab\xcd\xef\x01\x02\x03\x04\x05")
@@ -224,17 +254,17 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(f.daddr, b"\xff\xff")
         self.assertEqual(f.data, b"hello world")
 
-    def test_nlh_data(self,):
+    def test_net_data(self,):
         # Pack
         f = mac_frame.HeyMacFrame()
-        f.fctl = mac_frame.FCTL_TYPE_NLH
+        f.fctl = mac_frame.FCTL_TYPE_NET
         f.raddr = b"\x11\x11"
         f.data = b"ipv6_hdr_compression"
         b = bytes(f)
         self.assertEqual(b, b"\x80\x10\x11\x11ipv6_hdr_compression")
         # Unpack
         f = mac_frame.HeyMacFrame(b)
-        self.assertEqual(f.fctl, mac_frame.FCTL_TYPE_NLH )
+        self.assertEqual(f.fctl, mac_frame.FCTL_TYPE_NET )
         self.assertEqual(f.ver, 1)
         self.assertEqual(f.seq, 0)
         self.assertEqual(f.raddr, b"\x11\x11")

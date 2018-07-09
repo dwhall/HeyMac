@@ -62,9 +62,9 @@ Furthermore, the Pending flag is an indication of more frames to follow.
 ```
       7   6   5   4   3   2   1   0 (bit)
     +---+---+---+---+---+---+---+---+
-    |  Type | X | N | D | I | S | P |
+    |  Type | L | N | D | I | S | P |
     +-------+---+---+-------+-------+
-    X := eXtended addressing (Src, Dst, Resender: 8 octets)
+    L := Long addressing
     N := Net ID present
     D := Dst addr present
     I := IE(s) present
@@ -80,7 +80,7 @@ Legend:
     <ul>
     <li>2b00: Minimum frame</li>
     <li>2b01: MAC frame</li>
-    <li>2b10: Next Layer Higher (NLH) frame</li>
+    <li>2b10: Network (Layer 3) frame</li>
     <li>2b11: Extended frame type</li>
     </ul>
     If Frame Type is 2b00, then the Version and Sequence field
@@ -90,11 +90,10 @@ Legend:
     otherwise the Extended Type field is absent.
   </dd>
 
-  <dt><strong>X</strong></dt>
-  <dd>eXtended Addressing:  If 1, the source, destination and/or resender addresses
+  <dt><strong>L</strong></dt>
+  <dd>Long Addressing:  If 1, the resender, destination and/or source addresses
   are 8 octets (64 bits) in size, if present.
   If 0, the addresses are 2 octets (16 bits) in size, if present.
-  The Resender address is present unless the Frame Type is Minimum (2b00).
   </dd>
 
   <dt><strong>N</strong></dt>
@@ -104,9 +103,9 @@ Legend:
   <dt><strong>D</strong></dt>
   <dd>Destination Address:  If 1, the Destination Address is present in the header.
   If the Destination Address is not present, the Destination Address may be derived
-  from the destination in the NLH.
+  from the destination in the NET layer.
   If the Destination Address is not present and there is no destination information
-  in the NLH, the Destination Address is assumed to be the Root address (0x0000).
+  in the NET layer, the Destination Address is assumed to be the Root address (0x0000).
   </dd>
 
   <dt><strong>I</strong></dt>
@@ -116,9 +115,9 @@ Legend:
   <dt><strong>S</strong></dt>
   <dd>Source Address:  If 1, the Source Address is present in the header.
   If the Source Address is not present, the Source Address may be derived
-  from the source in the NLH.
+  from the source in the NET layer.
   If the Source Address is not present and there is no source information
-  in the NLH, the Source Address is assumed to be the Root address (0x0000).
+  in the NET layer, the Source Address is assumed to be the Root address (0x0000).
   </dd>
 
   <dt><strong>P</strong></dt>
@@ -155,7 +154,7 @@ The Sequence subfield occupies the lower 4 bits and is an unsigned sequence numb
 The Resender Address field is present unless the Fctl Frame Type is Minimum (2b00).
 When the Resender Address field is present, it is a two or eight octet (16 or 64 bits)
 unsigned value representing the address of the re-sender for this frame.
-If the Fctl X bit is set (1b1), the Resender Address field is 8 octets.
+If the Fctl L bit is set (1b1), the Resender Address field is 8 octets.
 The value of the re-sender address is either the source node's address
 or the address of an intermediate node that has identified itself
 as responsible for routing the frame along the next hop in its journey
@@ -179,7 +178,7 @@ TBD: subfields may indicate network type and instance.
 The Destination Address field is present when the Fctl D bit is set (1b1).
 When the Destination Address field is present, it is a two or eight octet (16 or 64 bits)
 unsigned value representing the address of the destination for this frame.
-If the Fctl X bit is set (1b1), the Destination Address field is 8 octets
+If the Fctl L bit is set (1b1), the Destination Address field is 8 octets
 
 ### HeyMac Information Elements
 

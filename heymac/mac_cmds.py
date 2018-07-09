@@ -120,7 +120,11 @@ class CmdPktSmallBcn(dpkt.Packet):
         b.append(self.status)
         b.extend(struct.pack(CmdPktSmallBcn.__byte_order__ + "i", self.asn))
         # Pack the variable-length fields
+        if not self.tx_slots:
+            self.tx_slots = [0,] * ((2 ** self.sf_order) // 8)
         b.extend(self.tx_slots)
+        if not self.ngbr_tx_slots:
+            self.ngbr_tx_slots = [0,] * ((2 ** self.sf_order) // 8)
         b.extend(self.ngbr_tx_slots)
 
         return bytes(b)
