@@ -174,7 +174,12 @@ class HeyMacAhsm(pq.Ahsm):
         sig = event.signal
         if sig == pq.Signal.ENTRY:
             logging.info("BEACONING")
-            me._post_time_event_for_next_tslot(me)
+#            me._post_time_event_for_next_tslot(me)
+# Dbug to print logging:
+            now = pq.Framework._event_loop.time()
+            me.next_tslot = me.dscpln.get_time_of_next_tslot(now)
+            logging.info("next_tslot = %f", me.next_tslot)
+            me.tm_evt.postAt(me, me.next_tslot - mac_cfg.TSLOT_PREP_TIME)
             return me.handled(me, event)
 
         elif sig == pq.Signal.TM_EVT_TMOUT:
@@ -284,16 +289,19 @@ class HeyMacAhsm(pq.Ahsm):
         except:
             logging.warning("rxd pkt failed unpacking")
             return
-        logging.info(
-            "rx_time        %f\tRXD %d bytes, rssi=%d dBm, snr=%.3f dB\t%s",
-            rx_time, len(payld), rssi, snr, repr(f))
 
-        if isinstance(f.data, mac_cmds.HeyMacCmdBeacon):
-            self.on_rxd_bcn(self, rx_time, f.data, rssi, snr)
-        elif isinstance(f.data, mac_cmds.HeyMacCmdTxt):
-            pass
+        # Filter by protocol version
+        if f.ver > mac_frame.HEYMAC_VERSION:
+            logging.warning("rxd pkt has unsupported/invalid HEYMAC_VERSION")
         else:
-            logging.warning("rxd pkt has an unknown MAC cmd")
+            logging.info(
+                "rx_time        %f\tRXD %d bytes, rssi=%d dBm, snr=%.3f dB\t%s",
+                rx_time, len(payld), rssi, snr, repr(f))
+
+            if isinstance(f.data, mac_cmds.HeyMacCmdBeacon):
+                self.on_rxd_bcn(self, rx_time, f.data, rssi, snr)
+            else:
+                logging.warning("rxd pkt has an unknown MAC cmd")
 
 
     @staticmethod
