@@ -44,3 +44,8 @@ DSCPLN_BCN_TIMEOUT = 50.0 * 60.0 # fifty minutes
 #   2018-04-25 23:13:42,998 pps            898898.480569
 #   2018-04-25 23:13:43,394 rx_time        898898.748040    RXD 139 bytes...
 TIME_TO_VALID_HEADER = 0.0175
+
+# The number of Sframes a node should remain in the Listening state
+# before transitioning to a state which allows transmitting.
+# A decent value is 2.  A smaller value is used for debugging.
+N_SFRAMES_TO_LISTEN = 0.5

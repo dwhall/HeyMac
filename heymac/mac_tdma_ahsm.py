@@ -103,6 +103,10 @@ class HeyMacAhsm(pq.Ahsm):
     @staticmethod
     def running(me, event):
         """State: HeyMacAhsm:running
+        The running state:
+        - uses PPS events from the GPIO to establish timing discipline
+        - receives continuously (hearing a ngbr will lead to state change)
+        - uses GPS NMEA events to get position information
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
@@ -116,6 +120,9 @@ class HeyMacAhsm(pq.Ahsm):
         elif sig == pq.Signal.PHY_RXD_DATA:
             rx_time, payld, rssi, snr = event.value
             me.on_rxd_frame(me, rx_time, payld, rssi, snr)
+            # immediate rx continuous
+            rx_args = (-1, phy_cfg.rx_freq)
+            pq.Framework.post(pq.Event(pq.Signal.RECEIVE, rx_args), "SX127xSpiAhsm")
             return me.handled(me, event)
 
         elif sig == pq.Signal.GPS_NMEA:
@@ -137,27 +144,19 @@ class HeyMacAhsm(pq.Ahsm):
         Listens to radio and GPS for timing discipline sources.
         Transitions to Scheduling after listening for N superframes.
         """
-        N_SFRAMES_TO_LISTEN = 2.0
-
         sig = event.signal
         if sig == pq.Signal.ENTRY:
             logging.info("LISTENING")
-            value = (-1, phy_cfg.rx_freq) # rx continuously on the rx_freq
+            # rx continuously on the rx_freq
+            value = (-1, phy_cfg.rx_freq)
             pq.Framework.post(pq.Event(pq.Signal.RECEIVE, value), "SX127xSpiAhsm")
-            listen_secs = N_SFRAMES_TO_LISTEN * mac_cfg.FRAME_SPEC_SF_ORDER / mac_cfg.TSLOTS_PER_SEC
+            listen_secs = mac_cfg.N_SFRAMES_TO_LISTEN * mac_cfg.TSLOTS_PER_SFRAME / mac_cfg.TSLOTS_PER_SEC
             me.tm_evt.postIn(me, listen_secs)
             return me.handled(me, event)
 
-        elif sig == pq.Signal.TM_EVT_TMOUT: # timer has expired
-            return me.tran(me, me.scheduling)
-
-        elif sig == pq.Signal.PHY_RXD_DATA: # received a data frame
-            rx_time, payld, rssi, snr = event.value
-            me.on_rxd_frame(me, rx_time, payld, rssi, snr)
-            # rx continuously again
-            value = (-1, phy_cfg.rx_freq)
-            pq.Framework.post(pq.Event(pq.Signal.RECEIVE, value), "SX127xSpiAhsm")
-            return me.handled(me, event)
+        elif sig == pq.Signal.TM_EVT_TMOUT:
+            # listening timer has expired, transition to beaconing
+            return me.tran(me, me.beaconing)
 
         # NOTE: This handler is for logging print and may be removed
         elif sig == pq.Signal.PHY_GPS_PPS: # GPS pulse per second pin event
@@ -165,26 +164,27 @@ class HeyMacAhsm(pq.Ahsm):
             # process PPS in the running state, too
             return me.super(me, me.running)
 
-        elif sig == pq.Signal.EXIT:
-            # cancel continuous rx
-            pq.Framework.post(pq.Event(pq.Signal.CANCEL, None), "SX127xSpiAhsm")
-            return me.handled(me, event)
-
         return me.super(me, me.running)
 
 
     @staticmethod
-    def scheduling(me, event):
-        """State: HeyMacAhsm:running:scheduling
-        Uses timing discipline to schedule packet tx and rx actions.
+    def beaconing(me, event):
+        """State: HeyMacAhsm:running:beaconing
+        Uses timing discipline to tx beacons.
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
-            me._post_time_event_for_next_tslot(me)
+            logging.info("BEACONING")
+#            me._post_time_event_for_next_tslot(me)
+# Dbug to print logging:
+            now = pq.Framework._event_loop.time()
+            me.next_tslot = me.dscpln.get_time_of_next_tslot(now)
+            logging.info("next_tslot = %f", me.next_tslot)
+            me.tm_evt.postAt(me, me.next_tslot - mac_cfg.TSLOT_PREP_TIME)
             return me.handled(me, event)
 
         elif sig == pq.Signal.TM_EVT_TMOUT:
-            me.scheduling_and_next_tslot(me)
+            me.beaconing_and_next_tslot(me)
             return me.handled(me, event)
 
         elif sig == pq.Signal.MAC_TX_REQ:
@@ -193,6 +193,23 @@ class HeyMacAhsm(pq.Ahsm):
 
         elif sig == pq.Signal.EXIT:
             me.tm_evt.disarm()
+            return me.handled(me, event)
+
+        return me.super(me, me.running)
+
+
+    @staticmethod
+    def networking(me, event):
+        """State: HeyMacAhsm:running:beaconing:networking
+        Uses timing discipline to schedule packet tx and rx actions.
+        """
+        sig = event.signal
+        if sig == pq.Signal.ENTRY:
+            logging.info("NETWORKING")
+
+        elif sig == pq.Signal.PHY_RXD_DATA:
+            rx_time, payld, rssi, snr = event.value
+            me.on_rxd_frame(me, rx_time, payld, rssi, snr)
             return me.handled(me, event)
 
         return me.super(me, me.running)
@@ -213,8 +230,8 @@ class HeyMacAhsm(pq.Ahsm):
 #### End State Machines
 
     @staticmethod
-    def scheduling_and_next_tslot(self,):
-        """Handler for the Scheduling state when the next-slot-preparation timer
+    def beaconing_and_next_tslot(self,):
+        """Handler for the Beaconing state when the next-slot-preparation timer
         has elapsed.  This method decides what to do in the next Tslot
         and messages the PHYsical layer with any actions.
         """
@@ -226,14 +243,14 @@ class HeyMacAhsm(pq.Ahsm):
             logging.info("bcn_tslot      %f", self.next_tslot)
             self.tx_bcn(self, self.next_tslot)
 
+        # Resume continuous receive after beaconing
+        elif self.asn % mac_cfg.TSLOTS_PER_SFRAME == self.bcn_slot + 1:
+            rx_args = (-1, phy_cfg.rx_freq)
+            pq.Framework.post(pq.Event(pq.Signal.RECEIVE, rx_args), "SX127xSpiAhsm")
+
         # Send the top pkt in the tx queue
         elif self.txq:
             self.tx_from_queue(self, self.next_tslot)
-
-        # Listen during every Tslot
-        else:
-            value = (self.next_tslot, phy_cfg.rx_freq) # rx time and freq
-            pq.Framework.post(pq.Event(pq.Signal.RECEIVE, value), "SX127xSpiAhsm")
 
         # Count this Tslot and set the TimeEvent to expire at the next Prep Time
         self._post_time_event_for_next_tslot(self)
@@ -271,14 +288,17 @@ class HeyMacAhsm(pq.Ahsm):
         except:
             logging.warning("rxd pkt failed unpacking")
             return
-        logging.info(
-            "rx_time        %f\tRXD %d bytes, rssi=%d dBm, snr=%.3f dB\t%s",
-            rx_time, len(payld), rssi, snr, repr(f))
+
+        # Filter by protocol version
+        if f.ver is not None and f.ver > mac_frame.HEYMAC_VERSION:
+            logging.warning("rxd pkt has unsupported/invalid HEYMAC_VERSION")
+        else:
+            logging.info(
+                "rx_time        %f\tRXD %d bytes, rssi=%d dBm, snr=%.3f dB\t%s",
+                rx_time, len(payld), rssi, snr, repr(f))
 
         if isinstance(f.data, mac_cmds.CmdPktSmallBcn):
-            self.on_rxd_bcn(self, rx_time, f.data, rssi, snr)
-        elif isinstance(f.data, mac_cmds.CmdPktTxt):
-            pass
+                self.on_rxd_bcn(self, rx_time, f.data, rssi, snr)
         else:
             logging.warning("rxd pkt has an unknown MAC cmd")
 

@@ -175,6 +175,7 @@ class SX127xSpiAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
+            me.hdr_time = 0
             if me.rx_time < 0:
                 me.sx127x.set_op_mode(mode="rxcont")
             else:
@@ -203,6 +204,17 @@ class SX127xSpiAhsm(pq.Ahsm):
             me.hdr_time = event.value
             me.sx127x.clear_irqs(lora_driver.IRQFLAGS_VALIDHEADER_MASK)
             return me.handled(me, event)
+
+        # If we are in Receiving but haven't received a header yet
+        # and a request to Transmit arrives,
+        # cancel the receive and do the Transmit
+        elif sig == pq.Signal.TRANSMIT:
+            if me.hdr_time == 0:
+                me.sx127x.set_op_mode(mode="stdby")
+                me.tx_time = event.value[0]
+                me.tx_freq = event.value[1]
+                me.tx_data = event.value[2]
+                return me.tran(me, me.tx_prepping)
 
         return me.super(me, me.working)
 
