@@ -53,7 +53,7 @@ class SX127xSpiAhsm(pq.Ahsm):
     @staticmethod
     def initializing(me, event):
         """State: SX127xSpiAhsm:initializing
-        Reads SX127x regs and transitions to 
+        Reads SX127x regs and transitions to
         the idling or sleeping state.
         If SPI cannot talk to a SX127x,
         remains in initializing state
@@ -62,7 +62,7 @@ class SX127xSpiAhsm(pq.Ahsm):
         if sig == pq.Signal.ENTRY:
             if me.sx127x.check_chip_ver():
                 me.sx127x.get_regs()
-                me.sx127x.set_op_mode('stdby') # FIXME: TEMPORARY!  
+                me.sx127x.set_op_mode('stdby') # FIXME: TEMPORARY!
                 me.postFIFO(pq.Event(pq.Signal.ALWAYS, None))
             else:
                 # TODO: no SX127x or no SPI
@@ -88,7 +88,7 @@ class SX127xSpiAhsm(pq.Ahsm):
             me.sx127x.set_config(event.value)
             me.sx127x.set_pwr_cfg(boost=True)
             return me.handled(me, event)
-        
+
         elif sig == pq.Signal.SLEEP:
             return me.tran(me, me.sleeping)
 
@@ -151,7 +151,7 @@ class SX127xSpiAhsm(pq.Ahsm):
             me.sx127x.set_rx_fifo()
             me.sx127x.set_rx_freq(me.rx_freq)
 
-            # Reminder pattern 
+            # Reminder pattern
             me.postFIFO(pq.Event(pq.Signal.ALWAYS, None))
             return me.handled(me, event)
 
@@ -173,6 +173,7 @@ class SX127xSpiAhsm(pq.Ahsm):
         """
         sig = event.signal
         if sig == pq.Signal.ENTRY:
+            me.hdr_time = 0
             if me.rx_time < 0:
                 me.sx127x.set_op_mode(mode="rxcont")
             else:
@@ -180,7 +181,7 @@ class SX127xSpiAhsm(pq.Ahsm):
             return me.handled(me, event)
 
         elif sig == pq.Signal.PHY_DIO0: # RX_DONE
-            # The ValidHeader time is closer to start of rx'd pkt 
+            # The ValidHeader time is closer to start of rx'd pkt
             # than RX_DONE's event time
             rxd_time = me.hdr_time
             if me.sx127x.check_rx_flags():
@@ -201,6 +202,17 @@ class SX127xSpiAhsm(pq.Ahsm):
             me.hdr_time = event.value
             me.sx127x.clear_irqs(lora_driver.IRQFLAGS_VALIDHEADER_MASK)
             return me.handled(me, event)
+
+        # If we are in Receiving but haven't received a header yet
+        # and a request to Transmit arrives,
+        # cancel the receive and do the Transmit
+        elif sig == pq.Signal.TRANSMIT:
+            if me.hdr_time == 0:
+                me.sx127x.set_op_mode(mode="stdby")
+                me.tx_time = event.value[0]
+                me.tx_freq = event.value[1]
+                me.tx_data = event.value[2]
+                return me.tran(me, me.tx_prepping)
 
         return me.super(me, me.working)
 
@@ -224,7 +236,7 @@ class SX127xSpiAhsm(pq.Ahsm):
 
             me.sx127x.set_tx_freq(me.tx_freq)
 
-            # Reminder pattern 
+            # Reminder pattern
             me.postFIFO(pq.Event(pq.Signal.ALWAYS, None))
             return me.handled(me, event)
 

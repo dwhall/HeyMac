@@ -13,8 +13,8 @@ class HeyMacDiscipline:
     transmit, receive or rest.
 
     PPS is considered the most highly trusted source of timing in HeyMac
-    because of its high accuracy and wide availability.  A PPS signal can 
-    potentially be heard by every node; whereas an RF Beacon from a single 
+    because of its high accuracy and wide availability.  A PPS signal can
+    potentially be heard by every node; whereas an RF Beacon from a single
     source can only be heard by nodes within range of the source.
 
     When a PPS is not available, a node should attempt RF Beacon discipline
@@ -62,9 +62,9 @@ class HeyMacDiscipline:
 
 
     def get_time_of_next_tslot(self, time_now):
-        """Returns the corrected time [float secs] for the next Tslot 
+        """Returns the corrected time [float secs] for the next Tslot
         according to the best discipline source.
-        If this node is out of discipline fall back to using the time
+        If this node is out of discipline, fall back to using the time
         of a discipline mode that had been reached in the past.
         If none of that is available, use this node's CPU time as the discipline
         source.  This will be a somewhat arbitrary timing edge.
@@ -103,7 +103,7 @@ class HeyMacDiscipline:
                 tm = time_of_prev_tslot + 2 * tslot_period
 
             # If PPS discipline was achieved and is more recent, use its time
-            elif((self.time_of_last_pps and self.time_of_last_rxd_bcn and self.time_of_self.time_of_last_pps > self.time_of_last_rxd_bcn)
+            elif((self.time_of_last_pps and self.time_of_last_rxd_bcn and self.time_of_last_pps > self.time_of_last_rxd_bcn)
                 or not self.time_of_last_rxd_bcn):
                 tslots_since_last_pps = round((time_now - self.time_of_last_pps) * mac_cfg.TSLOTS_PER_SEC)
                 cpu_time_per_tslot = (1.0 - self.pps_err) / mac_cfg.TSLOTS_PER_SEC
@@ -153,7 +153,7 @@ class HeyMacDiscipline:
             else:
                 self.consec_bcn_cnt += 1
 
-                # Remove the whole number of tslots and divide by the number 
+                # Remove the whole number of tslots and divide by the number
                 # of slots to get the amount of error per slot
                 # in order to maximize significant digits of floating point
                 delta *= mac_cfg.TSLOTS_PER_SEC
@@ -185,7 +185,7 @@ class HeyMacDiscipline:
                 self.consec_pps_cnt += 1
 
                 # Remove the whole seconds and divide by the number of secs
-                # to get the amount of error per second 
+                # to get the amount of error per second
                 # in order to maximize significant digits of floating point
                 whole_secs = float(round(delta))
                 err = (delta - whole_secs) / whole_secs

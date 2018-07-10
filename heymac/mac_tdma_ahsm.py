@@ -136,15 +136,13 @@ class HeyMacAhsm(pq.Ahsm):
         Listens to radio and GPS for timing discipline sources.
         Transitions to Scheduling after listening for N superframes.
         """
-        N_SFRAMES_TO_LISTEN = 0.5
-
         sig = event.signal
         if sig == pq.Signal.ENTRY:
             logging.info("LISTENING")
             # rx continuously on the rx_freq
             value = (-1, phy_cfg.rx_freq)
             pq.Framework.post(pq.Event(pq.Signal.RECEIVE, value), "SX127xSpiAhsm")
-            listen_secs = N_SFRAMES_TO_LISTEN * mac_cfg.TSLOTS_PER_SFRAME / mac_cfg.TSLOTS_PER_SEC
+            listen_secs = mac_cfg.N_SFRAMES_TO_LISTEN * mac_cfg.TSLOTS_PER_SFRAME / mac_cfg.TSLOTS_PER_SEC
             me.tm_evt.postIn(me, listen_secs)
             return me.handled(me, event)
 
@@ -157,11 +155,6 @@ class HeyMacAhsm(pq.Ahsm):
             logging.info("pps            %f", event.value)
             # process PPS in the running state, too
             return me.super(me, me.running)
-
-        elif sig == pq.Signal.EXIT:
-            # cancel continuous rx
-            pq.Framework.post(pq.Event(pq.Signal.CANCEL, None), "SX127xSpiAhsm")
-            return me.handled(me, event)
 
         return me.super(me, me.running)
 
@@ -242,14 +235,14 @@ class HeyMacAhsm(pq.Ahsm):
             logging.info("bcn_tslot      %f", self.next_tslot)
             self.tx_bcn(self, self.next_tslot)
 
+        # Resume continuous receive after beaconing
+        if self.asn % mac_cfg.TSLOTS_PER_SFRAME == self.bcn_slot + 1:
+            rx_args = (-1, phy_cfg.rx_freq)
+            pq.Framework.post(pq.Event(pq.Signal.RECEIVE, rx_args), "SX127xSpiAhsm")
+
         # Send the top pkt in the tx queue
         elif self.txq:
             self.tx_from_queue(self, self.next_tslot)
-
-        # Listen during every Tslot
-        else:
-            value = (self.next_tslot, phy_cfg.rx_freq) # rx time and freq
-            pq.Framework.post(pq.Event(pq.Signal.RECEIVE, value), "SX127xSpiAhsm")
 
         # Count this Tslot and set the TimeEvent to expire at the next Prep Time
         self._post_time_event_for_next_tslot(self)
@@ -291,7 +284,7 @@ class HeyMacAhsm(pq.Ahsm):
             return
 
         # Filter by protocol version
-        if f.ver > mac_frame.HEYMAC_VERSION:
+        if f.ver is not None and f.ver > mac_frame.HEYMAC_VERSION:
             logging.warning("rxd pkt has unsupported/invalid HEYMAC_VERSION")
         else:
             logging.info(
