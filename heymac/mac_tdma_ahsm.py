@@ -63,17 +63,17 @@ class HeyMacAhsm(pq.Ahsm):
         # The first couple byte of this node's public key is a pseudo-random
         # value to use to determine this node's Tslot to use for beaconing.
         me.bcn_slot = (mac_identity['pub_key'][0] << 8 | mac_identity['pub_key'][1]) \
-                      % mac_cfg.FRAME_SPEC_SF_ORDER
+                      % (2 ** mac_cfg.FRAME_SPEC_SF_ORDER)
         # Beacon slots are the first slots after a PPS
         me.bcn_slot = math.floor(me.bcn_slot / mac_cfg.TSLOTS_PER_SEC) * mac_cfg.TSLOTS_PER_SEC
-        logging.info("bcn_slot (%d / %d)" % (me.bcn_slot, mac_cfg.FRAME_SPEC_SF_ORDER))
+        logging.info("bcn_slot (%d / %d)" % (me.bcn_slot, 2 ** mac_cfg.FRAME_SPEC_SF_ORDER))
 
 #        me.time_of_last_pps = None
         me.time_of_last_rxd_bcn = None
         me.dscpln = mac_discipline.HeyMacDiscipline()
 
         # Neighbor info
-        me.bcn_ngbr_slotmap = bytearray(mac_cfg.FRAME_SPEC_SF_ORDER // 8)
+        me.bcn_ngbr_slotmap = bytearray((2 ** mac_cfg.FRAME_SPEC_SF_ORDER) // 8)
 
         # Transmit queue
         me.txq = []
@@ -150,7 +150,7 @@ class HeyMacAhsm(pq.Ahsm):
             # rx continuously on the rx_freq
             value = (-1, phy_cfg.rx_freq)
             pq.Framework.post(pq.Event(pq.Signal.RECEIVE, value), "SX127xSpiAhsm")
-            listen_secs = mac_cfg.N_SFRAMES_TO_LISTEN * mac_cfg.TSLOTS_PER_SFRAME / mac_cfg.TSLOTS_PER_SEC
+            listen_secs = mac_cfg.N_SFRAMES_TO_LISTEN * (2 ** mac_cfg.FRAME_SPEC_SF_ORDER) / mac_cfg.TSLOTS_PER_SEC
             me.tm_evt.postIn(me, listen_secs)
             return me.handled(me, event)
 
@@ -239,12 +239,12 @@ class HeyMacAhsm(pq.Ahsm):
         self.asn += 1
 
         # Transmit a beacon during this node's beacon slot
-        if self.asn % mac_cfg.FRAME_SPEC_SF_ORDER == self.bcn_slot:
+        if self.asn % (2 ** mac_cfg.FRAME_SPEC_SF_ORDER) == self.bcn_slot:
             logging.info("bcn_tslot      %f", self.next_tslot)
             self.tx_bcn(self, self.next_tslot)
 
         # Resume continuous receive after beaconing
-        elif self.asn % mac_cfg.TSLOTS_PER_SFRAME == self.bcn_slot + 1:
+        elif self.asn % (2 ** mac_cfg.FRAME_SPEC_SF_ORDER) == self.bcn_slot + 1:
             rx_args = (-1, phy_cfg.rx_freq)
             pq.Framework.post(pq.Event(pq.Signal.RECEIVE, rx_args), "SX127xSpiAhsm")
 
@@ -273,7 +273,8 @@ class HeyMacAhsm(pq.Ahsm):
         """Returns a generic HeyMac V1 frame with the given sequence number
         """
         frame = mac_frame.HeyMacFrame()
-        frame.saddr = self.saddr
+        frame.raddr = self.saddr
+#        frame.saddr = self.saddr
         frame.seq = seq
         return frame
 
@@ -336,7 +337,8 @@ class HeyMacAhsm(pq.Ahsm):
         frame = self.build_mac_frame(self, self.mac_seq)
         bcn = mac_cmds.CmdPktSmallBcn(
             dscpln=self.dscpln.get_dscpln_value(),
-            sframe_nTslots=mac_cfg.FRAME_SPEC_SF_ORDER,
+            sf_order=mac_cfg.FRAME_SPEC_SF_ORDER,
+            eb_order=mac_cfg.FRAME_SPEC_EB_ORDER,
             asn=self.asn,
             caps=0,
             flags=0,

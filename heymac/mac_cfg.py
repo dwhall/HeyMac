@@ -7,7 +7,7 @@ TSLOTS_PER_SEC = 4
 # In other words, 2^FRAME_SPEC_SF_ORDER == Tslots per Sframe.
 # There must be enough Tslots so that every node in a two-hop range
 # can own at least one Tslots in the Sframe.
-FRAME_SPEC_SF_ORDER = 5
+FRAME_SPEC_SF_ORDER = 7
 
 # The log2 of the number of consecutive Tslots between a node's extended beacon.
 # In other words, 2^FRAME_SPEC_EB_ORDER == Tslots per extd_bcn.
@@ -48,4 +48,4 @@ TIME_TO_VALID_HEADER = 0.0175
 # The number of Sframes a node should remain in the Listening state
 # before transitioning to a state which allows transmitting.
 # A decent value is 2.  A smaller value is used for debugging.
-N_SFRAMES_TO_LISTEN = 0.5
+N_SFRAMES_TO_LISTEN = 2
