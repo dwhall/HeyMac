@@ -19,6 +19,7 @@ import socket
 import pq
 
 import cfg
+import dll_data
 import mac_cfg
 import mac_cmds
 import mac_discipline
@@ -72,8 +73,9 @@ class HeyMacAhsm(pq.Ahsm):
         me.time_of_last_rxd_bcn = None
         me.dscpln = mac_discipline.HeyMacDiscipline()
 
-        # Neighbor info
-        me.bcn_ngbr_slotmap = bytearray((2 ** mac_cfg.FRAME_SPEC_SF_ORDER) // 8)
+        # Data Link Layer data
+        me.dll_data = dll_data.DllData()
+        me.dll_data.init()
 
         # Transmit queue
         me.txq = []
@@ -299,19 +301,19 @@ class HeyMacAhsm(pq.Ahsm):
                 rx_time, len(payld), rssi, snr, repr(f))
 
         if isinstance(f.data, mac_cmds.CmdPktSmallBcn):
-                self.on_rxd_bcn(self, rx_time, f.data, rssi, snr)
+                self.on_rxd_bcn(self, rx_time, f.raddr, f.data, rssi, snr)
         else:
             logging.warning("rxd pkt has an unknown MAC cmd")
 
 
     @staticmethod
-    def on_rxd_bcn(self, rx_time, bcn_frame, rssi, snr):
+    def on_rxd_bcn(self, rx_time, ngbr_addr, bcn, rssi, snr):
         """Handles reception of a beacon frame.
         """
         # Exit early if the frame spec is incompatible
-        if( bcn_frame.sf_order != mac_cfg.FRAME_SPEC_SF_ORDER or
-            bcn_frame.eb_order != mac_cfg.FRAME_SPEC_EB_ORDER):
-            logging.info("Ngbr's Frame Spec is incompatible: (0x%x)" % (bcn_frame._frame_spec))
+        if( bcn.sf_order != mac_cfg.FRAME_SPEC_SF_ORDER or
+            bcn.eb_order != mac_cfg.FRAME_SPEC_EB_ORDER):
+            logging.info("Ngbr's Frame Spec is incompatible: (0x%x)" % (bcn._frame_spec))
             return
 
         self.dscpln.update_bcn(rx_time)
@@ -319,15 +321,10 @@ class HeyMacAhsm(pq.Ahsm):
         self.tslots_since_last_bcn = 0
 
         # Adopt the greater ASN
-        if bcn_frame.asn > self.asn:
-            self.asn = bcn_frame.asn
+        if bcn.asn > self.asn:
+            self.asn = bcn.asn
 
-        # Update Ngbr beacon slots
-        # FIXME: this is an incomplete method, it does not allow the slot to be cleared if ngbr is silent)
-        ngbr_bcnslot = self.asn % (2 ** mac_cfg.FRAME_SPEC_SF_ORDER)
-        self.bcn_ngbr_slotmap[ ngbr_bcnslot // 8 ] |= (1 << (ngbr_bcnslot % 8))
-
-        # TODO: add to ngbr data
+        self.dll_data.update_bcn(bcn, ngbr_addr)
 
 
     @staticmethod
@@ -344,7 +341,7 @@ class HeyMacAhsm(pq.Ahsm):
             status=0,
             asn=self.asn,
             tx_slots=my_bcn_slotmap, # FIXME
-            ngbr_tx_slots=self.bcn_ngbr_slotmap
+            ngbr_tx_slots=self.dll_data.get_bcn_slotmap()
             )
         tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data
         pq.Framework.post(pq.Event(pq.Signal.TRANSMIT, tx_args), "SX127xSpiAhsm")
