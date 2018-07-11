@@ -23,6 +23,7 @@ class DllData(object):
 
     def __init__(self,):
         self._d = {}
+        self.init()
 
 
     def init(self,):
@@ -48,3 +49,7 @@ class DllData(object):
                 bcnslot = self._d["bcn"][ngbr_addr].value.asn % (2 ** mac_cfg.FRAME_SPEC_SF_ORDER)
                 slotmap[ bcnslot // 8 ] |= (1 << (bcnslot % 8))
         return slotmap
+
+    # TODO: flush_bcn_ngbrs(self,):
+    #    """Returns a list of neighbors who haven't beaconed lately.
+    #    Removes the neighbors beacon data."""

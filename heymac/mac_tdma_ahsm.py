@@ -58,18 +58,6 @@ class HeyMacAhsm(pq.Ahsm):
         # Init HeyMac values
         me.asn = 0
         me.mac_seq = 0
-
-        # This is the initial value for this node's beacon slot.
-        # There may be a slot collision, so the final beacon slot may vary.
-        # The first couple byte of this node's public key is a pseudo-random
-        # value to use to determine this node's Tslot to use for beaconing.
-        me.bcn_slot = (mac_identity['pub_key'][0] << 8 | mac_identity['pub_key'][1]) \
-                      % (2 ** mac_cfg.FRAME_SPEC_SF_ORDER)
-        # Beacon slots are the first slots after a PPS
-        me.bcn_slot = math.floor(me.bcn_slot / mac_cfg.TSLOTS_PER_SEC) * mac_cfg.TSLOTS_PER_SEC
-        logging.info("bcn_slot (%d / %d)" % (me.bcn_slot, 2 ** mac_cfg.FRAME_SPEC_SF_ORDER))
-
-#        me.time_of_last_pps = None
         me.time_of_last_rxd_bcn = None
         me.dscpln = mac_discipline.HeyMacDiscipline()
 
@@ -177,8 +165,10 @@ class HeyMacAhsm(pq.Ahsm):
         sig = event.signal
         if sig == pq.Signal.ENTRY:
             logging.info("BEACONING")
-#            me._post_time_event_for_next_tslot(me)
-# Dbug to print logging:
+            # Pick a beacon slot
+            me.bcn_slot = me.pick_bcn_slot(me)
+            logging.info("bcn_slot (%d / %d)" % (me.bcn_slot, 2 ** mac_cfg.FRAME_SPEC_SF_ORDER))
+            # Calc the start of Tslots
             now = pq.Framework._event_loop.time()
             me.next_tslot = me.dscpln.get_time_of_next_tslot(now)
             logging.info("next_tslot = %f", me.next_tslot)
@@ -381,3 +371,25 @@ class HeyMacAhsm(pq.Ahsm):
         frame.data = self.txq.pop()
         tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data
         pq.Framework.post(pq.Event(pq.Signal.TRANSMIT, tx_args), "SX127xSpiAhsm")
+
+
+    @staticmethod
+    def pick_bcn_slot(self,):
+        """Returns one slot in the Sframe for beacon transmission.
+        The initial choice is a piece of static psuedo-random data
+        (a byte from the node's public key) so that the beacon slot
+        might remain the same from one run to the next.
+        However, if any neighbor beacons have been received,
+        the initial choice may be overridden to avoid collision.
+        """
+        # The initial value for this node's beacon slot.
+        bcn_slot = (mac_identity['pub_key'][0] << 8 | mac_identity['pub_key'][1]) \
+                   % (2 ** mac_cfg.FRAME_SPEC_SF_ORDER)
+
+        # Increment the intial value while there is a collision with neighboring beacons
+        bcn_slotmap = self.dll_data.get_bcn_slotmap()
+        while bcn_slotmap[ bcn_slot // 8 ] & (1 << (bcn_slot % 8)):
+            bcn_slot += 1
+
+        return bcn_slot
+
