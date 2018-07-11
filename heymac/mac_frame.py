@@ -219,7 +219,10 @@ class HeyMacFrame(dpkt.Packet):
         if self._has_raddr_field():
             if not self.raddr:
                 raise dpkt.PackError("Resender addr not specified")
-            nbytes += len(self.raddr)
+            len_raddr = len(self.raddr)
+            nbytes += len_raddr
+            if len_raddr == 8:
+                self.fctl |= FCTL_LONG_ADDR_EN
             d.append(self.raddr)
 
         if self._has_exttype_field() and not self.exttype:
