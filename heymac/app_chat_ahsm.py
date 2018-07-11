@@ -81,7 +81,7 @@ class ChatAhsm(pq.Ahsm):
                     me.inmsg = bytearray()
 
                     # Send the payload to the MAC layer
-                    txt = mac_cmds.HeyMacCmdTxt()
+                    txt = mac_cmds.CmdPktTxt()
                     txt.msg = msg
                     pq.Framework.post(pq.Event(pq.Signal.MAC_TX_REQ, txt), "HeyMacAhsm")
 
@@ -124,7 +124,7 @@ class ChatAhsm(pq.Ahsm):
                         % (rssi, snr, f.data.msg.decode())
                 elif isinstance(f.data, mac_cmds.CmdPktSmallBcn):
                     scrnmsg = "<bcn from %s: rssi=%d dBm, snr=%.3f dB, asn=%d>" \
-                        % (f.data.station_id, rssi, snr, f.data.asn)
+                        % (f.raddr[0:4], rssi, snr, f.data.asn)
                 else:
                     scrnmsg = b"<pkt not a known MAC cmd>"
             except Exception as e:

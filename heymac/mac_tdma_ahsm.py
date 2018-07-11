@@ -290,8 +290,13 @@ class HeyMacAhsm(pq.Ahsm):
                 "rx_time        %f\tRXD %d bytes, rssi=%d dBm, snr=%.3f dB\t%s",
                 rx_time, len(payld), rssi, snr, repr(f))
 
+        # Handle reception of a beacon
         if isinstance(f.data, mac_cmds.CmdPktSmallBcn):
-                self.on_rxd_bcn(self, rx_time, f.raddr, f.data, rssi, snr)
+            self.on_rxd_bcn(self, rx_time, f.raddr, f.data, rssi, snr)
+
+        # TEMPORARY: give warning of back packets
+        elif isinstance(f.data, mac_cmds.CmdPktTxt):
+            pass
         else:
             logging.warning("rxd pkt has an unknown MAC cmd")
 
