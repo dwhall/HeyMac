@@ -33,7 +33,7 @@ class DllData(object):
     def update_bcn(self, bcn, ngbr_addr):
         """Stores the given beacon and updates its timestamp.
         """
-        assert isinstance(bcn, mac_cmds.CmdPktSmallBcn)
+        assert isinstance(bcn, mac_cmds.HeyMacCmdSbcn)
         self._d["bcn"][ngbr_addr] = bcn
         self._d["bcn"].set_expiration(ngbr_addr, BCN_EXPIRATION)
 

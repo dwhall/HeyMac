@@ -81,7 +81,7 @@ class ChatAhsm(pq.Ahsm):
                     me.inmsg = bytearray()
 
                     # Send the payload to the MAC layer
-                    txt = mac_cmds.CmdPktTxt()
+                    txt = mac_cmds.HeyMacCmdTxt()
                     txt.msg = msg
                     pq.Framework.post(pq.Event(pq.Signal.MAC_TX_REQ, txt), "HeyMacAhsm")
 
@@ -119,10 +119,10 @@ class ChatAhsm(pq.Ahsm):
             rx_time, payld, rssi, snr = event.value
             try:
                 f = mac_frame.HeyMacFrame(bytes(payld))
-                if isinstance(f.data, mac_cmds.CmdPktTxt):
+                if isinstance(f.data, mac_cmds.HeyMacCmdTxt):
                     scrnmsg = "<rssi=%d dBm, snr=%.3f dB>: %s" \
                         % (rssi, snr, f.data.msg.decode())
-                elif isinstance(f.data, mac_cmds.CmdPktSmallBcn):
+                elif isinstance(f.data, mac_cmds.HeyMacCmdSbcn):
                     scrnmsg = "<bcn from %s: rssi=%d dBm, snr=%.3f dB, asn=%d>" \
                         % (f.raddr[0:4], rssi, snr, f.data.asn)
                 else:

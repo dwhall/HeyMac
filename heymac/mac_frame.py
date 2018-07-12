@@ -185,12 +185,12 @@ class HeyMacFrame(dpkt.Packet):
 
         # Unpack the payload for known frame types
         if self.fctl & FCTL_TYPE_MASK == FCTL_TYPE_MAC:
-            if self.data and self.data[0] == mac_cmds.HeyMacCmdId.SM_BCN.value:
-                self.data = mac_cmds.CmdPktSmallBcn(self.data)
-            elif self.data and self.data[0] == mac_cmds.HeyMacCmdId.EXT_BCN.value:
-                self.data = mac_cmds.CmdPktExtBcn(self.data)
+            if self.data and self.data[0] == mac_cmds.HeyMacCmdId.SBCN.value:
+                self.data = mac_cmds.HeyMacCmdSbcn(self.data)
+            elif self.data and self.data[0] == mac_cmds.HeyMacCmdId.EBCN.value:
+                self.data = mac_cmds.HeyMacCmdEbcn(self.data)
             elif self.data and self.data[0] == mac_cmds.HeyMacCmdId.TXT.value:
-                self.data = mac_cmds.CmdPktTxt(self.data)
+                self.data = mac_cmds.HeyMacCmdTxt(self.data)
 
 
     def pack_hdr(self):

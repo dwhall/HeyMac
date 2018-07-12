@@ -291,11 +291,11 @@ class HeyMacAhsm(pq.Ahsm):
                 rx_time, len(payld), rssi, snr, repr(f))
 
             # Handle reception of a beacon
-            if isinstance(f.data, mac_cmds.CmdPktSmallBcn):
+            if isinstance(f.data, mac_cmds.HeyMacCmdSbcn):
                 self.on_rxd_bcn(self, rx_time, f.raddr, f.data, rssi, snr)
 
             # TEMPORARY: give warning of unknown packets
-            elif isinstance(f.data, mac_cmds.CmdPktTxt):
+            elif isinstance(f.data, mac_cmds.HeyMacCmdTxt):
                 pass
             else:
                 logging.warning("rxd pkt has an unknown MAC cmd")
@@ -329,7 +329,7 @@ class HeyMacAhsm(pq.Ahsm):
         my_bcn_slotmap = bytearray((2 ** mac_cfg.FRAME_SPEC_SF_ORDER) // 8)
         my_bcn_slotmap[ self.bcn_slot // 8 ] |= (1 << (self.bcn_slot % 8))
         frame = self.build_mac_frame(self, self.mac_seq)
-        frame.data = mac_cmds.CmdPktSmallBcn(
+        frame.data = mac_cmds.HeyMacCmdSbcn(
             sf_order=mac_cfg.FRAME_SPEC_SF_ORDER,
             eb_order=mac_cfg.FRAME_SPEC_EB_ORDER,
             dscpln=self.dscpln.get_dscpln_value(),
@@ -348,7 +348,7 @@ class HeyMacAhsm(pq.Ahsm):
         """Builds a HeyMac V1 Extended Beacon and passes it to the PHY for transmit.
         """
         frame = self.build_mac_frame(self, self.mac_seq)
-        bcn = mac_cmds.CmdPktSmallBcn(
+        bcn = mac_cmds.HeyMacCmdSbcn(
             dscpln=self.dscpln.get_dscpln_value(),
             sf_order=mac_cfg.FRAME_SPEC_SF_ORDER,
             eb_order=mac_cfg.FRAME_SPEC_EB_ORDER,

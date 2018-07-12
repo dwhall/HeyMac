@@ -169,7 +169,7 @@ class TestHeyMacFrame(unittest.TestCase):
         f.seq = 2
         f.raddr = b"\x11\x12"
         f.saddr = b"\x11\x12"
-        bcn = mac_cmds.CmdPktSmallBcn(
+        bcn = mac_cmds.HeyMacCmdSbcn(
             bcn_en=1,
             sf_order=5,
             eb_order=10,
@@ -189,7 +189,7 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(f.raddr, b"\x11\x12")
         self.assertEqual(f.daddr, b"")
         self.assertEqual(f.saddr, b"\x11\x12")
-        self.assertTrue(type(f.data), mac_cmds.CmdPktSmallBcn)
+        self.assertTrue(type(f.data), mac_cmds.HeyMacCmdSbcn)
         self.assertTrue(f.data.bcn_en, 1)
         self.assertTrue(f.data.sf_order, 5)
         self.assertTrue(f.data.eb_order, 10)

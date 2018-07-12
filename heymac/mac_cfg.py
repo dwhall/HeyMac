@@ -12,7 +12,7 @@ FRAME_SPEC_SF_ORDER = 7
 # The log2 of the number of consecutive Tslots between a node's extended beacon.
 # In other words, 2^FRAME_SPEC_EB_ORDER == Tslots per extd_bcn.
 # This value MUST be greater than or equal to FRAME_SPEC_SF_ORDER.
-# This value SHOULD be large enough so that nodes transmit small beacons
+# This value SHOULD be large enough so that nodes transmit standard beacons
 # regularly and extended beacons rarely.
 # This value SHOULD be small enough that an extended beacon is transmitted
 # at least once every 10 minutes (to comply with FCC identification regulations).
