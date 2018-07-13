@@ -10,19 +10,10 @@ import mac_cmds
 HEYMAC_VERSION = 1
 
 # Frame Control Field (Fctl) subfield values
-FCTL_TYPE_SHIFT = 6
-FCTL_TYPE_MIN = 0b00 << FCTL_TYPE_SHIFT
-FCTL_TYPE_MAC = 0b01 << FCTL_TYPE_SHIFT
-FCTL_TYPE_NET = 0b10 << FCTL_TYPE_SHIFT
-FCTL_TYPE_EXT = 0b11 << FCTL_TYPE_SHIFT
-FCTL_TYPE_MASK = 0b11 << FCTL_TYPE_SHIFT
-
-FCTL_LONG_ADDR_EN = 1 << 5
-FCTL_NETID_PRESENT = 1 << 4
-FCTL_DST_ADDR_PRESENT = 1 << 3
-FCTL_IE_PRESENT = 1 << 2
-FCTL_SRC_ADDR_PRESENT = 1 << 1
-FCTL_PEND_BIT = 1 << 0
+FCTL_TYPE_MIN = 0b00
+FCTL_TYPE_MAC = 0b01
+FCTL_TYPE_NET = 0b10
+FCTL_TYPE_EXT = 0b11
 
 
 class HeyMacFrame(dpkt.Packet):
@@ -30,7 +21,9 @@ class HeyMacFrame(dpkt.Packet):
     """
     __byte_order__ = '!' # Network order
     __hdr__ = (
-        ('fctl', 'B', FCTL_TYPE_MAC),
+        # The underscore prefix means do not access that field directly.
+        # Access properties .fctl, .fctl_type, .fctl_l, etc. instead.
+        ('_fctl', 'B', FCTL_TYPE_MAC << 6),
         # Fctl is the only field guaranteed to be present.
         # Below this are optional fields as indicated by '0s'.
         # The underscore prefix means do not access that field directly.
@@ -47,24 +40,24 @@ class HeyMacFrame(dpkt.Packet):
 
     # Functions to help determine which fields are present
     def _has_verseq_field(self,): # VerSeq exists in all but Min frame types
-        return (self.fctl & FCTL_TYPE_MASK) != FCTL_TYPE_MIN
+        return self.fctl_type != FCTL_TYPE_MIN
     def _has_raddr_field(self,): # Resender addr exists in all but Min frame types
-        return (self.fctl & FCTL_TYPE_MASK) != FCTL_TYPE_MIN
+        return self.fctl_type != FCTL_TYPE_MIN
     def _has_exttype_field(self,): # ExtType exists when Fctl type is Extended
-        return (self.fctl & FCTL_TYPE_MASK) == FCTL_TYPE_EXT
+        return self.fctl_type == FCTL_TYPE_EXT
     def _has_netid_field(self,):
-        return (self.fctl & FCTL_NETID_PRESENT) != 0
+        return self.fctl_n != 0
     def _has_daddr_field(self,):
-        return (self.fctl & FCTL_DST_ADDR_PRESENT) != 0
+        return self.fctl_d != 0
     def _has_ie_field(self,):
-        return (self.fctl & FCTL_IE_PRESENT) != 0
+        return self.fctl_i != 0
     def _has_saddr_field(self,):
-        return (self.fctl & FCTL_SRC_ADDR_PRESENT) != 0
+        return self.fctl_s != 0
 
     # Functions to determine size of variable-size fields
     def _sizeof_saddr_field(self,):
         if self._has_saddr_field():
-            if (self.fctl & FCTL_LONG_ADDR_EN) != 0:
+            if self.fctl_l != 0:
                 sz = 8
             else:
                 sz = 2
@@ -74,7 +67,7 @@ class HeyMacFrame(dpkt.Packet):
 
     def _sizeof_daddr_field(self,):
         if self._has_daddr_field():
-            if (self.fctl & FCTL_LONG_ADDR_EN) != 0:
+            if self.fctl_l != 0:
                 sz = 8
             else:
                 sz = 2
@@ -84,7 +77,7 @@ class HeyMacFrame(dpkt.Packet):
 
     def _sizeof_raddr_field(self,):
         if self._has_raddr_field():
-            if (self.fctl & FCTL_LONG_ADDR_EN) != 0:
+            if self.fctl_l != 0:
                 sz = 8
             else:
                 sz = 2
@@ -100,6 +93,116 @@ class HeyMacFrame(dpkt.Packet):
         """
         # FIXME
         return (0,0)
+
+    # Getters for the _fctl field
+    @property
+    def fctl(self,):
+        """Gets the full value (all bits) from the Fctl field.
+        """
+        return self._fctl
+
+    @property
+    def fctl_type(self,):
+        """Gets the frame type value from the Fctl field.
+        """
+        return 0b11 & (self._fctl >> 6)
+
+    @property
+    def fctl_l(self,):
+        """Gets the Long address flag from the Fctl field.
+        """
+        return 1 & (self._fctl >> 5)
+
+    @property
+    def fctl_n(self,):
+        """Gets the NetID present flag from the Fctl field.
+        """
+        return 1 & (self._fctl >> 4)
+
+    @property
+    def fctl_d(self,):
+        """Gets the Dest address present flag from the Fctl field.
+        """
+        return 1 & (self._fctl >> 3)
+
+    @property
+    def fctl_i(self,):
+        """Gets the IE present flag from the Fctl field.
+        """
+        return 1 & (self._fctl >> 2)
+
+    @property
+    def fctl_s(self,):
+        """Gets the Src address present flag from the Fctl field.
+        """
+        return 1 & (self._fctl >> 1)
+
+    @property
+    def fctl_p(self,):
+        """Gets the Pending frame flag from the Fctl field.
+        """
+        return 1 & (self._fctl >> 0)
+
+    # Setters for the _fctl field
+    @fctl.setter
+    def fctl(self, val):
+        """Sets the full value (all bits) in the Fctl field.
+        """
+        self._fctl = val
+
+    @fctl_type.setter
+    def fctl_type(self, val):
+        """Sets the frame type value in the Fctl field.
+        """
+        assert val & 0b11111100 == 0, "Invalid frame type"
+        self._fctl = (self._fctl & 0b00111111) | (val << 6)
+
+    @fctl_l.setter
+    def fctl_l(self, val):
+        """Sets the Long address flag in the Fctl field.
+        """
+        assert val & ~1 == 0, "Invalid value (must be 0 or 1)"
+        self._fctl = (self._fctl & 0b11011111) | (val << 5)
+
+    @fctl_n.setter
+    def fctl_n(self, val):
+        """Sets the NetID present flag in the Fctl field.
+        """
+        assert val & ~1 == 0, "Invalid value (must be 0 or 1)"
+        self._fctl = (self._fctl & 0b11101111) | (val << 4)
+
+
+    @fctl_d.setter
+    def fctl_d(self, val):
+        """Sets the Dest address present flag in the Fctl field.
+        """
+        assert val & ~1 == 0, "Invalid value (must be 0 or 1)"
+        self._fctl = (self._fctl & 0b11110111) | (val << 3)
+
+
+    @fctl_i.setter
+    def fctl_i(self, val):
+        """Sets the IEs present flag in the Fctl field.
+        """
+        assert val & ~1 == 0, "Invalid value (must be 0 or 1)"
+        self._fctl = (self._fctl & 0b11111011) | (val << 2)
+
+
+    @fctl_s.setter
+    def fctl_s(self, val):
+        """Sets the Source address present flag in the Fctl field.
+        """
+        assert val & ~1 == 0, "Invalid value (must be 0 or 1)"
+        self._fctl = (self._fctl & 0b11111101) | (val << 1)
+
+
+    @fctl_p.setter
+    def fctl_p(self, val):
+        """Sets the Pending frame present flag in the Fctl field.
+        """
+        assert val & ~1 == 0, "Invalid value (must be 0 or 1)"
+        self._fctl = (self._fctl & 0b11111110) | (val << 0)
+
 
     # Getters for underscore-prefixed fields
     @property
@@ -184,7 +287,7 @@ class HeyMacFrame(dpkt.Packet):
             self.data = self.data[sz:]
 
         # Unpack the payload for known frame types
-        if self.fctl & FCTL_TYPE_MASK == FCTL_TYPE_MAC:
+        if self.fctl_type == FCTL_TYPE_MAC:
             if self.data and self.data[0] == mac_cmds.HeyMacCmdId.SBCN.value:
                 self.data = mac_cmds.HeyMacCmdSbcn(self.data)
             elif self.data and self.data[0] == mac_cmds.HeyMacCmdId.EBCN.value:
@@ -222,19 +325,19 @@ class HeyMacFrame(dpkt.Packet):
             len_raddr = len(self.raddr)
             nbytes += len_raddr
             if len_raddr == 8:
-                self.fctl |= FCTL_LONG_ADDR_EN
+                self.fctl_l = 1
             d.append(self.raddr)
 
         if self._has_exttype_field() and not self.exttype:
             self.exttype = b'\x00'
         if self.exttype or self._has_exttype_field():
             nbytes += 1
-            self.fctl |= FCTL_TYPE_EXT
+            self.fctl_type = FCTL_TYPE_EXT
             d.append(self.exttype)
 
         if self.netid:
             nbytes += len(self.netid)
-            self.fctl |= FCTL_NETID_PRESENT
+            self.fctl_n = 1
             if len(self.netid) != 2:
                 raise dpkt.PackError("invalid netid length")
             d.append(self.netid)
@@ -243,10 +346,10 @@ class HeyMacFrame(dpkt.Packet):
             len_daddr = len(self.daddr)
             nbytes += len_daddr
             if len_daddr == 8:
-                self.fctl |= FCTL_LONG_ADDR_EN
-                self.fctl |= FCTL_DST_ADDR_PRESENT
+                self.fctl_l = 1
+                self.fctl_d = 1
             elif len_daddr == 2:
-                self.fctl |= FCTL_DST_ADDR_PRESENT
+                self.fctl_d = 1
             d.append(self.daddr)
 
         # TODO: add IEs
@@ -255,10 +358,10 @@ class HeyMacFrame(dpkt.Packet):
             len_saddr = len(self.saddr)
             nbytes += len_saddr
             if len_saddr == 8:
-                self.fctl |= FCTL_LONG_ADDR_EN
-                self.fctl |= FCTL_SRC_ADDR_PRESENT
+                self.fctl_l = 1
+                self.fctl_s = 1
             elif len_saddr == 2:
-                self.fctl |= FCTL_SRC_ADDR_PRESENT
+                self.fctl_s = 1
             d.append(self.saddr)
 
         # Repack Fctl because we modify it above
