@@ -265,9 +265,10 @@ class HeyMacAhsm(pq.Ahsm):
         """Returns a generic HeyMac V1 frame with the given sequence number
         """
         frame = mac_frame.HeyMacFrame()
+        frame.fctl_type = mac_frame.FCTL_TYPE_MAC
         frame.seq = seq
+        # Put this node's source address in the resender field
         frame.raddr = self.saddr
-#        frame.saddr = self.saddr
         return frame
 
 
