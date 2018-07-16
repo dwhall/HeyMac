@@ -50,10 +50,10 @@ class HeyMacCmdSbcn(HeyMacCmd):
 
     FRAME_SPEC_BCN_EN_MASK = 0b10000000
     FRAME_SPEC_BCN_EN_SHIFT = 7
-    FRAME_SPEC_SF_ORDER_MASK = 0b01110000
-    FRAME_SPEC_SF_ORDER_SHIFT = 4
-    FRAME_SPEC_EB_ORDER_MASK = 0b00001111
-    FRAME_SPEC_EB_ORDER_SHIFT = 0
+    FRAME_SPEC_EB_ORDER_MASK = 0b01110000
+    FRAME_SPEC_EB_ORDER_SHIFT = 4
+    FRAME_SPEC_SF_ORDER_MASK = 0b00001111
+    FRAME_SPEC_SF_ORDER_SHIFT = 0
 
     __byte_order__ = '!' # Network order
     __hdr__ = (
@@ -113,6 +113,7 @@ class HeyMacCmdSbcn(HeyMacCmd):
     def sf_order(self, val):
         """Sets the Sframe-order subfield in the frame spec
         """
+        assert val < 16, "SF Order exceeds limits"
         if self._frame_spec:
             v = self._frame_spec & ~HeyMacCmdSbcn.FRAME_SPEC_SF_ORDER_MASK
         else:
@@ -123,6 +124,7 @@ class HeyMacCmdSbcn(HeyMacCmd):
     def eb_order(self, val):
         """Sets the extended-beacon-order subfield in the frame spec
         """
+        assert val < 8, "EB Order exceeds limits"
         if self._frame_spec:
             v = self._frame_spec & ~HeyMacCmdSbcn.FRAME_SPEC_EB_ORDER_MASK
         else:
@@ -146,10 +148,12 @@ class HeyMacCmdSbcn(HeyMacCmd):
         b.extend(struct.pack(HeyMacCmdSbcn.__byte_order__ + "i", self.asn))
         # Pack the variable-length fields
         if not self.tx_slots:
-            self.tx_slots = [0,] * ((2 ** self.sf_order) // 8)
+            # Create a bytearray with 1 bit for every Tslot in an Sframe
+            self.tx_slots = bytearray((2 ** self.sf_order) // 8)
         b.extend(self.tx_slots)
         if not self.ngbr_tx_slots:
-            self.ngbr_tx_slots = [0,] * ((2 ** self.sf_order) // 8)
+            # Create a bytearray with 1 bit for every Tslot in an Sframe
+            self.ngbr_tx_slots = bytearray((2 ** self.sf_order) // 8)
         b.extend(self.ngbr_tx_slots)
 
         return bytes(b)
@@ -171,7 +175,7 @@ class HeyMacCmdSbcn(HeyMacCmd):
         hl = self.__hdr_len__
         self.tx_slots = buf[hl : hl + sz]
         self.ngbr_tx_slots = buf[hl + sz:]
-        assert len(self.ngbr_tx_slots) == sz
+        assert len(self.ngbr_tx_slots) == sz, "len()=%d, sz=%d" % (len(self.ngbr_tx_slots), sz)
 
         self.data = bytes()
 
@@ -181,10 +185,10 @@ class HeyMacCmdEbcn(HeyMacCmd):
     """
     FRAME_SPEC_BCN_EN = 0b10000000
     FRAME_SPEC_BCN_EN_SHIFT = 7
-    FRAME_SPEC_SF_ORDER_MASK = 0b01110000
-    FRAME_SPEC_SF_ORDER_SHIFT = 4
-    FRAME_SPEC_EB_ORDER_MASK = 0b00001111
-    FRAME_SPEC_EB_ORDER_SHIFT = 0
+    FRAME_SPEC_EB_ORDER_MASK = 0b01110000
+    FRAME_SPEC_EB_ORDER_SHIFT = 4
+    FRAME_SPEC_SF_ORDER_MASK = 0b00001111
+    FRAME_SPEC_SF_ORDER_SHIFT = 0
 
     __byte_order__ = '!' # Network order
     __hdr__ = (

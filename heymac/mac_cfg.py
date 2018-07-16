@@ -5,18 +5,23 @@ TSLOTS_PER_SEC = 4
 
 # The log2 of the number of consecutive Tslots that form a superframe (Sframe).
 # In other words, 2^FRAME_SPEC_SF_ORDER == Tslots per Sframe.
+# This value MUST fit within 4 bits in the Frame Spec.
 # There must be enough Tslots so that every node in a two-hop range
 # can own at least one Tslots in the Sframe.
 FRAME_SPEC_SF_ORDER = 7
 
-# The log2 of the number of consecutive Tslots between a node's extended beacon.
-# In other words, 2^FRAME_SPEC_EB_ORDER == Tslots per extd_bcn.
-# This value MUST be greater than or equal to FRAME_SPEC_SF_ORDER.
+# The log2 of the number of consecutive Sframes between a node's extended beacon.
+# In other words, 2^FRAME_SPEC_EB_ORDER * 2^FRAME_SPEC_SF_ORDER == Tslots per extd_bcn.
+# This value MUST fit within 3 bits in the Frame Spec.
 # This value SHOULD be large enough so that nodes transmit standard beacons
 # regularly and extended beacons rarely.
 # This value SHOULD be small enough that an extended beacon is transmitted
 # at least once every 10 minutes (to comply with FCC identification regulations).
-FRAME_SPEC_EB_ORDER = 10
+#
+# The recommended value (4) is intended to be used with FRAME_SPEC_SF_ORDER = 7
+# so that an Sframe is 32s in duration and an EBcn is transmitted
+# roughly every 8.5 minutes.
+FRAME_SPEC_EB_ORDER = 4
 
 # The amount of time before the start of a Tslot to activate the software
 # so it can decide what to do and perform any preparation so the radio action

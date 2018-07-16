@@ -176,7 +176,7 @@ class TestHeyMacFrame(unittest.TestCase):
         bcn = mac_cmds.HeyMacCmdSbcn(
             bcn_en=1,
             sf_order=5,
-            eb_order=10,
+            eb_order=7,
             dscpln=2,
             caps=3,
             status=4,
@@ -184,7 +184,7 @@ class TestHeyMacFrame(unittest.TestCase):
         )
         f.data = bytes(bcn)
         b = bytes(f)
-        self.assertEqual(b, b"\x42\x12\x11\x12\x11\x12\x01\xda\x02\x03\x04\x00\x00\x00\x2a\x00\x00\x00\x00\x00\x00\x00\x00")
+        self.assertEqual(b, b"\x42\x12\x11\x12\x11\x12\x01\xf5\x02\x03\x04\x00\x00\x00\x2a\x00\x00\x00\x00\x00\x00\x00\x00")
         # Unpack
         f = mac_frame.HeyMacFrame(b)
         self.assertEqual(f.fctl_type, mac_frame.FCTL_TYPE_MAC)
@@ -194,14 +194,14 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(f.raddr, b"\x11\x12")
         self.assertEqual(f.daddr, b"")
         self.assertEqual(f.saddr, b"\x11\x12")
-        self.assertTrue(type(f.data), mac_cmds.HeyMacCmdSbcn)
-        self.assertTrue(f.data.bcn_en, 1)
-        self.assertTrue(f.data.sf_order, 5)
-        self.assertTrue(f.data.eb_order, 10)
-        self.assertTrue(f.data.dscpln, 2)
-        self.assertTrue(f.data.caps, 3)
-        self.assertTrue(f.data.status, 4)
-        self.assertTrue(f.data.asn, 42)
+        self.assertEqual(type(f.data), mac_cmds.HeyMacCmdSbcn)
+        self.assertEqual(f.data.bcn_en, 1)
+        self.assertEqual(f.data.sf_order, 5)
+        self.assertEqual(f.data.eb_order, 7)
+        self.assertEqual(f.data.dscpln, 2)
+        self.assertEqual(f.data.caps, 3)
+        self.assertEqual(f.data.status, 4)
+        self.assertEqual(f.data.asn, 42)
 
     def test_mac_len_verseq_saddr64b(self,):
         # Pack
