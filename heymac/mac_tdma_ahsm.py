@@ -230,8 +230,13 @@ class HeyMacAhsm(pq.Ahsm):
         # Increment the Absolute Slot Number and a Tslot counter
         self.asn += 1
 
-        # Transmit a beacon during this node's beacon slot
-        if self.asn % (2 ** mac_cfg.FRAME_SPEC_SF_ORDER) == self.bcn_slot:
+        # Transmit an extended beacon during this node's beacon slot
+        if self.asn % (2 ** mac_cfg.FRAME_SPEC_SF_ORDER * 2 ** mac_cfg.FRAME_SPEC_SF_ORDER) == self.bcn_slot:
+            logging.info("ebcn_tslot     %f", self.next_tslot)
+            self.tx_ebcn(self, self.next_tslot)
+
+        # Transmit a std beacon during this node's beacon slot
+        elif self.asn % (2 ** mac_cfg.FRAME_SPEC_SF_ORDER) == self.bcn_slot:
             logging.info("bcn_tslot      %f", self.next_tslot)
             self.tx_bcn(self, self.next_tslot)
 
@@ -334,10 +339,11 @@ class HeyMacAhsm(pq.Ahsm):
             sf_order=mac_cfg.FRAME_SPEC_SF_ORDER,
             eb_order=mac_cfg.FRAME_SPEC_EB_ORDER,
             dscpln=self.dscpln.get_dscpln_value(),
+            caps=0,
             status=0,
             asn=self.asn,
             tx_slots=my_bcn_slotmap, # FIXME
-            ngbr_tx_slots=self.dll_data.get_bcn_slotmap()
+            ngbr_tx_slots=self.dll_data.get_bcn_slotmap(),
             )
         tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data
         pq.Framework.post(pq.Event(pq.Signal.TRANSMIT, tx_args), "SX127xSpiAhsm")
@@ -348,19 +354,22 @@ class HeyMacAhsm(pq.Ahsm):
     def tx_ebcn(self, abs_time):
         """Builds a HeyMac V1 Extended Beacon and passes it to the PHY for transmit.
         """
+        my_bcn_slotmap = bytearray((2 ** mac_cfg.FRAME_SPEC_SF_ORDER) // 8)
+        my_bcn_slotmap[ self.bcn_slot // 8 ] |= (1 << (self.bcn_slot % 8))
         frame = self.build_mac_frame(self, self.mac_seq)
-        bcn = mac_cmds.HeyMacCmdSbcn(
-            dscpln=self.dscpln.get_dscpln_value(),
+        frame.data = mac_cmds.HeyMacCmdSbcn(
             sf_order=mac_cfg.FRAME_SPEC_SF_ORDER,
             eb_order=mac_cfg.FRAME_SPEC_EB_ORDER,
-            asn=self.asn,
+            dscpln=self.dscpln.get_dscpln_value(),
             caps=0,
-            flags=0,
+            status=0,
+            asn=self.asn,
+            tx_slots=my_bcn_slotmap, # FIXME
+            ngbr_tx_slots=self.dll_data.get_bcn_slotmap(),
+            # extended fields:
             station_id=socket.gethostname().encode(),
             geoloc=self.gps_gprmc, #TODO: extract lat/lon from gprmc
             )
-        bcn.ngbr_slotmap = tuple(self.bcn_ngbr_slotmap)
-        frame.data = bcn
         tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data
         pq.Framework.post(pq.Event(pq.Signal.TRANSMIT, tx_args), "SX127xSpiAhsm")
         self.mac_seq += 1
