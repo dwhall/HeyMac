@@ -240,7 +240,12 @@ class HeyMacCmdEbcn(HeyMacCmdSbcn):
         # Unpack the fields shared with Sbcn
         super().unpack(buf)
 
+        # Simple parsing for temporary data representation
         self.station_id, self.geoloc = self.data.split(b"$")
+
+        # All data is used, so .data is emptied
+        # so it doesn't show up in repr/prints
+        self.data = b""
 
 
 class HeyMacCmdTxt(HeyMacCmd):
