@@ -174,14 +174,19 @@ class HeyMacCmdSbcn(HeyMacCmd):
         # Unpack the variable-length fields
         hl = self.__hdr_len__
         self.tx_slots = buf[hl : hl + sz]
-        self.ngbr_tx_slots = buf[hl + sz:]
+        self.ngbr_tx_slots = buf[hl + sz : hl + 2 * sz]
         assert len(self.ngbr_tx_slots) == sz, "len()=%d, sz=%d" % (len(self.ngbr_tx_slots), sz)
 
-        self.data = bytes()
+        # Do it this way so that an Sbcn's .data will be empty
+        # but an Ebcn's .data will have extended data fields in there
+        # (i.e. HeyMacCmdEbcn inherits from this class and re-uses this method)
+        self.data = buf[hl + 2 * sz:]
 
 
-class HeyMacCmdEbcn(HeyMacCmd):
-    """HeyMac Extended Beacon command packet
+class HeyMacCmdEbcn(HeyMacCmdSbcn):
+    """HeyMac Extended Beacon command packet.
+    Inherits from HeyMacCmdSbcn in order to re-use the property setters/getters
+    because Ebcn shares many fields with Sbcn.
     """
     FRAME_SPEC_BCN_EN = 0b10000000
     FRAME_SPEC_BCN_EN_SHIFT = 7
@@ -193,8 +198,9 @@ class HeyMacCmdEbcn(HeyMacCmd):
     __byte_order__ = '!' # Network order
     __hdr__ = (
         ('cmd', 'B', HeyMacCmdId.EBCN),
-        # Std Beacon fields:
-        ('frame_spec', 'B', 0),
+        # The underscore prefix means do not access that field directly.
+        # Access properties: .bcn_en, .sf_order and .eb_order, instead.
+        ('_frame_spec', 'B', 0),
         ('dscpln', 'B', 0), # 0x0X:None, 0x1X:RF, 0x2X:GPS (lower nibble is nhops to GPS)
         ('caps', 'B', 0),
         ('status', 'B', 0),
@@ -208,6 +214,33 @@ class HeyMacCmdEbcn(HeyMacCmd):
         ('_ntwks', '0s', b''),
         ('geoloc', '0s', b''),
     )
+
+
+    def pack_hdr(self):
+        """Packs header attributes into a bytes object.
+        This function is called when bytes() or len() is called
+        on an instance of of this class.
+        """
+        # Pack the fields shared with Sbcn
+        b = bytearray(super().pack_hdr())
+
+        b.extend(self.station_id)
+        # TODO: _nghbrs
+        # TODO: _ntwks
+        b.extend(self.geoloc)
+
+        return bytes(b)
+
+
+    def unpack(self, buf):
+        """Unpacks a bytes object into component attributes.
+        This function is called when an instance of this class is created
+        by passing a bytes object to the constructor
+        """
+        # Unpack the fields shared with Sbcn
+        super().unpack(buf)
+
+        self.station_id, self.geoloc = self.data.split(b"$")
 
 
 class HeyMacCmdTxt(HeyMacCmd):
@@ -232,3 +265,4 @@ class HeyMacCmdTxt(HeyMacCmd):
         # Unpack the variable-length field
         self.msg = buf[self.__hdr_len__:]
         self.data = bytes()
+
