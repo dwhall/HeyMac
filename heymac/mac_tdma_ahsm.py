@@ -57,6 +57,8 @@ class HeyMacAhsm(pq.Ahsm):
 
         # Init HeyMac values
         me.asn = 0
+        me.sf_order = mac_cfg.FRAME_SPEC_SF_ORDER
+        me.eb_order = mac_cfg.FRAME_SPEC_EB_ORDER
         me.mac_seq = 0
         me.time_of_last_rxd_bcn = None
         me.dscpln = mac_discipline.HeyMacDiscipline()
@@ -140,7 +142,7 @@ class HeyMacAhsm(pq.Ahsm):
             # rx continuously on the rx_freq
             value = (-1, phy_cfg.rx_freq)
             pq.Framework.post(pq.Event(pq.Signal.RECEIVE, value), "SX127xSpiAhsm")
-            listen_secs = mac_cfg.N_SFRAMES_TO_LISTEN * (2 ** mac_cfg.FRAME_SPEC_SF_ORDER) / mac_cfg.TSLOTS_PER_SEC
+            listen_secs = mac_cfg.N_SFRAMES_TO_LISTEN * (2 ** me.sf_order) / mac_cfg.TSLOTS_PER_SEC
             me.tm_evt.postIn(me, listen_secs)
             return me.handled(me, event)
 
@@ -167,7 +169,7 @@ class HeyMacAhsm(pq.Ahsm):
             logging.info("BEACONING")
             # Pick a beacon slot
             me.bcn_slot = me.pick_bcn_slot(me)
-            logging.info("bcn_slot (%d / %d)" % (me.bcn_slot, 2 ** mac_cfg.FRAME_SPEC_SF_ORDER))
+            logging.info("bcn_slot (%d / %d)" % (me.bcn_slot, 2 ** me.sf_order))
             # Calc the start of Tslots
             now = pq.Framework._event_loop.time()
             me.next_tslot = me.dscpln.get_time_of_next_tslot(now)
@@ -231,17 +233,17 @@ class HeyMacAhsm(pq.Ahsm):
         self.asn += 1
 
         # Transmit an extended beacon during this node's beacon slot
-        if self.asn % (2 ** mac_cfg.FRAME_SPEC_SF_ORDER * 2 ** mac_cfg.FRAME_SPEC_SF_ORDER) == self.bcn_slot:
+        if self.asn % (2 ** self.sf_order * 2 ** self.eb_order) == self.bcn_slot:
             logging.info("ebcn_tslot     %f", self.next_tslot)
             self.tx_ebcn(self, self.next_tslot)
 
         # Transmit a std beacon during this node's beacon slot
-        elif self.asn % (2 ** mac_cfg.FRAME_SPEC_SF_ORDER) == self.bcn_slot:
+        elif self.asn % (2 ** self.sf_order) == self.bcn_slot:
             logging.info("bcn_tslot      %f", self.next_tslot)
             self.tx_bcn(self, self.next_tslot)
 
         # Resume continuous receive after beaconing
-        elif self.asn % (2 ** mac_cfg.FRAME_SPEC_SF_ORDER) == self.bcn_slot + 1:
+        elif self.asn % (2 ** self.sf_order) == self.bcn_slot + 1:
             rx_args = (-1, phy_cfg.rx_freq)
             pq.Framework.post(pq.Event(pq.Signal.RECEIVE, rx_args), "SX127xSpiAhsm")
 
@@ -297,7 +299,7 @@ class HeyMacAhsm(pq.Ahsm):
                 rx_time, len(payld), rssi, snr, repr(f))
 
             # Handle reception of a beacon
-            if isinstance(f.data, mac_cmds.HeyMacCmdSbcn):
+            if isinstance(f.data, mac_cmds.HeyMacCmdSbcn) or isinstance(f.data, mac_cmds.HeyMacCmdEbcn):
                 self.on_rxd_bcn(self, rx_time, f.raddr, f.data, rssi, snr)
 
             # TEMPORARY: give warning of unknown packets
@@ -311,15 +313,20 @@ class HeyMacAhsm(pq.Ahsm):
     def on_rxd_bcn(self, rx_time, ngbr_addr, bcn, rssi, snr):
         """Handles reception of a beacon frame.
         """
-        # Exit early if the frame spec is incompatible
-        if( bcn.sf_order != mac_cfg.FRAME_SPEC_SF_ORDER or
-            bcn.eb_order != mac_cfg.FRAME_SPEC_EB_ORDER):
-            logging.info("Ngbr's Frame Spec is incompatible: (0x%x)" % (bcn._frame_spec))
+        # If the frame spec is incompatible
+        if( bcn.sf_order != self.sf_order or bcn.eb_order != self.eb_order):
+            # If the beaconer has the greater ASN, adopt its frame spec
+            if bcn.asn > self.asn:
+                self.sf_order = bcn.sf_order
+                self.eb_order = bcn.eb_order
+                logging.info("Adopting ngbr's frame spec: (SF=%d, EB=%d)" % (bcn.sf_order, bcn.eb_order))
             return
 
-        self.dscpln.update_bcn(rx_time)
-        self.time_of_last_rxd_bcn = rx_time
-        self.tslots_since_last_bcn = 0
+        # If the beacon has good discipline, measure it
+        if bcn.dscpln >= mac_discipline.HeyMacDscplnEnum.PPS.value:
+            self.dscpln.update_bcn(rx_time)
+            self.time_of_last_rxd_bcn = rx_time
+            self.tslots_since_last_bcn = 0
 
         # Adopt the greater ASN
         if bcn.asn > self.asn:
@@ -332,12 +339,12 @@ class HeyMacAhsm(pq.Ahsm):
     def tx_bcn(self, abs_time):
         """Builds a HeyMac V1 Small Beacon and passes it to the PHY for transmit.
         """
-        my_bcn_slotmap = bytearray((2 ** mac_cfg.FRAME_SPEC_SF_ORDER) // 8)
+        my_bcn_slotmap = bytearray((2 ** self.sf_order) // 8)
         my_bcn_slotmap[ self.bcn_slot // 8 ] |= (1 << (self.bcn_slot % 8))
         frame = self.build_mac_frame(self, self.mac_seq)
         frame.data = mac_cmds.HeyMacCmdSbcn(
-            sf_order=mac_cfg.FRAME_SPEC_SF_ORDER,
-            eb_order=mac_cfg.FRAME_SPEC_EB_ORDER,
+            sf_order=self.sf_order,
+            eb_order=self.eb_order,
             dscpln=self.dscpln.get_dscpln_value(),
             caps=0,
             status=0,
@@ -354,12 +361,12 @@ class HeyMacAhsm(pq.Ahsm):
     def tx_ebcn(self, abs_time):
         """Builds a HeyMac V1 Extended Beacon and passes it to the PHY for transmit.
         """
-        my_bcn_slotmap = bytearray((2 ** mac_cfg.FRAME_SPEC_SF_ORDER) // 8)
+        my_bcn_slotmap = bytearray((2 ** self.sf_order) // 8)
         my_bcn_slotmap[ self.bcn_slot // 8 ] |= (1 << (self.bcn_slot % 8))
         frame = self.build_mac_frame(self, self.mac_seq)
-        frame.data = mac_cmds.HeyMacCmdSbcn(
-            sf_order=mac_cfg.FRAME_SPEC_SF_ORDER,
-            eb_order=mac_cfg.FRAME_SPEC_EB_ORDER,
+        frame.data = mac_cmds.HeyMacCmdEbcn(
+            sf_order=self.sf_order,
+            eb_order=self.eb_order,
             dscpln=self.dscpln.get_dscpln_value(),
             caps=0,
             status=0,
@@ -399,7 +406,7 @@ class HeyMacAhsm(pq.Ahsm):
         """
         # The initial value for this node's beacon slot.
         bcn_slot = (mac_identity['pub_key'][0] << 8 | mac_identity['pub_key'][1]) \
-                   % (2 ** mac_cfg.FRAME_SPEC_SF_ORDER)
+                   % (2 ** self.sf_order)
 
         # Increment the intial value while there is a collision with neighboring beacons
         bcn_slotmap = self.dll_data.get_bcn_slotmap()
