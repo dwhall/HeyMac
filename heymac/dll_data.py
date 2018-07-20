@@ -44,9 +44,9 @@ class DllData(object):
         Neighbors are invalid when they are silent for over 4 Sframes.
         """
         slotmap = bytearray((2 ** mac_cfg.FRAME_SPEC_SF_ORDER) // 8)
-        for ngbr_addr in self._d["bcn"]:
-            if self._d["bcn"][ngbr_addr].valid:
-                bcnslot = self._d["bcn"][ngbr_addr].value.asn % (2 ** mac_cfg.FRAME_SPEC_SF_ORDER)
+        for bcn in self._d["bcn"].values():
+            if bcn.valid:
+                bcnslot = bcn.value.asn % (2 ** mac_cfg.FRAME_SPEC_SF_ORDER)
                 slotmap[ bcnslot // 8 ] |= (1 << (bcnslot % 8))
         return slotmap
 
