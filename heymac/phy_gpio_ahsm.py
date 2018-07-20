@@ -32,7 +32,7 @@ def gpio_input_handler(sig):
 
 class GpioAhsm(pq.Ahsm):
 
-    @staticmethod
+    @pq.Hsm.state
     def initial(me, event):
         """Pseudostate: GpioAhsm:initial
         """
@@ -49,7 +49,7 @@ class GpioAhsm(pq.Ahsm):
 
         return me.tran(me, GpioAhsm.initializing)
 
-    @staticmethod
+    @pq.Hsm.state
     def initializing(me, event):
         """State: GpioAhsm:initializing
         """
@@ -86,7 +86,7 @@ class GpioAhsm(pq.Ahsm):
         return me.super(me, me.top)
 
 
-    @staticmethod
+    @pq.Hsm.state
     def running(me, event):
         """State: GpioAhsm:running
         """
@@ -104,7 +104,7 @@ class GpioAhsm(pq.Ahsm):
         return me.super(me, me.top)
 
 
-    @staticmethod
+    @pq.Hsm.state
     def exiting(me, event):
         """State: GpioAhsm:exiting
         """

@@ -136,7 +136,7 @@ class HeyMacDiscipline:
         #if tm < time_now + mac_cfg.TSLOT_PREP_TIME:
         #    tm += (1.0 / mac_cfg.TSLOTS_PER_SEC)
 
-        assert tm > time_now
+        assert tm > time_now, "Got tm=%f, time_now=%f" % (tm, time_now)
         return tm
 
 

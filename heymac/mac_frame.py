@@ -294,7 +294,8 @@ class HeyMacFrame(dpkt.Packet):
                 self.data = mac_cmds.HeyMacCmdEbcn(self.data)
             elif self.data and self.data[0] == mac_cmds.HeyMacCmdId.TXT.value:
                 self.data = mac_cmds.HeyMacCmdTxt(self.data)
-
+            else:
+                logging.info("unsupp MAC cmd %f", self.next_tslot)
 
     def pack_hdr(self):
         """Packs header attributes into a bytes object.

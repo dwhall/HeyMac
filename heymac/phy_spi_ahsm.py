@@ -19,7 +19,7 @@ import phy_cfg
 
 class SX127xSpiAhsm(pq.Ahsm):
 
-    @staticmethod
+    @pq.Hsm.state
     def initial(me, event):
         """Pseudostate: SX127xSpiAhsm:initial
         """
@@ -52,7 +52,7 @@ class SX127xSpiAhsm(pq.Ahsm):
         return me.tran(me, SX127xSpiAhsm.initializing)
 
 
-    @staticmethod
+    @pq.Hsm.state
     def initializing(me, event):
         """State: SX127xSpiAhsm:initializing
         Reads SX127x regs and transitions to
@@ -78,7 +78,7 @@ class SX127xSpiAhsm(pq.Ahsm):
         return me.super(me, me.top)
 
 
-    @staticmethod
+    @pq.Hsm.state
     def idling(me, event):
         """State: SX127xSpiAhsm:idling
         """
@@ -111,7 +111,7 @@ class SX127xSpiAhsm(pq.Ahsm):
         return me.super(me, me.top)
 
 
-    @staticmethod
+    @pq.Hsm.state
     def working(me, event):
         """State SX127xSpiAhsm:working
         This state provides a CANCEL handler that returns the radio to stdby.
@@ -128,7 +128,7 @@ class SX127xSpiAhsm(pq.Ahsm):
 
 
 #### Receive chain
-    @staticmethod
+    @pq.Hsm.state
     def rx_prepping(me, event):
         """State: SX127xSpiAhsm:idling:rx_prepping
         While still in radio's standby mode, get regs and FIFO ready for RX.
@@ -167,7 +167,7 @@ class SX127xSpiAhsm(pq.Ahsm):
         return me.super(me, me.idling)
 
 
-    @staticmethod
+    @pq.Hsm.state
     def receiving(me, event):
         """State SX127xSpiAhsm:working:receiving
         If the rx_time is less than zero, receive continuously;
@@ -220,7 +220,7 @@ class SX127xSpiAhsm(pq.Ahsm):
 
 
 #### Transmit chain
-    @staticmethod
+    @pq.Hsm.state
     def tx_prepping(me, event):
         """State: SX127xSpiAhsm:idling:tx_prepping
         """
@@ -260,7 +260,7 @@ class SX127xSpiAhsm(pq.Ahsm):
         return me.super(me, me.idling)
 
 
-    @staticmethod
+    @pq.Hsm.state
     def transmitting(me, event):
         """State: SX127xSpiAhsm:working:transmitting
         """

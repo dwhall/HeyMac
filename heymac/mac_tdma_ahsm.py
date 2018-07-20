@@ -35,7 +35,7 @@ mac_identity['pub_key'] = bytearray.fromhex(mac_identity['pub_key'])
 
 class HeyMacAhsm(pq.Ahsm):
 
-    @staticmethod
+    @pq.Hsm.state
     def initial(me, event):
         """Pseudostate: HeyMacAhsm:initial
         """
@@ -73,7 +73,7 @@ class HeyMacAhsm(pq.Ahsm):
         return me.tran(me, HeyMacAhsm.initializing)
 
 
-    @staticmethod
+    @pq.Hsm.state
     def initializing(me, event):
         """State: HeyMacAhsm:initializing
         """
@@ -92,7 +92,7 @@ class HeyMacAhsm(pq.Ahsm):
         return me.super(me, me.top)
 
 
-    @staticmethod
+    @pq.Hsm.state
     def running(me, event):
         """State: HeyMacAhsm:running
         The running state:
@@ -130,7 +130,7 @@ class HeyMacAhsm(pq.Ahsm):
         return me.super(me, me.top)
 
 
-    @staticmethod
+    @pq.Hsm.state
     def listening(me, event):
         """State: HeyMacAhsm:running:listening
         Listens to radio and GPS for timing discipline sources.
@@ -159,7 +159,7 @@ class HeyMacAhsm(pq.Ahsm):
         return me.super(me, me.running)
 
 
-    @staticmethod
+    @pq.Hsm.state
     def beaconing(me, event):
         """State: HeyMacAhsm:running:beaconing
         Uses timing discipline to tx beacons.
@@ -192,7 +192,7 @@ class HeyMacAhsm(pq.Ahsm):
         return me.super(me, me.running)
 
 
-    @staticmethod
+    @pq.Hsm.state
     def networking(me, event):
         """State: HeyMacAhsm:running:beaconing:networking
         Uses timing discipline to schedule packet tx and rx actions.
@@ -209,7 +209,7 @@ class HeyMacAhsm(pq.Ahsm):
         return me.super(me, me.running)
 
 
-    @staticmethod
+    @pq.Hsm.state
     def exiting(me, event):
         """State HeyMacAhsm:exiting
         """

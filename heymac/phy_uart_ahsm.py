@@ -22,7 +22,7 @@ SER_FIFO_MAX = 2 * round(phy_cfg.uart_baud * GPS_NMEA_PERIOD)
 
 class UartAhsm(pq.Ahsm):
 
-    @staticmethod
+    @pq.Hsm.state
     def initial(me, event):
         """Pseudostate: UartAhsm:initial
         """
@@ -35,7 +35,7 @@ class UartAhsm(pq.Ahsm):
         return me.tran(me, UartAhsm.running)
 
 
-    @staticmethod
+    @pq.Hsm.state
     def running(me, event):
         """State: UartAhsm:Running
         """
@@ -77,7 +77,7 @@ class UartAhsm(pq.Ahsm):
         return me.super(me, me.top)
 
 
-    @staticmethod
+    @pq.Hsm.state
     def exiting(me, event):
         """State UartAhsm:exiting
         """

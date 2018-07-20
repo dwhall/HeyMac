@@ -6,9 +6,16 @@ Copyright 2018 Dean Hall.  See LICENSE for details.
 Launches all the state machines to run the HeyMac network
 """
 
-import asyncio, sys
+import asyncio
+import logging
+import pq
+import socket
+import sys
 
-import mac_tdma_ahsm, phy_gpio_ahsm, phy_spi_ahsm, phy_uart_ahsm
+import mac_tdma_ahsm
+import phy_gpio_ahsm
+import phy_spi_ahsm
+import phy_uart_ahsm
 
 
 def main():
@@ -31,8 +38,8 @@ def main():
 
 
 if __name__ == "__main__":
-    # Start logging
-    import logging, socket
+    pq.Spy.enable_spy(pq.VcdSpy)
+
     # log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     log_fmt = "%(asctime)s %(message)s"
     logging.basicConfig(
