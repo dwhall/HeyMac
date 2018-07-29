@@ -59,31 +59,32 @@
      </tran>
      <tran trig="CFG_LORA">
       <action brief="set_config()"/>
-      <tran_glyph conn="20,24,3,-1,14">
+      <tran_glyph conn="20,24,3,-1,22">
        <action box="0,-2,18,2"/>
       </tran_glyph>
      </tran>
-     <state name="txprepping">
-      <entry brief="tx_prep()"/>
-      <tran trig="always" target="../../../3/1">
+     <state name="tx_prepping">
+      <entry>Set IRQs, DIO, TX FIFO, TX freq</entry>
+      <tran trig="ALWAYS" target="../../../3/1">
+       <action brief="time.sleep()"/>
        <tran_glyph conn="46,48,3,0,6,10">
-        <action box="0,-2,10,2"/>
+        <action box="0,-2,16,2"/>
        </tran_glyph>
       </tran>
       <state_glyph node="46,40,16,10">
-       <entry box="1,2,10,2"/>
+       <entry box="1,2,6,2"/>
       </state_glyph>
      </state>
-     <state name="rxprepping">
-      <documentation>ex_prep()</documentation>
-      <entry brief="rx_prep()"/>
-      <tran trig="always" target="../../../3/2">
+     <state name="rx_prepping">
+      <entry>Set IRQs, DIO, RX FIFO and RX freq.</entry>
+      <tran trig="ALWAYS" target="../../../3/2">
+       <action brief="time.sleep()"/>
        <tran_glyph conn="22,48,3,0,6,10">
-        <action box="0,-2,10,2"/>
+        <action box="0,-2,15,2"/>
        </tran_glyph>
       </tran>
       <state_glyph node="22,40,16,10">
-       <entry box="1,2,10,3"/>
+       <entry box="1,2,15,2"/>
       </state_glyph>
      </state>
      <state name="sleeping">
@@ -99,14 +100,14 @@
     <state name="working">
      <tran trig="CANCEL" target="../../2">
       <action brief="set_mode(&quot;stdby&quot;)"/>
-      <tran_glyph conn="20,74,3,2,68,-22">
+      <tran_glyph conn="20,78,3,2,68,-26">
        <action box="0,-2,20,2"/>
       </tran_glyph>
      </tran>
      <state name="transmitting">
       <entry brief="set_mode(&quot;tx&quot;)"/>
       <tran trig="DIO0" target="../../../2">
-       <action brief="tx_done()"/>
+       <action>This is TX_DONE</action>
        <tran_glyph conn="46,64,3,2,14,-12">
         <action box="0,-2,16,2"/>
        </tran_glyph>
@@ -124,22 +125,29 @@
        </tran_glyph>
       </tran>
       <tran trig="DIO1" target="../../../2">
-       <action brief="rx_timeout()"/>
+       <action brief="clear_irqs()">This is RX_TIMEOUT</action>
        <tran_glyph conn="22,66,3,2,18,-14">
         <action box="0,-2,20,2"/>
        </tran_glyph>
       </tran>
       <tran trig="DIO3">
-       <action brief="rx_time = get_time()"/>
+       <action brief="clear_irqs()">This is a ValidHeader signal from</action>
        <tran_glyph conn="22,68,3,-1,18">
         <action box="0,-2,18,2"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="22,58,20,12">
+      <tran trig="TRANSMIT" target="../../../2/5">
+       <action brief="set_mode(&quot;stdby&quot;)"/>
+       <tran_glyph conn="22,72,3,3,20,-28,4">
+        <action box="0,-2,20,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="22,58,22,16">
        <entry box="1,2,18,2"/>
       </state_glyph>
      </state>
      <state name="cad_ing">
+      <documentation>TODO: This state does not exist yet</documentation>
       <entry brief="set_mode(&quot;cad&quot;)"/>
       <tran trig="DIO3" target="../../../2">
        <action brief="cad_done()"/>
@@ -157,7 +165,7 @@
        <entry box="1,2,15,2"/>
       </state_glyph>
      </state>
-     <state_glyph node="20,54,72,22"/>
+     <state_glyph node="20,54,72,26"/>
     </state>
     <state_diagram size="113,109"/>
    </statechart>
