@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model version="4.1.0" links="0">
+ <framework name="qpc"/>
+ <package name="AOs" stereotype="0x02">
+  <class name="SX127xPhy" superclass="qpc::QActive">
+   <attribute name="tmEvnt" type="QTimeEvt" visibility="0x02" properties="0x00"/>
+   <statechart>
+    <initial target="../1">
+     <initial_glyph conn="22,10,5,3,8">
+      <action box="0,-2,10,2"/>
+     </initial_glyph>
+    </initial>
+    <state name="initializing">
+     <entry brief="get_regs()"/>
+     <tran trig="always">
+      <choice target="../../../2/7">
+       <guard brief="else"/>
+       <choice_glyph conn="50,10,5,0,28,12">
+        <action box="0,-4,10,2"/>
+       </choice_glyph>
+      </choice>
+      <choice target="../../../2">
+       <guard brief="lora &amp;&amp; stdby"/>
+       <choice_glyph conn="50,10,4,0,8">
+        <action box="0,2,10,2"/>
+       </choice_glyph>
+      </choice>
+      <tran_glyph conn="43,10,1,-1,7">
+       <action box="0,-2,10,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="30,4,13,12">
+      <entry box="1,2,9,2"/>
+     </state_glyph>
+    </state>
+    <state name="idling">
+     <documentation>This is LoRa mode Standby</documentation>
+     <tran trig="RECEIVE" target="../6">
+      <action>(time, freq)</action>
+      <tran_glyph conn="20,32,3,0,8,8">
+       <action box="0,-2,10,2"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="TRANSMIT" target="../5">
+      <action>(time, freq)</action>
+      <tran_glyph conn="20,30,3,0,32,10">
+       <action box="0,-2,11,2"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="CAD" target="../../3/3">
+      <tran_glyph conn="20,28,3,0,48,30">
+       <action box="0,-2,10,2"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="SLEEP" target="../7">
+      <tran_glyph conn="20,26,3,3,52">
+       <action box="0,-2,10,2"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="CFG_LORA">
+      <action brief="set_config()"/>
+      <tran_glyph conn="20,24,3,-1,14">
+       <action box="0,-2,18,2"/>
+      </tran_glyph>
+     </tran>
+     <state name="txprepping">
+      <entry brief="tx_prep()"/>
+      <tran trig="always" target="../../../3/1">
+       <tran_glyph conn="46,48,3,0,6,10">
+        <action box="0,-2,10,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="46,40,16,10">
+       <entry box="1,2,10,2"/>
+      </state_glyph>
+     </state>
+     <state name="rxprepping">
+      <documentation>ex_prep()</documentation>
+      <entry brief="rx_prep()"/>
+      <tran trig="always" target="../../../3/2">
+       <tran_glyph conn="22,48,3,0,6,10">
+        <action box="0,-2,10,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="22,40,16,10">
+       <entry box="1,2,10,3"/>
+      </state_glyph>
+     </state>
+     <state name="sleeping">
+      <entry brief="set_mode(&quot;sleep&quot;)"/>
+      <exit brief="set_mode(&quot;stdby&quot;)"/>
+      <state_glyph node="72,22,18,12">
+       <entry box="1,2,17,2"/>
+       <exit box="1,4,17,2"/>
+      </state_glyph>
+     </state>
+     <state_glyph node="20,18,72,34"/>
+    </state>
+    <state name="working">
+     <tran trig="CANCEL" target="../../2">
+      <action brief="set_mode(&quot;stdby&quot;)"/>
+      <tran_glyph conn="20,74,3,2,68,-22">
+       <action box="0,-2,20,2"/>
+      </tran_glyph>
+     </tran>
+     <state name="transmitting">
+      <entry brief="set_mode(&quot;tx&quot;)"/>
+      <tran trig="DIO0" target="../../../2">
+       <action brief="tx_done()"/>
+       <tran_glyph conn="46,64,3,2,14,-12">
+        <action box="0,-2,16,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="46,58,16,12">
+       <entry box="1,2,15,2"/>
+      </state_glyph>
+     </state>
+     <state name="receiving">
+      <entry brief="set_mode(&quot;rxonce&quot;)"/>
+      <tran trig="DIO0" target="../../../2">
+       <action brief="rx_done()"/>
+       <tran_glyph conn="22,64,3,2,16,-12">
+        <action box="0,-2,18,2"/>
+       </tran_glyph>
+      </tran>
+      <tran trig="DIO1" target="../../../2">
+       <action brief="rx_timeout()"/>
+       <tran_glyph conn="22,66,3,2,18,-14">
+        <action box="0,-2,20,2"/>
+       </tran_glyph>
+      </tran>
+      <tran trig="DIO3">
+       <action brief="rx_time = get_time()"/>
+       <tran_glyph conn="22,68,3,-1,18">
+        <action box="0,-2,18,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="22,58,20,12">
+       <entry box="1,2,18,2"/>
+      </state_glyph>
+     </state>
+     <state name="cad_ing">
+      <entry brief="set_mode(&quot;cad&quot;)"/>
+      <tran trig="DIO3" target="../../../2">
+       <action brief="cad_done()"/>
+       <tran_glyph conn="66,64,3,2,14,-12">
+        <action box="0,-2,18,2"/>
+       </tran_glyph>
+      </tran>
+      <tran trig="DIO4" target="../../../2">
+       <action brief="cad_detected()"/>
+       <tran_glyph conn="66,66,3,2,16,-14">
+        <action box="0,-2,18,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="66,58,20,12">
+       <entry box="1,2,15,2"/>
+      </state_glyph>
+     </state>
+     <state_glyph node="20,54,72,22"/>
+    </state>
+    <state_diagram size="113,109"/>
+   </statechart>
+  </class>
+ </package>
+ <directory name=".">
+  <file name="sx127x_phy.c"/>
+ </directory>
+</model>
