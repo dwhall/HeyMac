@@ -8,7 +8,10 @@ An asymmetric cryptographic keypair is generated
 such that the SHA512(SHA512(pub_key)) starts with 0xFC or 0xFD
 """
 
-import hashlib, os.path, random
+import hashlib
+import json
+import os.path
+import random
 
 import cfg
 
@@ -49,11 +52,9 @@ if __name__ == "__main__":
 
     fn = os.path.join(cfg.get_app_data_path("HeyMac"), "mac_identity.json")
     with open(fn, 'w') as f:
-        f.write(
-            '{\n'
-            '"name": "%s"\n'
-            '"callsign": "%s"\n'
-            '"pub_key": "%s"\n'
-            '}\n'
-            % (name, callsign, pub_key))
+        json_str = json.dumps({
+            "name": name,
+            "callsign": callsign,
+            "pub_key": pub_key.hex()})
+        f.write(json_str)
     print("Wrote: %s" % fn)
