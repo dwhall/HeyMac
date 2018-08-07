@@ -9,7 +9,7 @@ Physical Layer State Machine for GPIO operations on the RasPi device
 """
 
 
-import RPi.GPIO as GPIO
+from heymac import GPIO
 
 import pq
 

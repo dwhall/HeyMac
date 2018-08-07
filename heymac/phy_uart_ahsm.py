@@ -8,7 +8,7 @@ Physical Layer State Machine for UART operations on the RasPi
 
 
 import pq
-import serial
+from heymac import serial
 
 import phy_cfg
 
