@@ -49,6 +49,9 @@ class SX127xSpiAhsm(pq.Ahsm):
 
         me.sx127x = lora_driver.SX127xSpi()
 
+        # A time event used for setting timeouts
+        me.tm_evt = pq.TimeEvent("PHY_SPI_TMOUT")
+
         return me.tran(me, SX127xSpiAhsm.initializing)
 
 
@@ -268,9 +271,15 @@ class SX127xSpiAhsm(pq.Ahsm):
         if sig == pq.Signal.ENTRY:
             logging.info("tx             %f", pq.Framework._event_loop.time())
             me.sx127x.set_op_mode(mode="tx")
+            me.tm_evt.postIn(me, 1.0) # TODO: make time scale with datarate
             return me.handled(me, event)
 
         elif sig == pq.Signal.PHY_DIO0: # TX_DONE
+            me.tm_evt.disarm()
+            return me.tran(me, SX127xSpiAhsm.idling)
+
+        elif sig == pq.Signal.PHY_SPI_TMOUT: # software timeout
+            me.sx127x.set_op_mode(mode="stdby")
             return me.tran(me, SX127xSpiAhsm.idling)
 
         return me.super(me, me.working)
