@@ -58,12 +58,18 @@ class UartAhsm(pq.Ahsm):
 
             # If a newline is present, publish one or more NMEA sentences
             n = me.nmea_data.find(b"\r\n")
-            while n >= 0:
-                nmea_sentence = bytes(me.nmea_data[0:n+2])
-                me.nmea_data = me.nmea_data[n+2:]
-                if b"GPRMC" in nmea_sentence:
-                    pq.Framework.publish(pq.Event(pq.Signal.GPS_NMEA, nmea_sentence))
-                n = me.nmea_data.find(b"\r\n")
+            if n >= 0:
+                while n >= 0:
+                    nmea_sentence = bytes(me.nmea_data[0:n+2])
+                    me.nmea_data = me.nmea_data[n+2:]
+                    if b"GPRMC" in nmea_sentence:
+                        pq.Framework.publish(pq.Event(pq.Signal.GPS_NMEA, nmea_sentence))
+                    n = me.nmea_data.find(b"\r\n")
+
+            # If there are no newlines and the buffer is getting big, flush the junk data
+            elif len(me.nmea_data) >= 256:
+                me.nmea_data.clear()
+
             return me.handled(me, event)
 
         elif sig == pq.Signal.SIGTERM:
