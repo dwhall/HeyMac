@@ -21,7 +21,7 @@ import mac_frame
 
 class ChatAhsm(farc.Ahsm):
 
-    @staticmethod
+    @farc.Hsm.state
     def initial(me, event):
         """Pseudostate: ChatAhsm:initial
         """
@@ -59,7 +59,7 @@ class ChatAhsm(farc.Ahsm):
         return me.tran(me, ChatAhsm.running)
 
 
-    @staticmethod
+    @farc.Hsm.state
     def running(me, event):
         """State: ChatAhsm:running
         """
@@ -146,7 +146,7 @@ class ChatAhsm(farc.Ahsm):
         return me.super(me, me.top)
 
 
-    @staticmethod
+    @farc.Hsm.state
     def exiting(me, event):
         """State: ChatAhsm:exiting
         """
