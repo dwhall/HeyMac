@@ -1,9 +1,9 @@
 # HeyMac
 
 I don't have a great naming scheme yet, so right now HeyMac is two things.
-HeyMac is this git repo where I'm doing a bunch of experimental coding
-on a data radio project.  HeyMac also happens to be the name I gave
-the Data Link Layer (Layer 2) a.k.a. the MAC layer.
+HeyMac is this project where I'm doing a bunch of experimental coding
+for wireless data transfer.  HeyMac also happens to be the name I gave
+the Medium Access Control, or MAC layer.
 
 HeyMac is a TDMA-style Data Link Layer (Layer 2) designed for use with
 low data rate radio modems such as a LoRa radio module on a Raspberry Pi 3.
