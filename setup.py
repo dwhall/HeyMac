@@ -12,7 +12,7 @@ setup(name="HeyMac",
       requires=[
 # These aren't in PyPI yet
 #            "lora_driver",
-#            "pq",
+#            "farc",
             "dpkt",
             "pyserial",
             "RPi",

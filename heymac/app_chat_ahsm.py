@@ -13,23 +13,23 @@ Application (layer 7) State Machine for a simple text chat app
 import curses
 import logging
 
-import pq
+import farc
 
 import mac_cmds
 import mac_frame
 
 
-class ChatAhsm(pq.Ahsm):
+class ChatAhsm(farc.Ahsm):
 
     @staticmethod
     def initial(me, event):
         """Pseudostate: ChatAhsm:initial
         """
         # Incoming signals
-        pq.Framework.subscribe("PHY_RXD_DATA", me)
+        farc.Framework.subscribe("PHY_RXD_DATA", me)
 
         # Init a timer event
-        me.tmr = pq.TimeEvent("TMR_TMOUT")
+        me.tmr = farc.TimeEvent("TMR_TMOUT")
 
         # Init curses
         stdscr = curses.initscr()
@@ -65,11 +65,11 @@ class ChatAhsm(pq.Ahsm):
         """
 
         sig = event.signal
-        if sig == pq.Signal.ENTRY:
+        if sig == farc.Signal.ENTRY:
             me.tmr.postEvery(me, 0.075)
             return me.handled(me, event)
 
-        elif sig == pq.Signal.TMR_TMOUT:
+        elif sig == farc.Signal.TMR_TMOUT:
             # Get all characters into the bytearray
             c = 0
             while c >= 0:
@@ -83,7 +83,7 @@ class ChatAhsm(pq.Ahsm):
                     # Send the payload to the MAC layer
                     txt = mac_cmds.HeyMacCmdTxt()
                     txt.msg = msg
-                    pq.Framework.post(pq.Event(pq.Signal.MAC_TX_REQ, txt), "HeyMacAhsm")
+                    farc.Framework.post(farc.Event(farc.Signal.MAC_TX_REQ, txt), "HeyMacAhsm")
 
                     # Echo the message to the outwin
                     outy,_ = me.outwin.getmaxyx()
@@ -113,7 +113,7 @@ class ChatAhsm(pq.Ahsm):
 
             return me.handled(me, event)
 
-        elif sig == pq.Signal.PHY_RXD_DATA:
+        elif sig == farc.Signal.PHY_RXD_DATA:
 
             # Unpack the rxd data to see if it is a CmdTxt
             rx_time, payld, rssi, snr = event.value
@@ -140,7 +140,7 @@ class ChatAhsm(pq.Ahsm):
 
             return me.handled(me, event)
 
-        elif sig == pq.Signal.SIGTERM:
+        elif sig == farc.Signal.SIGTERM:
             return me.tran(me, ChatAhsm.exiting)
 
         return me.super(me, me.top)
@@ -151,7 +151,7 @@ class ChatAhsm(pq.Ahsm):
         """State: ChatAhsm:exiting
         """
         sig = event.signal
-        if sig == pq.Signal.ENTRY:
+        if sig == farc.Signal.ENTRY:
             # Curses de-init
             curses.nocbreak()
             me.stdscr.keypad(False)

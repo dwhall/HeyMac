@@ -7,7 +7,7 @@ Physical Layer State Machine for UART operations on the RasPi
 """
 
 
-import pq
+import farc
 from heymac import serial
 
 import phy_cfg
@@ -20,27 +20,27 @@ GPS_NMEA_PERIOD = 0.100 # [secs]
 SER_FIFO_MAX = 2 * round(phy_cfg.uart_baud * GPS_NMEA_PERIOD)
 
 
-class UartAhsm(pq.Ahsm):
+class UartAhsm(farc.Ahsm):
 
-    @pq.Hsm.state
+    @farc.Hsm.state
     def initial(me, event):
         """Pseudostate: UartAhsm:initial
         """
         # Outgoing signals
-        pq.Signal.register("GPS_NMEA") # Value is one NMEA sentence [bytes]
+        farc.Signal.register("GPS_NMEA") # Value is one NMEA sentence [bytes]
 
         # Initialize a timer event used to schedule the NMEA handler
-        me.te_nmea = pq.TimeEvent("GPS_NMEA_PRDC")
+        me.te_nmea = farc.TimeEvent("GPS_NMEA_PRDC")
 
         return me.tran(me, UartAhsm.running)
 
 
-    @pq.Hsm.state
+    @farc.Hsm.state
     def running(me, event):
         """State: UartAhsm:Running
         """
         sig = event.signal
-        if sig == pq.Signal.ENTRY:
+        if sig == farc.Signal.ENTRY:
 
             # Init the NMEA data buffer
             me.nmea_data = bytearray()
@@ -52,7 +52,7 @@ class UartAhsm(pq.Ahsm):
             me.te_nmea.postEvery(me, GPS_NMEA_PERIOD)
             return me.handled(me, event)
 
-        elif sig == pq.Signal.GPS_NMEA_PRDC:
+        elif sig == farc.Signal.GPS_NMEA_PRDC:
             # Read the available data from the serial port
             me.nmea_data.extend(me.ser.read(SER_FIFO_MAX))
 
@@ -63,7 +63,7 @@ class UartAhsm(pq.Ahsm):
                     nmea_sentence = bytes(me.nmea_data[0:n+2])
                     me.nmea_data = me.nmea_data[n+2:]
                     if b"GPRMC" in nmea_sentence:
-                        pq.Framework.publish(pq.Event(pq.Signal.GPS_NMEA, nmea_sentence))
+                        farc.Framework.publish(farc.Event(farc.Signal.GPS_NMEA, nmea_sentence))
                     n = me.nmea_data.find(b"\r\n")
 
             # If there are no newlines and the buffer is getting big, flush the junk data
@@ -72,10 +72,10 @@ class UartAhsm(pq.Ahsm):
 
             return me.handled(me, event)
 
-        elif sig == pq.Signal.SIGTERM:
+        elif sig == farc.Signal.SIGTERM:
             return me.tran(me, me.exiting)
 
-        elif sig == pq.Signal.EXIT:
+        elif sig == farc.Signal.EXIT:
             me.te_nmea.disarm()
             me.ser.close()
             return me.handled(me, event)
@@ -83,12 +83,12 @@ class UartAhsm(pq.Ahsm):
         return me.super(me, me.top)
 
 
-    @pq.Hsm.state
+    @farc.Hsm.state
     def exiting(me, event):
         """State UartAhsm:exiting
         """
         sig = event.signal
-        if sig == pq.Signal.ENTRY:
+        if sig == farc.Signal.ENTRY:
             return me.handled(me, event)
 
         return me.super(me, me.top)

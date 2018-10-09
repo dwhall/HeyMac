@@ -11,7 +11,7 @@ Physical Layer State Machine for GPIO operations on the RasPi device
 
 from heymac import GPIO
 
-import pq
+import farc
 
 import phy_cfg
 
@@ -25,36 +25,36 @@ def gpio_input_handler(sig):
     """Emits the given signal upon a pin change.
     The event's value is the current time.
     """
-    time = pq.Framework._event_loop.time()
-    evt = pq.Event(sig, time)
-    pq.Framework.publish(evt)
+    time = farc.Framework._event_loop.time()
+    evt = farc.Event(sig, time)
+    farc.Framework.publish(evt)
 
 
-class GpioAhsm(pq.Ahsm):
+class GpioAhsm(farc.Ahsm):
 
-    @pq.Hsm.state
+    @farc.Hsm.state
     def initial(me, event):
         """Pseudostate: GpioAhsm:initial
         """
-        pq.Signal.register("ALWAYS")
+        farc.Signal.register("ALWAYS")
 
         # Register signals to emit upon pin change
-        me.sig_dio0 = pq.Signal.register(phy_cfg.dio0["sig_name"])
-        me.sig_dio1 = pq.Signal.register(phy_cfg.dio1["sig_name"])
-        me.sig_dio2 = pq.Signal.register(phy_cfg.dio2["sig_name"])
-        me.sig_dio3 = pq.Signal.register(phy_cfg.dio3["sig_name"])
-        me.sig_dio4 = pq.Signal.register(phy_cfg.dio4["sig_name"])
-        me.sig_dio5 = pq.Signal.register(phy_cfg.dio5["sig_name"])
-        me.sig_pps = pq.Signal.register(phy_cfg.pps["sig_name"])
+        me.sig_dio0 = farc.Signal.register(phy_cfg.dio0["sig_name"])
+        me.sig_dio1 = farc.Signal.register(phy_cfg.dio1["sig_name"])
+        me.sig_dio2 = farc.Signal.register(phy_cfg.dio2["sig_name"])
+        me.sig_dio3 = farc.Signal.register(phy_cfg.dio3["sig_name"])
+        me.sig_dio4 = farc.Signal.register(phy_cfg.dio4["sig_name"])
+        me.sig_dio5 = farc.Signal.register(phy_cfg.dio5["sig_name"])
+        me.sig_pps = farc.Signal.register(phy_cfg.pps["sig_name"])
 
         return me.tran(me, GpioAhsm.initializing)
 
-    @pq.Hsm.state
+    @farc.Hsm.state
     def initializing(me, event):
         """State: GpioAhsm:initializing
         """
         sig = event.signal
-        if sig == pq.Signal.ENTRY:
+        if sig == farc.Signal.ENTRY:
             GPIO.setmode(GPIO.BCM)
 
             # Set pins directions
@@ -77,39 +77,39 @@ class GpioAhsm(pq.Ahsm):
             GPIO.add_event_detect(phy_cfg.pps["pin"], edge=GPIO.RISING, callback=lambda x: gpio_input_handler(me.sig_pps))
 
             # Reminder pattern
-            me.postFIFO(pq.Event(pq.Signal.ALWAYS, None))
+            me.postFIFO(farc.Event(farc.Signal.ALWAYS, None))
             return me.handled(me, event)
 
-        elif sig == pq.Signal.ALWAYS:
+        elif sig == farc.Signal.ALWAYS:
             return me.tran(me, GpioAhsm.running)
 
         return me.super(me, me.top)
 
 
-    @pq.Hsm.state
+    @farc.Hsm.state
     def running(me, event):
         """State: GpioAhsm:running
         """
         sig = event.signal
-        if sig == pq.Signal.ENTRY:
+        if sig == farc.Signal.ENTRY:
             return me.handled(me, event)
 
-        elif sig == pq.Signal.SIGTERM:
+        elif sig == farc.Signal.SIGTERM:
             return me.tran(me, me.exiting)
 
-        elif sig == pq.Signal.EXIT:
+        elif sig == farc.Signal.EXIT:
             GPIO.cleanup()
             return me.handled(me, event)
 
         return me.super(me, me.top)
 
 
-    @pq.Hsm.state
+    @farc.Hsm.state
     def exiting(me, event):
         """State: GpioAhsm:exiting
         """
         sig = event.signal
-        if sig == pq.Signal.ENTRY:
+        if sig == farc.Signal.ENTRY:
             return me.handled(me, event)
 
         return me.super(me, me.top)

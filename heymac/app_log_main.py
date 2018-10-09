@@ -8,9 +8,10 @@ Launches all the state machines to run the HeyMac network
 
 import asyncio
 import logging
-import pq
 import socket
 import sys
+
+import farc
 
 import mac_tdma_ahsm
 import phy_gpio_ahsm
@@ -38,7 +39,7 @@ def main():
 
 
 if __name__ == "__main__":
-    pq.Spy.enable_spy(pq.VcdSpy)
+    farc.Spy.enable_spy(farc.VcdSpy)
 
     # log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     log_fmt = "%(asctime)s %(message)s"

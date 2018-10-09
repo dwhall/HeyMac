@@ -14,6 +14,7 @@ FCTL_TYPE_MIN = 0b00
 FCTL_TYPE_MAC = 0b01
 FCTL_TYPE_NET = 0b10
 FCTL_TYPE_EXT = 0b11
+FCTL_TYPE_SHIFT = 6
 
 
 class HeyMacFrame(dpkt.Packet):
@@ -23,7 +24,7 @@ class HeyMacFrame(dpkt.Packet):
     __hdr__ = (
         # The underscore prefix means do not access that field directly.
         # Access properties .fctl, .fctl_type, .fctl_l, etc. instead.
-        ('_fctl', 'B', FCTL_TYPE_MAC << 6),
+        ('_fctl', 'B', FCTL_TYPE_MAC << FCTL_TYPE_SHIFT),
         # Fctl is the only field guaranteed to be present.
         # Below this are optional fields as indicated by '0s'.
         # The underscore prefix means do not access that field directly.

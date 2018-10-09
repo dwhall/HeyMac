@@ -16,7 +16,7 @@ import logging
 import math
 import socket
 
-import pq
+import farc
 
 import cfg
 import dll_data
@@ -33,20 +33,20 @@ mac_identity = cfg.get_from_json("HeyMac", "mac_identity.json")
 mac_identity['pub_key'] = bytearray.fromhex(mac_identity['pub_key'])
 
 
-class HeyMacAhsm(pq.Ahsm):
+class HeyMacAhsm(farc.Ahsm):
 
-    @pq.Hsm.state
+    @farc.Hsm.state
     def initial(me, event):
         """Pseudostate: HeyMacAhsm:initial
         """
         # Incoming signals
-        pq.Signal.register("MAC_TX_REQ")
-        pq.Framework.subscribe("PHY_GPS_PPS", me)
-        pq.Framework.subscribe("PHY_RXD_DATA", me)
-        pq.Framework.subscribe("GPS_NMEA", me)
+        farc.Signal.register("MAC_TX_REQ")
+        farc.Framework.subscribe("PHY_GPS_PPS", me)
+        farc.Framework.subscribe("PHY_RXD_DATA", me)
+        farc.Framework.subscribe("GPS_NMEA", me)
 
         # Initialize a timer event
-        me.tm_evt = pq.TimeEvent("TM_EVT_TMOUT")
+        me.tm_evt = farc.TimeEvent("TM_EVT_TMOUT")
 
         # Calculate the 128-bit source address from the identity's pub_key
         h = hashlib.sha512()
@@ -73,26 +73,26 @@ class HeyMacAhsm(pq.Ahsm):
         return me.tran(me, HeyMacAhsm.initializing)
 
 
-    @pq.Hsm.state
+    @farc.Hsm.state
     def initializing(me, event):
         """State: HeyMacAhsm:initializing
         """
         sig = event.signal
-        if sig == pq.Signal.ENTRY:
-            pq.Framework.post(pq.Event(pq.Signal.CFG_LORA, phy_cfg.sx127x_cfg), "SX127xSpiAhsm")
-            me.postFIFO(pq.Event(pq.Signal.ALWAYS, None))
+        if sig == farc.Signal.ENTRY:
+            farc.Framework.post(farc.Event(farc.Signal.CFG_LORA, phy_cfg.sx127x_cfg), "SX127xSpiAhsm")
+            me.postFIFO(farc.Event(farc.Signal.ALWAYS, None))
             return me.handled(me, event)
 
-        elif sig == pq.Signal.ALWAYS:
+        elif sig == farc.Signal.ALWAYS:
             return me.tran(me, HeyMacAhsm.listening)
 
-        elif sig == pq.Signal.EXIT:
+        elif sig == farc.Signal.EXIT:
             return me.handled(me, event)
 
         return me.super(me, me.top)
 
 
-    @pq.Hsm.state
+    @farc.Hsm.state
     def running(me, event):
         """State: HeyMacAhsm:running
         The running state:
@@ -101,57 +101,57 @@ class HeyMacAhsm(pq.Ahsm):
         - uses GPS NMEA events to get position information
         """
         sig = event.signal
-        if sig == pq.Signal.ENTRY:
+        if sig == farc.Signal.ENTRY:
             return me.handled(me, event)
 
-        elif sig == pq.Signal.PHY_GPS_PPS:
+        elif sig == farc.Signal.PHY_GPS_PPS:
             time_of_pps = event.value
             me.dscpln.update_pps(time_of_pps)
             return me.handled(me, event)
 
-        elif sig == pq.Signal.PHY_RXD_DATA:
+        elif sig == farc.Signal.PHY_RXD_DATA:
             rx_time, payld, rssi, snr = event.value
             me.on_rxd_frame(me, rx_time, payld, rssi, snr)
             # immediate rx continuous
             rx_args = (-1, phy_cfg.rx_freq)
-            pq.Framework.post(pq.Event(pq.Signal.RECEIVE, rx_args), "SX127xSpiAhsm")
+            farc.Framework.post(farc.Event(farc.Signal.RECEIVE, rx_args), "SX127xSpiAhsm")
             return me.handled(me, event)
 
-        elif sig == pq.Signal.GPS_NMEA:
+        elif sig == farc.Signal.GPS_NMEA:
             me.gps_gprmc = event.value
             return me.handled(me, event)
 
-        elif sig == pq.Signal.SIGTERM:
+        elif sig == farc.Signal.SIGTERM:
             return me.tran(me, me.exiting)
 
-        elif sig == pq.Signal.EXIT:
+        elif sig == farc.Signal.EXIT:
             return me.handled(me, event)
 
         return me.super(me, me.top)
 
 
-    @pq.Hsm.state
+    @farc.Hsm.state
     def listening(me, event):
         """State: HeyMacAhsm:running:listening
         Listens to radio and GPS for timing discipline sources.
         Transitions to Scheduling after listening for N superframes.
         """
         sig = event.signal
-        if sig == pq.Signal.ENTRY:
+        if sig == farc.Signal.ENTRY:
             logging.info("LISTENING")
             # rx continuously on the rx_freq
             value = (-1, phy_cfg.rx_freq)
-            pq.Framework.post(pq.Event(pq.Signal.RECEIVE, value), "SX127xSpiAhsm")
+            farc.Framework.post(farc.Event(farc.Signal.RECEIVE, value), "SX127xSpiAhsm")
             listen_secs = mac_cfg.N_SFRAMES_TO_LISTEN * (2 ** me.sf_order) / mac_cfg.TSLOTS_PER_SEC
             me.tm_evt.postIn(me, listen_secs)
             return me.handled(me, event)
 
-        elif sig == pq.Signal.TM_EVT_TMOUT:
+        elif sig == farc.Signal.TM_EVT_TMOUT:
             # listening timer has expired, transition to beaconing
             return me.tran(me, me.beaconing)
 
         # NOTE: This handler is for logging print and may be removed
-        elif sig == pq.Signal.PHY_GPS_PPS: # GPS pulse per second pin event
+        elif sig == farc.Signal.PHY_GPS_PPS: # GPS pulse per second pin event
             logging.info("pps            %f", event.value)
             # process PPS in the running state, too
             return me.super(me, me.running)
@@ -159,49 +159,49 @@ class HeyMacAhsm(pq.Ahsm):
         return me.super(me, me.running)
 
 
-    @pq.Hsm.state
+    @farc.Hsm.state
     def beaconing(me, event):
         """State: HeyMacAhsm:running:beaconing
         Uses timing discipline to tx beacons.
         """
         sig = event.signal
-        if sig == pq.Signal.ENTRY:
+        if sig == farc.Signal.ENTRY:
             logging.info("BEACONING")
             # Pick a beacon slot
             me.bcn_slot = me.pick_bcn_slot(me)
             logging.info("bcn_slot (%d / %d)" % (me.bcn_slot, 2 ** me.sf_order))
             # Calc the start of Tslots
-            now = pq.Framework._event_loop.time()
+            now = farc.Framework._event_loop.time()
             me.next_tslot = me.dscpln.get_time_of_next_tslot(now)
             logging.info("next_tslot = %f", me.next_tslot)
             me.tm_evt.postAt(me, me.next_tslot - mac_cfg.TSLOT_PREP_TIME)
             return me.handled(me, event)
 
-        elif sig == pq.Signal.TM_EVT_TMOUT:
+        elif sig == farc.Signal.TM_EVT_TMOUT:
             me.beaconing_and_next_tslot(me)
             return me.handled(me, event)
 
-        elif sig == pq.Signal.MAC_TX_REQ:
+        elif sig == farc.Signal.MAC_TX_REQ:
             me.txq.insert(0, event.value)
             return me.handled(me, event)
 
-        elif sig == pq.Signal.EXIT:
+        elif sig == farc.Signal.EXIT:
             me.tm_evt.disarm()
             return me.handled(me, event)
 
         return me.super(me, me.running)
 
 
-    @pq.Hsm.state
+    @farc.Hsm.state
     def networking(me, event):
         """State: HeyMacAhsm:running:beaconing:networking
         Uses timing discipline to schedule packet tx and rx actions.
         """
         sig = event.signal
-        if sig == pq.Signal.ENTRY:
+        if sig == farc.Signal.ENTRY:
             logging.info("NETWORKING")
 
-        elif sig == pq.Signal.PHY_RXD_DATA:
+        elif sig == farc.Signal.PHY_RXD_DATA:
             rx_time, payld, rssi, snr = event.value
             me.on_rxd_frame(me, rx_time, payld, rssi, snr)
             return me.handled(me, event)
@@ -209,12 +209,12 @@ class HeyMacAhsm(pq.Ahsm):
         return me.super(me, me.running)
 
 
-    @pq.Hsm.state
+    @farc.Hsm.state
     def exiting(me, event):
         """State HeyMacAhsm:exiting
         """
         sig = event.signal
-        if sig == pq.Signal.ENTRY:
+        if sig == farc.Signal.ENTRY:
             logging.info("EXITING")
             return me.handled(me, event)
 
@@ -245,7 +245,7 @@ class HeyMacAhsm(pq.Ahsm):
         # Resume continuous receive after beaconing
         elif self.asn % (2 ** self.sf_order) == self.bcn_slot + 1:
             rx_args = (-1, phy_cfg.rx_freq)
-            pq.Framework.post(pq.Event(pq.Signal.RECEIVE, rx_args), "SX127xSpiAhsm")
+            farc.Framework.post(farc.Event(farc.Signal.RECEIVE, rx_args), "SX127xSpiAhsm")
 
         # Send the top pkt in the tx queue
         elif self.txq:
@@ -262,7 +262,7 @@ class HeyMacAhsm(pq.Ahsm):
         source of absolute time (time of most recent PPS) so that there is
         less accumulated error.
         """
-        now = pq.Framework._event_loop.time()
+        now = farc.Framework._event_loop.time()
         self.next_tslot = self.dscpln.get_time_of_next_tslot(now)
         self.tm_evt.postAt(self, self.next_tslot - mac_cfg.TSLOT_PREP_TIME)
 
@@ -353,7 +353,7 @@ class HeyMacAhsm(pq.Ahsm):
             ngbr_tx_slots=self.dll_data.get_bcn_slotmap(),
             )
         tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data
-        pq.Framework.post(pq.Event(pq.Signal.TRANSMIT, tx_args), "SX127xSpiAhsm")
+        farc.Framework.post(farc.Event(farc.Signal.TRANSMIT, tx_args), "SX127xSpiAhsm")
         self.mac_seq += 1
 
 
@@ -379,7 +379,7 @@ class HeyMacAhsm(pq.Ahsm):
             geoloc=self.gps_gprmc, #TODO: extract lat/lon from gprmc
             )
         tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data
-        pq.Framework.post(pq.Event(pq.Signal.TRANSMIT, tx_args), "SX127xSpiAhsm")
+        farc.Framework.post(farc.Event(farc.Signal.TRANSMIT, tx_args), "SX127xSpiAhsm")
         self.mac_seq += 1
 
 
@@ -393,7 +393,7 @@ class HeyMacAhsm(pq.Ahsm):
         self.mac_seq += 1
         frame.data = self.txq.pop()
         tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data
-        pq.Framework.post(pq.Event(pq.Signal.TRANSMIT, tx_args), "SX127xSpiAhsm")
+        farc.Framework.post(farc.Event(farc.Signal.TRANSMIT, tx_args), "SX127xSpiAhsm")
 
 
     @staticmethod

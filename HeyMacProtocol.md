@@ -7,7 +7,7 @@ HeyMac is distilled from and incompatible with IEEE 802.15.4.
 This implementation of HeyMac:
 * builds on top of [lora_driver](https://github.com/dwhall/lora_driver)
   the Physical Layer (Layer 1) LoRa radio driver.
-* is written in Python3 using the [pq](https://github.com/dwhall/pq)
+* is written in Python3 using the [farc](https://github.com/dwhall/farc)
   hierarchical state machine framework.
 
 ## HeyMac Frame version 1
