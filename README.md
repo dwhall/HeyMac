@@ -7,11 +7,13 @@ the Data Link Layer (Layer 2) a.k.a. the MAC layer.
 
 HeyMac is a TDMA-style Data Link Layer (Layer 2) designed for use with
 low data rate radio modems such as a LoRa radio module on a Raspberry Pi 3.
-HeyMac builds on top of [lora_driver](https://github.com/dwhall/lora_driver)
-the Physical Layer (Layer 1) LoRa radio driver.
+HeyMac includes a Physical Layer (Layer 1) LoRa radio driver
+copied from the [lora_driver](https://github.com/dwhall/lora_driver) project.
+
 HeyMac is written in Python3 using the [farc](https://github.com/dwhall/farc)
 hierarchical state machine framework.
 You may read about the [HeyMac protocol details here](HeyMacProtocol.md).
+HeyMac requires the asyncio module found in Python 3.4 and later.
 
 I am a licensed amateur radio operator in the USA.  So I am using frequencies,
 modulations and antenna gains that are not allowed by unlicensed individuals

@@ -11,11 +11,10 @@ Physical Layer State Machine for SPI operations to the SX127x device
 import logging
 import time
 
-import lora_driver
 import farc
 
 import phy_cfg
-
+import phy_sx127x_spi
 
 class SX127xSpiAhsm(farc.Ahsm):
 
@@ -47,7 +46,7 @@ class SX127xSpiAhsm(farc.Ahsm):
         farc.Framework.subscribe("PHY_DIO4", me)
         farc.Framework.subscribe("PHY_DIO5", me)
 
-        me.sx127x = lora_driver.SX127xSpi()
+        me.sx127x = phy_sx127x_spi.SX127xSpi()
 
         # A time event used for setting timeouts
         me.tm_evt = farc.TimeEvent("PHY_SPI_TMOUT")
@@ -146,10 +145,10 @@ class SX127xSpiAhsm(farc.Ahsm):
 
             # Enable only the RX interrupts (disable all others)
             me.sx127x.disable_irqs()
-            me.sx127x.enable_irqs(lora_driver.IRQFLAGS_RXTIMEOUT_MASK
-                | lora_driver.IRQFLAGS_RXDONE_MASK
-                | lora_driver.IRQFLAGS_PAYLOADCRCERROR_MASK
-                | lora_driver.IRQFLAGS_VALIDHEADER_MASK)
+            me.sx127x.enable_irqs(phy_sx127x_spi.IRQFLAGS_RXTIMEOUT_MASK
+                | phy_sx127x_spi.IRQFLAGS_RXDONE_MASK
+                | phy_sx127x_spi.IRQFLAGS_PAYLOADCRCERROR_MASK
+                | phy_sx127x_spi.IRQFLAGS_VALIDHEADER_MASK)
 
             # Prepare DIO0,1 to cause RxDone, RxTimeout, ValidHeader interrupts
             me.sx127x.set_dio_mapping(dio0=0, dio1=0, dio3=1)
@@ -200,12 +199,12 @@ class SX127xSpiAhsm(farc.Ahsm):
             return me.tran(me, SX127xSpiAhsm.idling)
 
         elif sig == farc.Signal.PHY_DIO1: # RX_TIMEOUT
-            me.sx127x.clear_irqs(lora_driver.IRQFLAGS_RXTIMEOUT_MASK)
+            me.sx127x.clear_irqs(phy_sx127x_spi.IRQFLAGS_RXTIMEOUT_MASK)
             return me.tran(me, SX127xSpiAhsm.idling)
 
         elif sig == farc.Signal.PHY_DIO3: # ValidHeader
             me.hdr_time = event.value
-            me.sx127x.clear_irqs(lora_driver.IRQFLAGS_VALIDHEADER_MASK)
+            me.sx127x.clear_irqs(phy_sx127x_spi.IRQFLAGS_VALIDHEADER_MASK)
             return me.handled(me, event)
 
         # If we are in Receiving but haven't received a header yet
@@ -232,8 +231,8 @@ class SX127xSpiAhsm(farc.Ahsm):
 
             # Enable only the TX interrupts (disable all others)
             me.sx127x.disable_irqs()
-            me.sx127x.enable_irqs(lora_driver.IRQFLAGS_TXDONE_MASK)
-            me.sx127x.clear_irqs(lora_driver.IRQFLAGS_TXDONE_MASK)
+            me.sx127x.enable_irqs(phy_sx127x_spi.IRQFLAGS_TXDONE_MASK)
+            me.sx127x.clear_irqs(phy_sx127x_spi.IRQFLAGS_TXDONE_MASK)
 
             # Prepare DIO0 to cause TxDone interrupt
             me.sx127x.set_dio_mapping(dio0=1)

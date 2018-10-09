@@ -1,4 +1,4 @@
-import lora_driver
+import phy_sx127x_cfg
 
 # Transmit and receive center frequencies
 tx_freq = 432.550e6
@@ -10,7 +10,7 @@ rx_freq = 432.550e6
 tx_margin = 0.005 # secs
 
 # Modem configuration
-sx127x_cfg = lora_driver.SX127xConfig(
+sx127x_cfg = phy_sx127x_cfg.SX127xConfig(
     bandwidth=250000,
     code_rate="4/6",
     implct_hdr_mode=False,

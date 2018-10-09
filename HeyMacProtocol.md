@@ -5,8 +5,8 @@ low data rate, small payload radio modems such as a Semtech LoRa device.
 HeyMac is distilled from and incompatible with IEEE 802.15.4.
 
 This implementation of HeyMac:
-* builds on top of [lora_driver](https://github.com/dwhall/lora_driver)
-  the Physical Layer (Layer 1) LoRa radio driver.
+* includes a Physical Layer (Layer 1) LoRa radio driver copied
+  from the [lora_driver](https://github.com/dwhall/lora_driver) project.
 * is written in Python3 using the [farc](https://github.com/dwhall/farc)
   hierarchical state machine framework.
 
