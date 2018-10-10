@@ -3,17 +3,17 @@
 
 import unittest
 
-import lr
+import mth_lr
 
 
 class TestLinearRegression(unittest.TestCase):
-    """Tests the lr.LinearRegression
+    """Tests the mth_lr.LinearRegression
     """
 
     def test_happy(self,):
         """Test values come from "Why all the math?", Jack Crenshaw, embedded.com, 2009/06/05
         """
-        linreg = lr.LinearRegression(4)
+        linreg = mth_lr.LinearRegression(4)
 
         linreg.update(0, 1.23)
         linreg.update(1, 1.51)
