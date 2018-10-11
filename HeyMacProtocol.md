@@ -13,9 +13,10 @@ This implementation of HeyMac:
 ## HeyMac Frame version 1
 
 The HeyMac frame is composed of three general parts: the header,
-optional information elements and the payload.
+optional information elements (IEs) and the payload.
 
 The length of a HeyMac frame MUST be conveyed by the physical layer.
+So the LoRa Explicit Header mode is used.
 
 There is no CRC or message authentication code in this layer
 because either the physical layer SHOULD have a CRC or
@@ -26,27 +27,27 @@ The topmost field in the diagram is transmitted first.
 
 ```
     +----+----+----+----+----+----+----+----+---+
-    |  Frame Control (1 octet)              |   |
+    |  Frame Control              (1 octet) |   |
     +----+----+----+----+----+----+----+----+   +
-    |  Version and Sequence (0 or 1 octet)  | C |
+    |  Resender Address  (0, 2 or 8 octets) | C |
     +----+----+----+----+----+----+----+----+ l +
-    |  Resender Address (0, 2 or 8 octets)  | e |
+    |  Pending, Ver and Sqnc (0 or 1 octet) | e |
     +----+----+----+----+----+----+----+----+ a +---+
-    |  Extended Type (0 or 1 octet)         | r |   |
+    |  Extended Type         (0 or 1 octet) | r |   |
     +----+----+----+----+----+----+----+----+ t +   +
-    |  Network ID (0 or 2 octets)           | e |   |
+    |  Network ID           (0 or 2 octets) | e |   |
     +----+----+----+----+----+----+----+----+ x + A +
     |  Destination Address (0,2 or 8 octets)| t | u |
     +----+----+----+----+----+----+----+----+   + t +
-    |  Hdr Information Elements (variable)  |   | h |
+    |  Hdr Information Elements  (variable) |   | h |
     +----+----+----+----+----+----+----+----+---+ ' +
-    |  Bdy Information Elements (variable)  | C | d |
+    |  Bdy Information Elements  (variable) | C | d |
     +----+----+----+----+----+----+----+----+ r +   +
-    |  Source Address (0, 2 or 8 octets)    | y |   |
+    |  Source Address    (0, 2 or 8 octets) | y |   |
     +----+----+----+----+----+----+----+----+ p +   +
-    |  Payload (variable)                   | t |   |
+    |  Payload                   (variable) | t |   |
     +----+----+----+----+----+----+----+----+---+---+
-    |  Msg Integrity Check (0 or N octets)  |
+    |  Msg Integrity Check  (0 or N octets) |
     +----+----+----+----+----+----+----+----+
 ```
 
@@ -62,17 +63,19 @@ Furthermore, the Pending flag is an indication of more frames to follow.
 ```
       7   6   5   4   3   2   1   0 (bit)
     +---+---+---+---+---+---+---+---+
-    |  Type | L | N | D | I | S | P |
+    |  Type | L | R | N | D | I | S |
     +-------+---+---+-------+-------+
+
+    Type := Frame Type (Min, MAC, NET, Extended)
     L := Long addressing
+    R := Resender addr present
     N := Net ID present
     D := Dst addr present
     I := IE(s) present
     S := Src addr present
-    P := Pending frame
 ```
 
-Legend:
+Details:
 
 <dl>
   <dt><strong>Type</strong></dt>
@@ -94,6 +97,14 @@ Legend:
   <dd>Long Addressing:  If 1, the resender, destination and/or source addresses
   are 8 octets (64 bits) in size, if present.
   If 0, the addresses are 2 octets (16 bits) in size, if present.
+  </dd>
+
+  <dt><strong>R</strong></dt>
+  <dd>Resender Address:  If 1, the Resender Address is present in the header.
+  The Resender Address is added to or changed within the frame by a node that detects
+  that it is responsible for routing the frame.
+  A frame recipient uses the Resender Address, the Destination Address and the recipient's
+  address to calculate if the recipient must route the frame and in which direction (up or down).
   </dd>
 
   <dt><strong>N</strong></dt>
@@ -119,16 +130,6 @@ Legend:
   If the Source Address is not present and there is no source information
   in the NET layer, the Source Address is assumed to be the Root address (0x0000).
   </dd>
-
-  <dt><strong>P</strong></dt>
-  <dd>Pending Frame:  If 1, the transmitting device has back-to-back frames
-  to send to the same recipient and expects the recipient to acknowledge the
-  current frame and then continue receiving until the frame pending bit is zero
-  in a subsequent frame.
-  <i>TBD: In TSCH mode, the frame pending bit is set to one to indicate
-  that the recipient should stay on in the next timeslot and on the same channel
-  if there is no link scheduled.</i>
-  </dd>
 </dl>
 
 A Null Frame is a HeyMac frame where the Fctl field is 0 (8b00000000)
@@ -141,14 +142,6 @@ with Fctl value of 0 and a payload is present.
 In this case the Physical layer reports the frame's length
 as greater than 1.
 
-### Version and Sequence Field
-
-The VerSeq field is present unless the Fctl Frame Type is Minimum (2b00).
-When the VerSeq field is present, it is an 8-bit unsigned value
-consisting of two sub-fields.
-The Version subfield occupies the upper 4 bits and indicates the HeyMac protocol version.
-The Sequence subfield occupies the lower 4 bits and is an unsigned sequence number.
-
 ### Resender Address Field
 
 The Resender Address field is present unless the Fctl Frame Type is Minimum (2b00).
@@ -159,6 +152,20 @@ The value of the re-sender address is either the source node's address
 or the address of an intermediate node that has identified itself
 as responsible for routing the frame along the next hop in its journey
 to the destination.
+
+### PVS: Pending, Version and Sequence Field
+
+The PVS field is present unless the Fctl Frame Type is Minimum (2b00).
+When the PVS field is present, it is an 8-bit unsigned value
+consisting of three sub-fields.
+
+The Pending subfield occupies the most-significiant bit and indicates
+the transmitting device has back-to-back frames
+to send to the same recipient and expects the recipient to acknowledge the
+current frame and then continue receiving until the Pending bit is zero
+in a subsequent frame.
+The Version subfield occupies the next 3 bits and indicates the HeyMac protocol version.
+The Sequence subfield occupies the lower 4 bits and is an unsigned sequence number.
 
 ### Extended Type Field
 
@@ -209,11 +216,14 @@ Encryption and authentication may be applied independently to a HeyMac frame.
 However, an intermediate node may disturb an encrypted frame
 if it is not also authenticated.
 If both encryption and authentication are enabled, encryption is performed first
-and authentication is performed afterward on the cleartext header data and then the
-encrypted data.
+and authentication is performed afterward.
+Authentication is performed starting at the PVS field and continuing to the end of the payload
+(which may be encrypted).
 
-The HeyMac frame structure is organized so that encryption and authentication are
-performed on contiguous frame octets.
+The HeyMac frame structure is specifically organized so that (1) encryption and authentication are
+performed on contiguous frame octets and (2) a frame that is routed over multiple hops
+may have its Resender Address changed by the routing node without disturbing the
+encrypted or authenticated data.
 
 ### HeyMac Encryption
 
@@ -237,4 +247,4 @@ HeyMac offers a method to append a truncated MIC if there is limited space
 remaining in the physical payload.
 Statistical assurances are reduced when the MIC is truncated,
 but may be partially regained through chaining and succesful authentication of
-numerous consecutive frames (not specified by HeyMac).
+consecutive frames (not specified by HeyMac).

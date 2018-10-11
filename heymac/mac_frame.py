@@ -1,3 +1,17 @@
+"""
+Copyright 2018 Dean Hall.  See LICENSE file for details.
+
+HeyMac Frame structure definition
+and methods to get/set frame fields.
+
+This file requires the excellent third-party module 'dpkt'
+which may be installed via::
+
+    pip3 install dpkt
+
+"""
+
+
 import logging
 import struct
 
@@ -14,7 +28,22 @@ FCTL_TYPE_MIN = 0b00
 FCTL_TYPE_MAC = 0b01
 FCTL_TYPE_NET = 0b10
 FCTL_TYPE_EXT = 0b11
+FCTL_TYPE_MASK = 0b11000000
 FCTL_TYPE_SHIFT = 6
+FCTL_L_SHIFT = 5
+FCTL_R_SHIFT = 4
+FCTL_N_SHIFT = 3
+FCTL_D_SHIFT = 2
+FCTL_I_SHIFT = 1
+FCTL_S_SHIFT = 0
+
+# Pend Ver Seq (PVS) subfield values
+PVS_P_MASK = 0b10000000
+PVS_P_SHIFT = 7
+PVS_V_MASK = 0b01110000
+PVS_V_SHIFT = 4
+PVS_S_MASK = 0b00001111
+PVS_S_SHIFT = 0
 
 
 class HeyMacFrame(dpkt.Packet):
@@ -28,8 +57,8 @@ class HeyMacFrame(dpkt.Packet):
         # Fctl is the only field guaranteed to be present.
         # Below this are optional fields as indicated by '0s'.
         # The underscore prefix means do not access that field directly.
-        # Access properties .ver and .seq, instead.
-        ('_ver_seq', '0s', b''),
+        # Access properties .pend, .ver and .seq, instead.
+        ('_pvs', '0s', b''),
         ('raddr', '0s', b''),
         ('exttype', '0s', b''),
         ('netid', '0s', b''),
@@ -40,12 +69,12 @@ class HeyMacFrame(dpkt.Packet):
     )
 
     # Functions to help determine which fields are present
-    def _has_verseq_field(self,): # VerSeq exists in all but Min frame types
-        return self.fctl_type != FCTL_TYPE_MIN
-    def _has_raddr_field(self,): # Resender addr exists in all but Min frame types
+    def _has_pvs_field(self,): # PVS exists in all but Min frame types
         return self.fctl_type != FCTL_TYPE_MIN
     def _has_exttype_field(self,): # ExtType exists when Fctl type is Extended
         return self.fctl_type == FCTL_TYPE_EXT
+    def _has_raddr_field(self,):
+        return self.fctl_r != 0
     def _has_netid_field(self,):
         return self.fctl_n != 0
     def _has_daddr_field(self,):
@@ -95,6 +124,7 @@ class HeyMacFrame(dpkt.Packet):
         # FIXME
         return (0,0)
 
+
     # Getters for the _fctl field
     @property
     def fctl(self,):
@@ -106,43 +136,44 @@ class HeyMacFrame(dpkt.Packet):
     def fctl_type(self,):
         """Gets the frame type value from the Fctl field.
         """
-        return 0b11 & (self._fctl >> 6)
+        return ((self._fctl & FCTL_TYPE_MASK) >> FCTL_TYPE_SHIFT)
 
     @property
     def fctl_l(self,):
         """Gets the Long address flag from the Fctl field.
         """
-        return 1 & (self._fctl >> 5)
+        return 1 & (self._fctl >> FCTL_L_SHIFT)
+
+    @property
+    def fctl_r(self,):
+        """Gets the Resender address present flag from the Fctl field.
+        """
+        return 1 & (self._fctl >> FCTL_R_SHIFT)
 
     @property
     def fctl_n(self,):
         """Gets the NetID present flag from the Fctl field.
         """
-        return 1 & (self._fctl >> 4)
+        return 1 & (self._fctl >> FCTL_N_SHIFT)
 
     @property
     def fctl_d(self,):
         """Gets the Dest address present flag from the Fctl field.
         """
-        return 1 & (self._fctl >> 3)
+        return 1 & (self._fctl >> FCTL_D_SHIFT)
 
     @property
     def fctl_i(self,):
         """Gets the IE present flag from the Fctl field.
         """
-        return 1 & (self._fctl >> 2)
+        return 1 & (self._fctl >> FCTL_I_SHIFT)
 
     @property
     def fctl_s(self,):
         """Gets the Src address present flag from the Fctl field.
         """
-        return 1 & (self._fctl >> 1)
+        return 1 & (self._fctl >> FCTL_S_SHIFT)
 
-    @property
-    def fctl_p(self,):
-        """Gets the Pending frame flag from the Fctl field.
-        """
-        return 1 & (self._fctl >> 0)
 
     # Setters for the _fctl field
     @fctl.setter
@@ -154,83 +185,111 @@ class HeyMacFrame(dpkt.Packet):
     @fctl_type.setter
     def fctl_type(self, val):
         """Sets the frame type value in the Fctl field.
+        If the frame type is not MIN, sets the frame version to HEYMAC_VERSION
+        in the PVS field (if the PVS field does not yet exist).
         """
-        assert val & 0b11111100 == 0, "Invalid frame type"
-        self._fctl = (self._fctl & 0b00111111) | (val << 6)
+        assert val <= 3, "Invalid frame type"
+        self._fctl = (self._fctl & ~FCTL_TYPE_MASK) | (val << FCTL_TYPE_SHIFT)
+        if val != 0 and not hasattr(self, "_pvs"):
+            self._pvs = HEYMAC_VERSION << PVS_V_SHIFT
+
+    def _fctl_setter_for_bit(self, val, bit_idx):
+        """Sets or clears one of the L,R,N,D,I,S bits
+        without modifying the Type bits.
+        """
+        assert 0 <= val <= 1
+        assert 0 <= bit_idx <= 7
+        self._fctl &= (FCTL_TYPE_MASK | ~(1 << bit_idx))
+        self._fctl |= (val << bit_idx)
 
     @fctl_l.setter
     def fctl_l(self, val):
         """Sets the Long address flag in the Fctl field.
         """
-        assert val & ~1 == 0, "Invalid value (must be 0 or 1)"
-        self._fctl = (self._fctl & 0b11011111) | (val << 5)
+        return self._fctl_setter_for_bit(val, FCTL_L_SHIFT)
+
+    @fctl_r.setter
+    def fctl_r(self, val):
+        """Sets the Resender address present flag in the Fctl field.
+        """
+        return self._fctl_setter_for_bit(val, FCTL_R_SHIFT)
 
     @fctl_n.setter
     def fctl_n(self, val):
         """Sets the NetID present flag in the Fctl field.
         """
-        assert val & ~1 == 0, "Invalid value (must be 0 or 1)"
-        self._fctl = (self._fctl & 0b11101111) | (val << 4)
-
+        return self._fctl_setter_for_bit(val, FCTL_N_SHIFT)
 
     @fctl_d.setter
     def fctl_d(self, val):
         """Sets the Dest address present flag in the Fctl field.
         """
-        assert val & ~1 == 0, "Invalid value (must be 0 or 1)"
-        self._fctl = (self._fctl & 0b11110111) | (val << 3)
-
+        return self._fctl_setter_for_bit(val, FCTL_D_SHIFT)
 
     @fctl_i.setter
     def fctl_i(self, val):
         """Sets the IEs present flag in the Fctl field.
         """
-        assert val & ~1 == 0, "Invalid value (must be 0 or 1)"
-        self._fctl = (self._fctl & 0b11111011) | (val << 2)
-
+        return self._fctl_setter_for_bit(val, FCTL_I_SHIFT)
 
     @fctl_s.setter
     def fctl_s(self, val):
         """Sets the Source address present flag in the Fctl field.
         """
-        assert val & ~1 == 0, "Invalid value (must be 0 or 1)"
-        self._fctl = (self._fctl & 0b11111101) | (val << 1)
+        return self._fctl_setter_for_bit(val, FCTL_S_SHIFT)
 
 
-    @fctl_p.setter
-    def fctl_p(self, val):
-        """Sets the Pending frame present flag in the Fctl field.
+    # Getters for the _pvs field
+    @property
+    def pend(self,):
+        """Gets the Pending value from the PVS field.
         """
-        assert val & ~1 == 0, "Invalid value (must be 0 or 1)"
-        self._fctl = (self._fctl & 0b11111110) | (val << 0)
+        if self._pvs:
+            return (self._pvs[0] & PVS_P_MASK) >> PVS_P_SHIFT
+        else:
+            return b""
 
-
-    # Getters for underscore-prefixed fields
     @property
     def ver(self,):
-        """Gets the version value from the VerSeq field.
+        """Gets the Version value from the PVS field.
         """
-        if self._ver_seq:
-            return (self._ver_seq[0] & 0xF0) >> 4
+        if self._pvs:
+            return (self._pvs[0] & PVS_V_MASK) >> PVS_V_SHIFT
         else:
-            return None
+            return b""
 
     @property
     def seq(self,):
-        """Gets the sequence value from the VerSeq field.
+        """Gets the Sequence value from the PVS field.
         """
-        if self._ver_seq:
-            return self._ver_seq[0] & 0x0F
+        if self._pvs:
+            return (self._pvs[0] & PVS_S_MASK) >> PVS_S_SHIFT
         else:
-            return None
+            return b""
 
-    # Setters for underscore-prefixed fields
+
+    # Setters for the _pvs field
+    @pend.setter
+    def pend(self, p):
+        """Sets the Pending value in the PVS field.
+        """
+        pvs = 0
+        if self._pvs:
+            pvs = self._pvs[0] & ~PVS_P_MASK
+        if p:
+            pvs |= PVS_P_MASK
+        self._pvs = pvs.to_bytes(1, "big")
+
     @seq.setter
     def seq(self, s):
-        """Sets the sequence value in the VerSeq field.
+        """Sets the sequence value in the PVS field.
+        Also sets the version to HEYMAC_VERSION.
         """
-        vs = (HEYMAC_VERSION << 4) | (s & 0x0F)
-        self._ver_seq = vs.to_bytes(1, "big")
+        pvs = 0
+        if self._pvs:
+            pvs = self._pvs[0] & ~PVS_S_MASK
+        pvs |= (HEYMAC_VERSION << PVS_V_SHIFT) | (s << PVS_S_SHIFT)
+        self._pvs = pvs.to_bytes(1, "big")
 
 
     def unpack(self, buf):
@@ -240,18 +299,18 @@ class HeyMacFrame(dpkt.Packet):
         """
         super().unpack(buf)
 
-        if self._has_verseq_field():
-            if len(self.data) < 1:
-                raise dpkt.NeedData("for verseq")
-            self._ver_seq = self.data[0:1]
-            self.data = self.data[1:]
-
         if self._has_raddr_field():
             sz = self._sizeof_raddr_field()
             if len(self.data) < sz:
                 raise dpkt.NeedData("for raddr")
             self.raddr = self.data[0:sz]
             self.data = self.data[sz:]
+
+        if self._has_pvs_field():
+            if len(self.data) < 1:
+                raise dpkt.NeedData("for pvs")
+            self._pvs = self.data[0:1]
+            self.data = self.data[1:]
 
         if self._has_exttype_field():
             if len(self.data) < 1:
@@ -289,14 +348,18 @@ class HeyMacFrame(dpkt.Packet):
 
         # Unpack the payload for known frame types
         if self.fctl_type == FCTL_TYPE_MAC:
-            if self.data and self.data[0] == mac_cmds.HeyMacCmdId.SBCN.value:
-                self.data = mac_cmds.HeyMacCmdSbcn(self.data)
-            elif self.data and self.data[0] == mac_cmds.HeyMacCmdId.EBCN.value:
-                self.data = mac_cmds.HeyMacCmdEbcn(self.data)
-            elif self.data and self.data[0] == mac_cmds.HeyMacCmdId.TXT.value:
-                self.data = mac_cmds.HeyMacCmdTxt(self.data)
-            else:
-                logging.info("unsupp MAC cmd %f", self.next_tslot)
+            if self.data:
+                if self.data[0] == mac_cmds.HeyMacCmdId.SBCN.value:
+                    self.data = mac_cmds.HeyMacCmdSbcn(self.data)
+                elif self.data[0] == mac_cmds.HeyMacCmdId.EBCN.value:
+                    self.data = mac_cmds.HeyMacCmdEbcn(self.data)
+                elif self.data[0] == mac_cmds.HeyMacCmdId.TXT.value:
+                    self.data = mac_cmds.HeyMacCmdTxt(self.data)
+                else:
+                    logging.info("unsupp MAC cmd %f", self.data[0])
+            # else:
+            #     raise dpkt.NeedData("for MAC payld")
+
 
     def pack_hdr(self):
         """Packs header attributes into a bytes object.
@@ -306,29 +369,32 @@ class HeyMacFrame(dpkt.Packet):
         d = []
         nbytes = 0
 
-        # If Fctl indicates VerSeq should be present
-        # and VerSeq was not set by the caller,
-        # set the sequence to zero
-        # (which also implicitly sets the version)
-        if self._has_verseq_field() and not self._ver_seq:
-            self.seq = 0
+        # Skip Fctl field for now, insert it at the end of this function
 
-        # If VerSeq was set by caller
-        if self._ver_seq:
-            # If Fctl type is MIN, error
-            if not self._has_verseq_field():
-                raise dpkt.PackError("VerSeq set but Fctl type is MIN")
-            nbytes += 1
-            d.append(self._ver_seq)
-
-        if self._has_raddr_field():
-            if not self.raddr:
-                raise dpkt.PackError("Resender addr not specified")
+        if self.raddr:
             len_raddr = len(self.raddr)
             nbytes += len_raddr
             if len_raddr == 8:
                 self.fctl_l = 1
+                self.fctl_r = 1
+            elif len_raddr == 2:
+                self.fctl_r = 1
             d.append(self.raddr)
+
+        # If Fctl indicates PVS should be present
+        # and PVS was not set by the caller,
+        # set the sequence to zero
+        # (which also implicitly sets the version)
+        if self._has_pvs_field() and not self._pvs:
+            self.seq = 0
+
+        # If PVS was set by caller
+        if self._pvs:
+            # If Fctl type is MIN, error
+            if not self._has_pvs_field():
+                raise dpkt.PackError("PVS set but Fctl type is MIN")
+            nbytes += 1
+            d.append(self._pvs)
 
         if self._has_exttype_field() and not self.exttype:
             self.exttype = b'\x00'

@@ -9,3 +9,5 @@ if sys.platform == "linux":
 else:
     import mock_gpio as GPIO
     import mock_serial as serial
+
+from .mac_frame import *
