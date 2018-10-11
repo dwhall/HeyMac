@@ -18,7 +18,7 @@ import socket
 
 import farc
 
-import cfg
+import utl
 import dll_data
 import mac_cfg
 import mac_cmds

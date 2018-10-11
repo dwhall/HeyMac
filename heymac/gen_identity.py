@@ -13,7 +13,7 @@ import json
 import os.path
 import random
 
-import cfg
+import utl
 
 
 def gen_keypair():
