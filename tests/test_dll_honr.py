@@ -42,6 +42,24 @@ class TestDllHonr(unittest.TestCase):
         with self.assertRaises(AssertionError): dll_honr.get_nearest_common_ancestor(b"\x00\x00\x00\x00\x00\x00\x00\x00", b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01")
 
 
+    def test_get_parent(self,):
+        # Ensure a constant
+        self.assertEqual(dll_honr.ROOT2, b"\x00\x00")
+        # Parent of Root is None
+        self.assertEqual(dll_honr.get_parent(b"\x00\x00"), None)
+        # Parent matches
+        self.assertEqual(dll_honr.get_parent(b"\x10\x00"), b"\x00\x00")
+        self.assertEqual(dll_honr.get_parent(b"\x38\xA0"), b"\x38\x00")
+        self.assertEqual(dll_honr.get_parent(b"\xFF\xFF"), b"\xFF\xF0")
+        # Parent mismatches
+        self.assertNotEqual(dll_honr.get_parent(b"\x00\x00"), b"\x00\x00")
+        self.assertNotEqual(dll_honr.get_parent(b"\x20\x00"), b"\x10\x00")
+        self.assertNotEqual(dll_honr.get_parent(b"\x21\x00"), b"\x10\x00")
+        self.assertNotEqual(dll_honr.get_parent(b"\xFF\x00"), b"\xFF\x00")
+        self.assertNotEqual(dll_honr.get_parent(b"\xFF\x00"), b"\x0F\x00")
+        self.assertNotEqual(dll_honr.get_parent(b"\x38\xC9"), b"\xC9\x00")
+
+
     def test_get_route(self,):
         # Happy cases
         self.assertEqual(dll_honr.get_route(b"\x00\x00", b"\x00\x00"), [b"\x00\x00"])

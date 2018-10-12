@@ -2,15 +2,92 @@
 """
 Copyright 2018 Dean Hall.  See LICENSE for details.
 
-Data Link Layer (layer 2) Addressing and Routing.
+HONR: Hierarchically Ordered Numerical Routing
+
+Abstract
+--------
+
+HeyMac is comparable to the `IEEE 802.15.4`_ MAC layer and the 6LoWPAN_ data link layer
+and is able to re-use ideas from the IETF ROLL_ and 6LoWPAN working groups
+to solve the problems of ad-hoc node addressing and multi-hop message routing.
+
+HONR is a method of hierarchical addressing similar to HiLow_
+where each node may have up to fifteen children.
+HONR's numbering method differs from HiLow slightly to improve
+the human readability of the addresses.
+
+.. _`IEEE 802.15.4`: https://en.wikipedia.org/wiki/IEEE_802.15.4
+.. _ROLL: https://datatracker.ietf.org/wg/roll/about/
+.. _6LoWPAN: https://datatracker.ietf.org/wg/6lowpan/charter/
+.. _HiLow: https://tools.ietf.org/html/draft-daniel-6lowpan-hilow-hierarchical-routing-01
+
+
+Introduction
+------------
+
+HONR is a Data Link Layer (layer 2) Addressing and Routing method
+that organizes participating nodes into a DAG
+by assigning hierarchially formed two or eight octet addresses
+and routes messages between nodes by passing the message along the DAG.
+
+Two octet addresses allow networks to have 5 layers (ranks 0..4),
+or eight hops between two nodes having only the root as a common ancestor.
+Whereas eight octet addressing allows networks to have 17 layers (ranks 0..16)
+or thirty-two hops between two maximally-distant nodes.
+The remainder of this document only deals with two-octet addressing
+as eight-octet addressing will only be implemented if necessary.
+
+The root of the network is given the special address, zero (0x000).
+All other addresses are calculated by replacing the left-most-zero
+in the parent's address with a value (decimal 1..15 or hex 1..F).
+The nodes that have the Root as their parent (a.k.a. Rank 1 nodes),
+have all nibbles except the leftmost set to zero.
+
+Rank 1 Example::
+
+    Parent:     0x0000  (root)
+    Child1:     0x1000
+    Child15:    0xF000
+
+Rank 2 nodes have theif left-most nibble set to match
+their Rank 1 parent's first nibble and their second-to-left-most nibble
+set to uniquely identify themselves.
+
+Rank 2 Example::
+
+    Parent:     0xA000
+    Child1:     0xA100
+    Child15:    0xAF00
+
+In a DAG, routing is either "up" or "down".
+Upward routes travel toward the DAG's root.
+Downward routes travel toward a leaf node.
+
+Example DAG::
+
+    Root:                       0x0000
+                                |
+                +-------+-------+-------+-------+-------+
+                |       |       |       |       |       |
+    Rank 1:     0x1000  0x2000  0x5000  0x7000  0xA000  0xC000
+                |                       |               |
+                +-------+       +-------+               +
+                |       |       |       |               |
+    Rank 2:     0x1100  0x1800  0x7200  0x7C00          0xC500
+
 
 Terminology
+-----------
 
 DAG:
     Directed Acyclic Graph
 
-HONR:
-    Hierarchically Ordered Numerical Routing
+Root:
+    The logical first node in a DAG to which the first layer of nodes attach.
+
+
+Software Implementation Details
+-------------------------------
 
 External Address:
     All code outside this module uses Python's
@@ -25,28 +102,11 @@ Internal Representation:
     so that each nibble of the addressed may be indexed
     This module's private procedures (having a preceding underscore)
     use external addresses for arguments and return values.
-
-Routing
-
-In a DAG, routing is either "up" or "down".
-Upward routes travel toward the DAG's root.
-Downward routes travel toward a leaf node.
-
-The Root enjoys the all-zero address: 0000.
-The nodes that have the Root as their parent (a.k.a. Rank 1 nodes), have all nibbles set to zero except the leftmost one.
-Rank 2 nodes have theif left-most nibble set to match their Rank 1 parent's first nibble
-and their second-to-left-most nibble set to uniquely identify themselves.
-
-Root:                       0000
-                            |
-            +-------+-------+-------+-------+-------+
-            |       |       |       |       |       |
-Rank 1:     1000    2000    5000    7000    A000    C000
-            |                       |               |
-            +-------+       +-------+               +
-            |       |       |       |               |
-Rank 2:     1100    1800    7200    7C00            C500
 """
+
+
+# Two-octet root address
+ROOT2 = b"\x00\x00"
 
 
 def _to_internal_repr(addrx):
@@ -95,6 +155,24 @@ def _get_nearest_common_ancestor(srci, dsti):
             break
 
     return ncai
+
+
+def get_parent(addrx):
+    """Returns the given address's parent address.
+    Returns None if the Root address is given.
+    """
+    addri = _to_internal_repr(addrx)
+    return _get_parent(addri)
+
+def _get_parent(addri):
+    assert _is_addr_valid(addri)
+    if sum(addri) == 0:
+        return None
+    leftzero = addri.find(0)
+    if leftzero == -1:
+        leftzero = len(addri)
+    addri[leftzero - 1] = 0
+    return _to_external_addr(addri)
 
 
 def get_route(srcx, dstx):
