@@ -60,6 +60,18 @@ class TestDllHonr(unittest.TestCase):
         self.assertNotEqual(dll_honr.get_parent(b"\x38\xC9"), b"\xC9\x00")
 
 
+    def test_get_rank(self,):
+        # Happy cases
+        self.assertEqual(dll_honr.get_rank(b"\x00\x00"), 0)
+        self.assertEqual(dll_honr.get_rank(b"\x10\x00"), 1)
+        self.assertEqual(dll_honr.get_rank(b"\x22\x00"), 2)
+        self.assertEqual(dll_honr.get_rank(b"\xCC\xC0"), 3)
+        self.assertEqual(dll_honr.get_rank(b"\xFF\xFF"), 4)
+        # Rank mismatches
+        self.assertNotEqual(dll_honr.get_rank(b"\x00\x00"), 1)
+        self.assertNotEqual(dll_honr.get_rank(b"\xFF\xFF"), 2)
+
+
     def test_get_route(self,):
         # Happy cases
         self.assertEqual(dll_honr.get_route(b"\x00\x00", b"\x00\x00"), [b"\x00\x00"])

@@ -165,14 +165,25 @@ def get_parent(addrx):
     return _get_parent(addri)
 
 def _get_parent(addri):
-    assert _is_addr_valid(addri)
     if sum(addri) == 0:
         return None
+    leftzero = _get_rank(addri)
+    addri[leftzero - 1] = 0
+    return _to_external_addr(addri)
+
+
+def get_rank(addrx):
+    """Retuns the rank of the given address [integer]
+    """
+    addri = _to_internal_repr(addrx)
+    return _get_rank(addri)
+
+def _get_rank(addri):
+    assert _is_addr_valid(addri)
     leftzero = addri.find(0)
     if leftzero == -1:
         leftzero = len(addri)
-    addri[leftzero - 1] = 0
-    return _to_external_addr(addri)
+    return leftzero
 
 
 def get_route(srcx, dstx):
@@ -187,10 +198,8 @@ def get_route(srcx, dstx):
 def _get_route(srci, dsti):
     route = []
     ncai = _get_nearest_common_ancestor(srci, dsti)
-    curi = srci
-    leftzero = curi.find(0)
-    if leftzero == -1:
-        leftzero = len(srci)
+    curi = srci.copy()
+    leftzero = _get_rank(curi)
     while curi != ncai:
         route.append(curi.copy())
         leftzero -= 1
