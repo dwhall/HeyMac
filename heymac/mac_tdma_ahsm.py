@@ -18,17 +18,17 @@ import socket
 
 import farc
 
-import utl
 import dll_data
 import mac_cfg
 import mac_cmds
 import mac_discipline
 import mac_frame
 import phy_cfg
+import utl
 
 
 # Turn user JSON config files into Python dicts
-mac_identity = cfg.get_from_json("HeyMac", "mac_identity.json")
+mac_identity = utl.get_from_json("HeyMac", "mac_identity.json")
 # Convert hex bytes to bytearray since JSON can't do binary strings
 mac_identity['pub_key'] = bytearray.fromhex(mac_identity['pub_key'])
 

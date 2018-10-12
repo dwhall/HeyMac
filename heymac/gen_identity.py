@@ -50,7 +50,7 @@ if __name__ == "__main__":
     callsign = input("Callsign: ")
     _, pub_key = gen_device_keypair()
 
-    fn = os.path.join(cfg.get_app_data_path("HeyMac"), "mac_identity.json")
+    fn = os.path.join(utl.get_app_data_path("HeyMac"), "mac_identity.json")
     with open(fn, 'w') as f:
         json_str = json.dumps({
             "name": name,
