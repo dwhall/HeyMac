@@ -23,6 +23,14 @@ class APv6Frame(dpkt.Packet):
     IPHC_SAM_SHIFT = 1
     IPHC_DAM_SHIFT = 0
 
+    IPHC_HLIM_INLINE = 0b00 # HopLimit (1 Byte) follows IPHC
+    IPHC_HLIM_1 = 0b01
+    IPHC_HLIM_64 = 0b10
+    IPHC_HLIM_255 = 0b11
+
+    IPHC_ADDR_MODE_128 = 0 # full 128-bit address is in-lin
+    IPHC_ADDR_MODE_0 = 1 # address is elided
+
     APV6_PREFIX = 0b110 << IPHC_PREFIX_SHIFT
 
 
@@ -31,8 +39,20 @@ class APv6Frame(dpkt.Packet):
         # The underscore prefix means do not access that field directly.
         # Access properties .iphc, .iphc_nh, etc. instead.
         ('_iphc', 'B', APV6_PREFIX),
+        ('hops', '0s', b''),
+        ('src', '0s', b''),
+        ('dst', '0s', b''),
+        # The NextHeader fields that may follow
+        # are defined by sub-classes of APv6Frame
     )
 
+    # Functions to help determine which fields are present
+    def _has_hops_field(self,):
+        return ((self._iphc & APv6Frame.IPHC_HLIM_MASK ) >> APv6Frame.IPHC_HLIM_SHIFT) == APv6Frame.IPHC_HLIM_INLINE
+    def _has_src_field(self,):
+        return ((self._iphc & APv6Frame.IPHC_SAM_MASK ) >> APv6Frame.IPHC_SAM_SHIFT) == APv6Frame.IPHC_ADDR_MODE_128
+    def _has_dst_field(self,):
+        return ((self._iphc & APv6Frame.IPHC_DAM_MASK ) >> APv6Frame.IPHC_DAM_SHIFT) == APv6Frame.IPHC_ADDR_MODE_128
 
     # Getters for the _iphc subfields
     @property
@@ -81,7 +101,7 @@ class APv6Frame(dpkt.Packet):
     def iphc(self, val):
         """Sets the whole value of the IPHC field.
         """
-        assert val & APv6Frame.IPHC_PREFIX_MASK == APV6_PREFIX, "Invalid APv6 prefix"
+        assert val & APv6Frame.IPHC_PREFIX_MASK == APv6Frame.APV6_PREFIX, "Invalid APv6 prefix"
         self._iphc = 0xFF & val
 
     @iphc_nh.setter
@@ -109,44 +129,81 @@ class APv6Frame(dpkt.Packet):
         self._iphc = (self._iphc & ~APv6Frame.IPHC_DAM_MASK) | ((val & 1) << APv6Frame.IPHC_DAM_SHIFT)
 
 
+    def unpack(self, buf):
+        """Unpacks a bytes object into component attributes.
+        This function is called when an instance of this class is created
+        by passing a bytes object to the constructor
+        """
+        super().unpack(buf)  # unpacks _iphc
+
+        if self._has_hops_field():
+            if len(self.data) < 1:
+                raise dpkt.NeedData("for hops")
+            self.hops = self.data[0]
+            self.data = self.data[1:]
+
+        if self._has_src_field():
+            if len(self.data) < 1:
+                raise dpkt.NeedData("for src")
+            self.src = self.data[0:8]
+            self.data = self.data[8:]
+
+        if self._has_dst_field():
+            if len(self.data) < 1:
+                raise dpkt.NeedData("for dst")
+            self.dst = self.data[0:8]
+            self.data = self.data[8:]
+
+
 class APv6Udp(APv6Frame):
     """APv6 UDP packet definition
-    Inherits from APv6Frame in order to re-use setters/getters for the IPHC byte.
+    Inherits from APv6Frame in order to re-use setters/getters for the IPHC, Hops, Src and Dst fields.
     Derived from RFC6282
     """
     APV6_UDP_HDR_TYPE = 0xF0
 
     HDR_TYPE_MASK = 0b11111000
-    HDR_ENC_CO_MASK = 0b00000100
-    HDR_ENC_PORTS_MASK = 0b00000011
+    HDR_CO_MASK = 0b00000100
+    HDR_PORTS_MASK = 0b00000011
 
     HDR_TYPE_SHIFT = 3
-    HDR_ENC_CO_SHIFT = 2
-    HDR_ENC_PORTS_SHIFT = 0
+    HDR_CO_SHIFT = 2
+    HDR_PORTS_SHIFT = 0
+
+    HDR_PORTS_SRC_INLN_DST_INLN = 0b00
+    HDR_PORTS_SRC_INLN_DST_F0XX = 0b01
+    HDR_PORTS_SRC_F0XX_DST_INLN = 0b10
+    HDR_PORTS_SRC_F0BX_DST_F0BX = 0b11
 
     __hdr__ = (
         # The underscore prefix means do not access that field directly.
         # Access properties .hdr_co and .hdr_ports, instead.
-        ('_iphc', 'B', APv6Frame.APV6_PREFIX),
-        ('_hdr_enc', 'B', APV6_UDP_HDR_TYPE), # RFC6282 4.3.3.  UDP LOWPAN_NHC Format
+        ('_hdr', 'B', APV6_UDP_HDR_TYPE), # RFC6282 4.3.3.  UDP LOWPAN_NHC Format
         # Fields below this are optional or variable-length
         ('chksum', '0s', b''),
         ('src_port', '0s', b''),
         ('dst_port', '0s', b''),
     )
 
-    # Getters of _hdr_enc
+    # Getters of _hdr
+    @property
+    def hdr_type(self,):
+        """Returns UDP Header's Type field.
+        RFC6282 defines this value to be (0b11110 << 3)
+        """
+        return (self._hdr & APv6Udp.HDR_TYPE_MASK) >> APv6Udp.HDR_TYPE_SHIFT
+
     @property
     def hdr_co(self,):
         """Returns UDP Header's Checksum Omit flag
         """
-        return (self._hdr_enc & APv6Udp.HDR_ENC_CO_MASK) >> APv6Udp.HDR_ENC_CO_SHIFT
+        return (self._hdr & APv6Udp.HDR_CO_MASK) >> APv6Udp.HDR_CO_SHIFT
 
     @property
     def hdr_ports(self,):
         """Returns UDP Header's Ports value
         """
-        return (self._hdr_enc & APv6Udp.HDR_ENC_PORTS_MASK) >> APv6Udp.HDR_ENC_PORTS_SHIFT
+        return (self._hdr & APv6Udp.HDR_PORTS_MASK) >> APv6Udp.HDR_PORTS_SHIFT
 
 
     def unpack(self, buf):
@@ -154,29 +211,39 @@ class APv6Udp(APv6Frame):
         This function is called when an instance of this class is created
         by passing a bytes object to the constructor
         """
-        super().unpack(buf)
+        super().unpack(buf) # unpacks _hdr
 
-        # TODO: raise a dpkt exception:
-        assert self._hdr_enc & APv6Udp.HDR_TYPE_MASK == APv6Udp.APV6_UDP_HDR_TYPE
+        if self.hdr_type != APv6Udp.APV6_UDP_HDR_TYPE:
+            raise dpkt.UnpackError("Unpacking compressed UDP, but encountered wrong type value")
 
         if self.hdr_co == 0:
+            if len(self.data) < 2:
+                raise dpkt.NeedData("for UDP checksum")
             self.chksum = self.data[0:2]
             self.data = self.data[2:]
 
         p = self.hdr_ports
-        if p in 0b00:
+        if p == APv6Udp.HDR_PORTS_SRC_INLN_DST_INLN:
+            if len(self.data) < 4:
+                raise dpkt.NeedData("for UDP ports")
             self.src_port = self.data[0:2]
             self.dst_port = self.data[2:4]
             self.data = self.data[4:]
-        elif p == 0b01:
+        elif p == APv6Udp.HDR_PORTS_SRC_INLN_DST_F0XX:
+            if len(self.data) < 3:
+                raise dpkt.NeedData("for UDP ports")
             self.src_port = self.data[0:2]
             self.dst_port = 0xf000 | self.data[2]
             self.data = self.data[3:]
-        elif p == 0b10:
+        elif p == APv6Udp.HDR_PORTS_SRC_F0XX_DST_INLN:
+            if len(self.data) < 3:
+                raise dpkt.NeedData("for UDP ports")
             self.src_port = 0xf000 | self.data[0]
             self.dst_port = self.data[1:3]
             self.data = self.data[3:]
-        elif p == 0b11:
+        elif p == APv6Udp.HDR_PORTS_SRC_F0BX_DST_F0BX:
+            if len(self.data) < 1:
+                raise dpkt.NeedData("for UDP ports")
             d = self.data[0]
             self.src_port = 0xf0b0 | ((d >> 4) & 0b1111)
             self.dst_port = 0xf0b0 | (d & 0b1111)
