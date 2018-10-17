@@ -11,3 +11,4 @@ else:
     import mock_serial as serial
 
 from .mac_frame import *
+from .dll_frame import *

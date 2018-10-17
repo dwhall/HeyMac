@@ -13,7 +13,6 @@ which may be installed via::
 
 
 import logging
-import struct
 
 import dpkt # pip install dpkt
 
@@ -435,4 +434,4 @@ class HeyMacFrame(dpkt.Packet):
         # Repack Fctl because we modify it above
         d.insert(0, super().pack_hdr())
 
-        return b''.join(d)
+        return b"".join(d)

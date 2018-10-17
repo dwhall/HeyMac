@@ -1,27 +1,40 @@
-import logging
+#!/usr/bin/env python3
+"""
+Copyright 2018 Dean Hall.  See LICENSE for details.
+
+APv6 Data Link Layer frame structure definition
+
+This file uses the excellent dpkt third-party module
+to define the structure of the APv6 data link layer frames.
+An APv6 frame can be created by creating an instance of APv6Frame()
+with any field_name=value as an argument to the constructor.
+And an APv6 frame may be accessed via instance.field_name.
+"""
+
+
 import struct
 
 import dpkt # pip install dpkt
 
-
-# APv6 protocol version
-APV6_VERSION = 1
+import heymac
 
 
 class APv6Frame(dpkt.Packet):
     """APv6 frame definition
     """
     IPHC_PREFIX_MASK = 0b11100000
-    IPHC_NH_MASK = 0b00010000
+    IPHC_NHC_MASK = 0b00010000
     IPHC_HLIM_MASK = 0b00001100
     IPHC_SAM_MASK = 0b00000010
     IPHC_DAM_MASK = 0b00000001
 
     IPHC_PREFIX_SHIFT = 5
-    IPHC_NH_SHIFT = 4
+    IPHC_NHC_SHIFT = 4
     IPHC_HLIM_SHIFT = 2
     IPHC_SAM_SHIFT = 1
     IPHC_DAM_SHIFT = 0
+
+    IPHC_PREFIX = 0b110
 
     IPHC_HLIM_INLINE = 0b00 # HopLimit (1 Byte) follows IPHC
     IPHC_HLIM_1 = 0b01
@@ -31,13 +44,18 @@ class APv6Frame(dpkt.Packet):
     IPHC_ADDR_MODE_128 = 0 # full 128-bit address is in-lin
     IPHC_ADDR_MODE_0 = 1 # address is elided
 
-    APV6_PREFIX = 0b110 << IPHC_PREFIX_SHIFT
+    APV6_PREFIX = IPHC_PREFIX << IPHC_PREFIX_SHIFT
+
+    DEFAULT_NHC = 0b1 # next-header is compressed
+    DEFAULT_HLIM = IPHC_HLIM_1 # 1 hop
+    DEFAULT_SAM = IPHC_ADDR_MODE_0 # address compressed/elided
+    DEFAULT_DAM = IPHC_ADDR_MODE_0 # address compressed/elided
 
 
     __byte_order__ = '!' # Network order
     __hdr__ = (
         # The underscore prefix means do not access that field directly.
-        # Access properties .iphc, .iphc_nh, etc. instead.
+        # Access properties .iphc, .iphc_nhc, etc. instead.
         ('_iphc', 'B', APV6_PREFIX),
         ('hops', '0s', b''),
         ('src', '0s', b''),
@@ -62,12 +80,20 @@ class APv6Frame(dpkt.Packet):
         return self._iphc
 
     @property
-    def iphc_nh(self,):
-        """Returns bit pattern to indicate Next Header compressed.
+    def iphc_prefix(self,):
+        """Returns the APv6 prefix.
+        The value should be 3b110 according to APv6 1.0 spec.
+        This value is different than RFC6282 which specifies 3b011.
+        """
+        return (self._iphc & APv6Frame.IPHC_PREFIX_MASK) >> APv6Frame.IPHC_PREFIX_SHIFT
+
+    @property
+    def iphc_nhc(self,):
+        """Returns bit pattern to indicate Next Header Compressed.
         0: Next Header is carried in-line
         1: Next Header is encoded via LOWPAN_NHC
         """
-        return (self._iphc & APv6Frame.IPHC_NH_MASK) >> APv6Frame.IPHC_NH_SHIFT
+        return (self._iphc & APv6Frame.IPHC_NHC_MASK) >> APv6Frame.IPHC_NHC_SHIFT
 
     @property
     def iphc_hlim(self,):
@@ -101,31 +127,36 @@ class APv6Frame(dpkt.Packet):
     def iphc(self, val):
         """Sets the whole value of the IPHC field.
         """
-        assert val & APv6Frame.IPHC_PREFIX_MASK == APv6Frame.APV6_PREFIX, "Invalid APv6 prefix"
-        self._iphc = 0xFF & val
+        assert ((val & APv6Frame.IPHC_PREFIX_MASK) >> APv6Frame.IPHC_PREFIX_SHIFT) == IPHC_PREFIX, "Invalid APv6 prefix"
+        assert val < 256
+        self._iphc = val
 
-    @iphc_nh.setter
-    def iphc_nh(self, val):
-        """Sets the Next Header bit in the IPHC field to the given value
+    @iphc_nhc.setter
+    def iphc_nhc(self, val):
+        """Sets the Next Header Compressed bit in the IPHC field to the given value
         """
-        self._iphc = (self._iphc & ~APv6Frame.IPHC_NH_MASK) | ((val & 1) << APv6Frame.IPHC_NH_SHIFT)
+        assert val < 2
+        self._iphc = (self._iphc & ~APv6Frame.IPHC_NHC_MASK) | ((val & 1) << APv6Frame.IPHC_NHC_SHIFT)
 
     @iphc_hlim.setter
     def iphc_hlim(self, val):
         """Sets the Next Header bit in the IPHC field to the given value
         """
+        assert val < 4
         self._iphc = (self._iphc & ~APv6Frame.IPHC_HLIM_MASK) | ((val & 0b11) << APv6Frame.IPHC_HLIM_SHIFT)
 
     @iphc_sam.setter
     def iphc_sam(self, val):
-        """Sets the Next Header bit in the IPHC field to the given value
+        """Sets the Source Address Mode bit in the IPHC field to the given value
         """
+        assert val < 2
         self._iphc = (self._iphc & ~APv6Frame.IPHC_SAM_MASK) | ((val & 1) << APv6Frame.IPHC_SAM_SHIFT)
 
     @iphc_dam.setter
     def iphc_dam(self, val):
-        """Sets the Next Header bit in the IPHC field to the given value
+        """Sets the Destination Address Mode bit in the IPHC field to the given value
         """
+        assert val < 2
         self._iphc = (self._iphc & ~APv6Frame.IPHC_DAM_MASK) | ((val & 1) << APv6Frame.IPHC_DAM_SHIFT)
 
 
@@ -136,201 +167,85 @@ class APv6Frame(dpkt.Packet):
         """
         super().unpack(buf)  # unpacks _iphc
 
+        # Hops is in the byte following the IPHC field
         if self._has_hops_field():
             if len(self.data) < 1:
                 raise dpkt.NeedData("for hops")
             self.hops = self.data[0]
             self.data = self.data[1:]
 
+        # Hops is encoded in the IPHC HLIM field
+        else:
+            if self.iphc_hlim == 0b01:
+                self.hops = 1
+            if self.iphc_hlim == 0b10:
+                self.hops = 64
+            if self.iphc_hlim == 0b11:
+                self.hops = 255
+
         if self._has_src_field():
-            if len(self.data) < 1:
+            if len(self.data) < 16:
                 raise dpkt.NeedData("for src")
-            self.src = self.data[0:8]
-            self.data = self.data[8:]
+            self.src = self.data[0:16]
+            self.data = self.data[16:]
 
         if self._has_dst_field():
-            if len(self.data) < 1:
+            if len(self.data) < 16:
                 raise dpkt.NeedData("for dst")
-            self.dst = self.data[0:8]
-            self.data = self.data[8:]
+            self.dst = self.data[0:16]
+            self.data = self.data[16:]
 
-
-class APv6Udp(APv6Frame):
-    """APv6 UDP packet definition
-    Inherits from APv6Frame in order to re-use setters/getters for the IPHC, Hops, Src and Dst fields.
-    Derived from RFC6282
-    """
-    APV6_UDP_HDR_TYPE = 0xF0
-
-    HDR_TYPE_MASK = 0b11111000
-    HDR_CO_MASK = 0b00000100
-    HDR_PORTS_MASK = 0b00000011
-
-    HDR_TYPE_SHIFT = 3
-    HDR_CO_SHIFT = 2
-    HDR_PORTS_SHIFT = 0
-
-    HDR_PORTS_SRC_INLN_DST_INLN = 0b00
-    HDR_PORTS_SRC_INLN_DST_F0XX = 0b01
-    HDR_PORTS_SRC_F0XX_DST_INLN = 0b10
-    HDR_PORTS_SRC_F0BX_DST_F0BX = 0b11
-
-    __hdr__ = (
-        # The underscore prefix means do not access that field directly.
-        # Access properties .hdr_co and .hdr_ports, instead.
-        ('_hdr', 'B', APV6_UDP_HDR_TYPE), # RFC6282 4.3.3.  UDP LOWPAN_NHC Format
-        # Fields below this are optional or variable-length
-        ('chksum', '0s', b''),
-        ('src_port', '0s', b''),
-        ('dst_port', '0s', b''),
-    )
-
-    # Getters of _hdr
-    @property
-    def hdr_type(self,):
-        """Returns UDP Header's Type field.
-        RFC6282 defines this value to be (0b11110 << 3)
-        """
-        return (self._hdr & APv6Udp.HDR_TYPE_MASK) >> APv6Udp.HDR_TYPE_SHIFT
-
-    @property
-    def hdr_co(self,):
-        """Returns UDP Header's Checksum Omit flag
-        """
-        return (self._hdr & APv6Udp.HDR_CO_MASK) >> APv6Udp.HDR_CO_SHIFT
-
-    @property
-    def hdr_ports(self,):
-        """Returns UDP Header's Ports value
-        """
-        return (self._hdr & APv6Udp.HDR_PORTS_MASK) >> APv6Udp.HDR_PORTS_SHIFT
-
-
-    def unpack(self, buf):
-        """Unpacks a bytes object into component attributes.
-        This function is called when an instance of this class is created
-        by passing a bytes object to the constructor
-        """
-        super().unpack(buf) # unpacks _hdr
-
-        if self.hdr_type != APv6Udp.APV6_UDP_HDR_TYPE:
-            raise dpkt.UnpackError("Unpacking compressed UDP, but encountered wrong type value")
-
-        if self.hdr_co == 0:
-            if len(self.data) < 2:
-                raise dpkt.NeedData("for UDP checksum")
-            self.chksum = self.data[0:2]
-            self.data = self.data[2:]
-
-        p = self.hdr_ports
-        if p == APv6Udp.HDR_PORTS_SRC_INLN_DST_INLN:
-            if len(self.data) < 4:
-                raise dpkt.NeedData("for UDP ports")
-            self.src_port = self.data[0:2]
-            self.dst_port = self.data[2:4]
-            self.data = self.data[4:]
-        elif p == APv6Udp.HDR_PORTS_SRC_INLN_DST_F0XX:
-            if len(self.data) < 3:
-                raise dpkt.NeedData("for UDP ports")
-            self.src_port = self.data[0:2]
-            self.dst_port = 0xf000 | self.data[2]
-            self.data = self.data[3:]
-        elif p == APv6Udp.HDR_PORTS_SRC_F0XX_DST_INLN:
-            if len(self.data) < 3:
-                raise dpkt.NeedData("for UDP ports")
-            self.src_port = 0xf000 | self.data[0]
-            self.dst_port = self.data[1:3]
-            self.data = self.data[3:]
-        elif p == APv6Udp.HDR_PORTS_SRC_F0BX_DST_F0BX:
-            if len(self.data) < 1:
-                raise dpkt.NeedData("for UDP ports")
-            d = self.data[0]
-            self.src_port = 0xf0b0 | ((d >> 4) & 0b1111)
-            self.dst_port = 0xf0b0 | (d & 0b1111)
-            self.data = self.data[1:]
+        # Unpack the payload for known frame types
+        if (self.iphc_prefix == APv6Frame.IPHC_PREFIX and len(self.data) > 1):
+            # TODO: check for uncompressed UDP, too
+            # If the compressed next-header indicates compressed-UDP
+            if self.iphc_nhc == 1 and self.data[0] & 0b11111000 == 0b11110000:
+                self.data = heymac.APv6Udp(self.data)
 
 
     def pack_hdr(self):
         """Packs header attributes into a bytes object.
         This function is called when bytes() or len() is called
-        on an instance of APv6Udp.
+        on an instance of Apv6Frame.
         """
-        super().pack_hdr()
-
         d = bytearray()
-        nbytes = 0
 
-        if hasattr(self, "chksum"):
-            pass
+        # Skip IPHC field for now, insert it at the end of this function
 
+        # Only compressed next-headers are supported at this time
+        self.iphc_nhc = APv6Frame.DEFAULT_NHC
 
-if __name__ == "__main__":
-    import unittest
-    class TestAPv6Frame(unittest.TestCase):
-        def test_min(self,):
-            # Pack
-            f = APv6Frame()
-            b = bytes(f)
-            self.assertEqual(b, b"\xC0")
-            # Unpack
-            f = APv6Frame(b)
-            self.assertEqual(f.iphc, 0xC0)
-            self.assertEqual(f.iphc_nh, 0)
-            self.assertEqual(f.iphc_hlim, 0)
-            self.assertEqual(f.iphc_sam, 0)
-            self.assertEqual(f.iphc_dam, 0)
+        if self.hops:
+            v = self.hops[0]
+            if v == 1:
+                self.iphc_hlim = 0b01
+            elif v == 64:
+                self.iphc_hlim = 0b10
+            elif v == 255:
+                self.iphc_hlim = 0b11
+            else:
+                self.iphc_hlim = 0b00
+                d.append(v)
+        else:
+            if not self.iphc_hlim:
+                self.iphc_hlim = APv6Frame.DEFAULT_HLIM
 
-        def test_nh(self,):
-            # Pack
-            f = APv6Frame(iphc_nh=1)
-            b = bytes(f)
-            self.assertEqual(b, b"\xD0")
-            # Unpack
-            f = APv6Frame(b)
-            self.assertEqual(f.iphc, 0xD0)
-            self.assertEqual(f.iphc_nh, 1)
-            self.assertEqual(f.iphc_hlim, 0)
-            self.assertEqual(f.iphc_sam, 0)
-            self.assertEqual(f.iphc_dam, 0)
+        if self.src:
+            if len(self.src) == 16:
+                self.iphc_sam = 0
+                d.extend(self.src)
+        else:
+            self.iphc_sam = APv6Frame.DEFAULT_SAM
 
-        def test_hlim(self,):
-            # Pack
-            f = APv6Frame(iphc_hlim=0b11)
-            b = bytes(f)
-            self.assertEqual(b, b"\xCC")
-            # Unpack
-            f = APv6Frame(b)
-            self.assertEqual(f.iphc, 0xCC)
-            self.assertEqual(f.iphc_nh, 0)
-            self.assertEqual(f.iphc_hlim, 3)
-            self.assertEqual(f.iphc_sam, 0)
-            self.assertEqual(f.iphc_dam, 0)
+        if self.dst:
+            if len(self.dst) == 16:
+                self.iphc_dam = 0
+                d.extend(self.dst)
+        else:
+            self.iphc_dam = APv6Frame.DEFAULT_DAM
 
-        def test_sam(self,):
-            # Pack
-            f = APv6Frame(iphc_sam=1)
-            b = bytes(f)
-            self.assertEqual(b, b"\xC2")
-            # Unpack
-            f = APv6Frame(b)
-            self.assertEqual(f.iphc, 0xC2)
-            self.assertEqual(f.iphc_nh, 0)
-            self.assertEqual(f.iphc_hlim, 0)
-            self.assertEqual(f.iphc_sam, 1)
-            self.assertEqual(f.iphc_dam, 0)
+        # Insert IPHC because we modify it above
+        z = super().pack_hdr()
+        d.insert(0, super().pack_hdr()[0])
 
-        def test_dam(self,):
-            # Pack
-            f = APv6Frame(iphc_dam=1)
-            b = bytes(f)
-            self.assertEqual(b, b"\xC1")
-            # Unpack
-            f = APv6Frame(b)
-            self.assertEqual(f.iphc, 0xC1)
-            self.assertEqual(f.iphc_nh, 0)
-            self.assertEqual(f.iphc_hlim, 0)
-            self.assertEqual(f.iphc_sam, 0)
-            self.assertEqual(f.iphc_dam, 1)
-
-    unittest.main()
-
+        return bytes(d)
