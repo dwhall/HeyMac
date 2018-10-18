@@ -7,14 +7,24 @@ HONR: Hierarchically Ordered Numerical Routing
 Abstract
 --------
 
-HeyMac is comparable to the `IEEE 802.15.4`_ MAC layer and the 6LoWPAN_ data link layer
-and is able to re-use ideas from the IETF ROLL_ and 6LoWPAN working groups
+HeyMac is comparable to the `IEEE 802.15.4`_ MAC layer and
+APv6 is comparable to the 6LoWPAN_ adaptation layer.
+HeyMac and APv6 can adapt ideas from the IETF ROLL_ and 6LoWPAN working groups
 to solve the problems of ad-hoc node addressing and multi-hop message routing.
 
-HONR is a method of hierarchical addressing similar to HiLow_
-where each node may have up to fifteen children.
-HONR's numbering method differs from HiLow slightly to improve
-the human readability of the addresses.
+HONR is a method of hierarchical addressing similar to HiLow_.
+Using HONR, each node may have up to fifteen children.
+HONR's numbering method differs from HiLow slightly
+to ease algorithm implementations for numbering and routing
+as well as to increase the human readability of the addresses.
+
+HONR is a Data Link Layer (layer 2) addressing and routing method
+that expects participating nodes to organize into a DAG (Directed Acyclic Graph).
+The hierarchically formed addresses according to position in the DAG.
+Nodes route messages between up and down along the DAG.
+All addresses in the DAG are either two octets or eight octets.
+Nodes join and leave the network at any time and the network
+has repair and address-reassignment operations.
 
 .. _`IEEE 802.15.4`: https://en.wikipedia.org/wiki/IEEE_802.15.4
 .. _ROLL: https://datatracker.ietf.org/wg/roll/about/
@@ -22,45 +32,75 @@ the human readability of the addresses.
 .. _HiLow: https://tools.ietf.org/html/draft-daniel-6lowpan-hilow-hierarchical-routing-01
 
 
-Introduction
-------------
+Addressing
+----------
 
-HONR is a Data Link Layer (layer 2) Addressing and Routing method
-that organizes participating nodes into a DAG
-by assigning hierarchially formed two or eight octet addresses
-and routes messages between nodes by passing the message along the DAG.
+The Root of the network is given the special address zero (0x000).
+All non-Root nodes have their address formed as follows:
+take the parent's address and replace the left-most-zero nibble
+with a non-zero nibble value (decimal 1..15 or hex 1..F).
 
-Two octet addresses allow networks to have 5 layers (ranks 0..4),
-or eight hops between two nodes having only the root as a common ancestor.
-Whereas eight octet addressing allows networks to have 17 layers (ranks 0..16)
-or thirty-two hops between two maximally-distant nodes.
-The remainder of this document only deals with two-octet addressing
-as eight-octet addressing will only be implemented if necessary.
-
-The root of the network is given the special address, zero (0x000).
-All other addresses are calculated by replacing the left-most-zero
-in the parent's address with a value (decimal 1..15 or hex 1..F).
 The nodes that have the Root as their parent (a.k.a. Rank 1 nodes),
 have all nibbles except the leftmost set to zero.
 
 Rank 1 Example::
 
-    Parent:     0x0000  (root)
+    Parent:     0x0000  (Root)
     Child1:     0x1000
+    Child2:     0x2000
+    ...         ...
     Child15:    0xF000
 
-Rank 2 nodes have theif left-most nibble set to match
-their Rank 1 parent's first nibble and their second-to-left-most nibble
+Rank 2 nodes have their left nibble set to match
+their Rank 1 parent's first nibble and their second-to-left nibble
 set to uniquely identify themselves.
 
 Rank 2 Example::
 
     Parent:     0xA000
     Child1:     0xA100
+    Child2:     0xA200
+    ...         ...
     Child15:    0xAF00
 
-In a DAG, routing is either "up" or "down".
-Upward routes travel toward the DAG's root.
+The HONR numbering method makes address assignment easy and efficient.
+Since a node's HONR address is dependent solely on its parent's address,
+the parent (and not Root) makes local decisions about address assignment.
+This distributes the effort of address assignment and there is no need
+for coordination between parent nodes because there is no possibility
+of address collision.
+
+
+Expanse
+-------
+
+Networks using two octet HONR addresses may have up to 5 layers (Ranks 0..4),
+or eight hops between two maximally distant nodes having Root as their only common ancestor.
+Whereas eight octet addressing allows networks to have 17 layers (Ranks 0..16)
+or thirty-two hops between two maximally distant nodes.
+The remainder of this document only deals with two octet addressing
+as eight octet addressing will not be implemented unless necessary.
+
+The HONR address creation method means that an address may not have
+a zero-value nibble that is left of a non-zero nibble. This yields::
+
+    sum([15**n for n in range(5)]) = 54241
+
+addresses (including Root) available to use out of 65536 possible.
+That's only a 17% loss of address space.
+
+However, a node with no zero-value nibble (a.k.a. a Rank 4 node)
+may not assign any node to be its child.  So the HONR numbering system
+creates a hard limit to the number of hops in the network.
+This tradeoff is acceptable as each hop creates message latency
+and it is good to keep latency smaller.
+
+
+Routing
+-------
+
+In a DAG, message routing is either "up" or "down".
+Upward routes travel toward the DAG's Root.
 Downward routes travel toward a leaf node.
 
 Example DAG::
@@ -75,37 +115,68 @@ Example DAG::
                 |       |       |       |               |
     Rank 2:     0x1100  0x1800  0x7200  0x7C00          0xC500
 
+The HONR numbering method has two features that make routing easy.
+First, a node's HONR address is tantamount to
+the route from the Root to that node.  For example,
+to reach node 0xC59A from Root, the route is::
 
-Terminology
------------
+    0x0000, 0xC000, 0xC500, 0xC590, 0xC59A
 
-DAG:
-    Directed Acyclic Graph
+Second, when routing from one node to another a simple
+up-down route is available.  The route proceeds from the source,
+up to the nearest ancestor common to both nodes
+and then down to the destination.  Determining the
+nearest common ancestor (NCA) address is trivial:
 
-Root:
-    The logical first node in a DAG to which the first layer of nodes attach.
+1) Proceed along the address nibbles from left to right.
+2) If the source and destination nibbles match, copy that nibble to the NCA.
+3) If the source and destination nibbles do not match, the NCA's remaining nibbles are zeros.
+
+Two Hop Example::
+
+    Source:         0xC59A
+    Destination:    0xC59F
+    NCA:            0xC590
+
+                        0xC590
+                        ^       v
+    Route:          0xC59A      0xC59F
+
+Six Hop Example::
+
+    Source:         0xC59A
+    Destination:    0xC232
+    NCA:            0xC000
+                                0xC000
+                                ^       v
+                            0xC500      0xC200
+                            ^               v
+                        0xC590              0xC230
+                        ^                       v
+    Route:          0xC59A                      0xC232
 
 
-Software Implementation Details
--------------------------------
+Source Code Implementation Details
+----------------------------------
 
 External Address:
-    All code outside this module uses Python's
-    immutable bytes object, 2 or 8 octets in length
-    to represent an address.
+    All code outside this module uses Python's bytes datatype
+    2 or 8 octets in length to represent an address.
     This module's public procedures (lacking a preceding underscore)
     use external addresses for arguments and return values.
 
 Internal Representation:
-    This module uses Python's bytearray object
+    This module uses Python's bytearray datatype
     4 or 16 octets in length to represent an address
     so that each nibble of the addressed may be indexed
-    This module's private procedures (having a preceding underscore)
-    use external addresses for arguments and return values.
+
+In this module, variables that end with the letter 'x'
+hold an external address; whereas, variables that end with
+the letter 'i' hold an internal address.
 """
 
 
-# Two-octet root address
+# Two-octet Root address
 ROOT2 = b"\x00\x00"
 
 

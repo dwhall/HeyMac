@@ -44,7 +44,7 @@ class ValidatedDict(collections.UserDict):
             self.expdelta[k] = None
 
     def __getitem__(self, key):
-        """Returns an item from the dict in a tuple (value, validity).
+        """Returns an item from the dict wrapped in a ValueValid obj (.value, .valid).
         """
         # Item-specific expiration overrides default expiration
         exp = self.default_expdelta
