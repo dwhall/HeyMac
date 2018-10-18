@@ -1,9 +1,15 @@
+#!/usr/bin/env python3
+
+
 import unittest
 
 import heymac
 
 
 class TestAPv6Udp(unittest.TestCase):
+    """Tests the heymac.APv6Udp packing and unpacking.
+    Each test function should test pack and unpack of the same data.
+    """
 
     def test_min(self,):
         # Pack
@@ -203,4 +209,3 @@ class TestAPv6Udp(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

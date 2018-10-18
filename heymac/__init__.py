@@ -10,6 +10,7 @@ else:
     import mock_gpio as GPIO
     import mock_serial as serial
 
+from .mac_cmds import *
 from .mac_frame import *
 from .dll_frame import *
 from .dll_udp import *
