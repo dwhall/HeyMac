@@ -245,7 +245,6 @@ class APv6Frame(dpkt.Packet):
             self.iphc_dam = APv6Frame.DEFAULT_DAM
 
         # Insert IPHC because we modify it above
-        z = super().pack_hdr()
         d.insert(0, super().pack_hdr()[0])
 
         return bytes(d)
