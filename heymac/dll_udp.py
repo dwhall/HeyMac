@@ -22,7 +22,7 @@ import dpkt # pip install dpkt
 from .dll_frame import APv6Frame
 
 
-class APv6Udp(APv6Frame):
+class APv6Udp(dpkt.Packet):
     """APv6 UDP packet definition
     Inherits from APv6Frame in order to re-use setters/getters for the IPHC, Hops, Src and Dst fields.
     Derived from RFC6282
@@ -47,7 +47,7 @@ class APv6Udp(APv6Frame):
     DEFAULT_DST_PORT = 0xF0B0
 
 
-    __hdr__ = APv6Frame.__hdr__ + (
+    __hdr__ = (
         # The underscore prefix means do not access that field directly.
         # Access properties .hdr_type, .hdr_co and .hdr_ports, instead.
         ('_hdr', 'B', HDR_TYPE << HDR_TYPE_SHIFT), # RFC6282 4.3.3.  UDP LOWPAN_NHC Format
@@ -152,7 +152,8 @@ class APv6Udp(APv6Frame):
         """
         d = bytearray()
 
-        # Skip _hdr field for now, insert it at the end of this function
+        # Field setter functions affect _hdr value,
+        # so insert _hdr at the end of this function
 
         if self.chksum:
             self.hdr_co = 0
@@ -194,8 +195,5 @@ class APv6Udp(APv6Frame):
             self.hdr_ports = APv6Udp.HDR_PORTS_SRC_INLN_DST_INLN
             d.extend(self.src_port)
             d.extend(self.dst_port)
-
-        # Insert Header because we modify it above
-        d.insert(0, self._hdr)
 
         return super().pack_hdr() + bytes(d)
