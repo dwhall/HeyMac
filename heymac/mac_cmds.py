@@ -1,7 +1,7 @@
 """
 Copyright 2017 Dean Hall.  See LICENSE file for details.
 
-HeyMac Commands for MAC frame type:
+HeyMac Commands for MAC frame types:
 # Standard Beacon
 # Extended Beacon
 # Text message
@@ -40,7 +40,7 @@ class HeyMacCmdInvalid(HeyMacCmd):
     """
     __byte_order__ = '!' # Network order
     __hdr__ = (
-        ('data', '0s', b''),
+        ('cmd', 'B', HeyMacCmdId.INVALID),
     )
 
 
@@ -137,15 +137,8 @@ class HeyMacCmdSbcn(HeyMacCmd):
         This function is called when bytes() or len() is called
         on an instance of of this class.
         """
-        b = bytearray()
+        b = bytearray(super().pack_hdr())
 
-        # Pack the fixed-length fields
-        b.append(self.cmd)
-        b.append(self._frame_spec)
-        b.append(self.dscpln)
-        b.append(self.caps)
-        b.append(self.status)
-        b.extend(struct.pack(HeyMacCmdSbcn.__byte_order__ + "i", self.asn))
         # Pack the variable-length fields
         if not self.tx_slots:
             # Create a bytearray with 1 bit for every Tslot in an Sframe
@@ -165,11 +158,12 @@ class HeyMacCmdSbcn(HeyMacCmd):
         by passing a bytes object to the constructor
         """
         # Unpack the fixed-length fields
-        super(HeyMacCmdSbcn, self).unpack(buf)
+        super().unpack(buf)
 
         # The Frame Spec defines the size of tx_slots and ngbr_tx_slots
         sz = (2 ** self.sf_order) // 8
-        if sz < 1: sz = 1
+        if sz < 1:
+            sz = 1
 
         # Unpack the variable-length fields
         hl = self.__hdr_len__
