@@ -16,7 +16,8 @@ import logging
 
 import dpkt # pip install dpkt
 
-import mac_cmds
+from .mac_cmds import *
+from .dll_frame import APv6Frame
 
 
 # HeyMac protocol version
@@ -348,16 +349,21 @@ class HeyMacFrame(dpkt.Packet):
         # Unpack the payload for known frame types
         if self.fctl_type == FCTL_TYPE_MAC:
             if self.data:
-                if self.data[0] == mac_cmds.HeyMacCmdId.SBCN.value:
-                    self.data = mac_cmds.HeyMacCmdSbcn(self.data)
-                elif self.data[0] == mac_cmds.HeyMacCmdId.EBCN.value:
-                    self.data = mac_cmds.HeyMacCmdEbcn(self.data)
-                elif self.data[0] == mac_cmds.HeyMacCmdId.TXT.value:
-                    self.data = mac_cmds.HeyMacCmdTxt(self.data)
+                if self.data[0] == HeyMacCmdId.SBCN.value:
+                    self.data = HeyMacCmdSbcn(self.data)
+                elif self.data[0] == HeyMacCmdId.EBCN.value:
+                    self.data = HeyMacCmdEbcn(self.data)
+                elif self.data[0] == HeyMacCmdId.TXT.value:
+                    self.data = HeyMacCmdTxt(self.data)
                 else:
                     logging.info("unsupp MAC cmd %f", self.data[0])
             # else:
             #     raise dpkt.NeedData("for MAC payld")
+        elif self.fctl_type == FCTL_TYPE_NET:
+            if self.data:
+                self.data = APv6Frame(self.data)
+            # else:
+            #     raise dpkt.NeedData("expected APv6 data")
 
 
     def pack_hdr(self):

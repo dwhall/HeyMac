@@ -372,9 +372,9 @@ class TestHeyMacFrame(unittest.TestCase):
         # Pack
         f = heymac.HeyMacFrame()
         f.fctl_type = heymac.FCTL_TYPE_NET
-        f.data = b"ipv6_hdr_compression"
+        f.data = heymac.APv6Frame()
         b = bytes(f)
-        self.assertEqual(b, b"\x80\x10ipv6_hdr_compression")
+        self.assertEqual(b, b"\x80\x10\xD7")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_type, heymac.FCTL_TYPE_NET)
@@ -392,7 +392,7 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"")
         self.assertEqual(f.saddr, b"")
-        self.assertEqual(f.data, b"ipv6_hdr_compression")
+        self.assertEqual(type(f.data), heymac.APv6Frame)
 
 
     def test_ext_data(self,):

@@ -16,7 +16,7 @@ import struct
 
 import dpkt # pip install dpkt
 
-import heymac
+# from .dll_udp import APv6Udp # moved to unpack() to fix circular dependancy
 
 
 class APv6Frame(dpkt.Packet):
@@ -200,7 +200,8 @@ class APv6Frame(dpkt.Packet):
             # TODO: check for uncompressed UDP, too
             # If the compressed next-header indicates compressed-UDP
             if self.iphc_nhc == 1 and self.data[0] & 0b11111000 == 0b11110000:
-                self.data = heymac.APv6Udp(self.data)
+                from .dll_udp import APv6Udp
+                self.data = APv6Udp(self.data)
 
 
     def pack_hdr(self):
