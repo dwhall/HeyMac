@@ -2,10 +2,10 @@
 """
 Copyright 2018 Dean Hall.  See LICENSE for details.
 
-APv6 Data Link Layer frame structure definition
+APv6 (network layer) frame structure definition
 
 This file uses the excellent dpkt third-party module
-to define the structure of the APv6 data link layer frames.
+to define the structure of the APv6 network layer frames.
 An APv6 frame can be created by creating an instance of APv6Frame()
 with any field_name=value as an argument to the constructor.
 And an APv6 frame may be accessed via instance.field_name.
@@ -16,7 +16,7 @@ import struct
 
 import dpkt # pip install dpkt
 
-# from .dll_udp import APv6Udp # moved to unpack() to fix circular dependancy
+# from .trn_udp import APv6Udp # moved to unpack() to fix circular dependancy
 
 
 class APv6Frame(dpkt.Packet):
@@ -200,7 +200,7 @@ class APv6Frame(dpkt.Packet):
             # TODO: check for uncompressed UDP, too
             # If the compressed next-header indicates compressed-UDP
             if self.iphc_nhc == 1 and self.data[0] & 0b11111000 == 0b11110000:
-                from .dll_udp import APv6Udp
+                from .trn_udp import APv6Udp
                 self.data = APv6Udp(self.data)
 
 

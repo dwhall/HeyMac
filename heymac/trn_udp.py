@@ -19,7 +19,7 @@ import struct
 
 import dpkt # pip install dpkt
 
-from .dll_frame import APv6Frame
+from .net_frame import APv6Frame
 
 
 class APv6Udp(dpkt.Packet):

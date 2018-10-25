@@ -17,7 +17,7 @@ import logging
 import dpkt # pip install dpkt
 
 from .mac_cmds import *
-from .dll_frame import APv6Frame
+from .net_frame import APv6Frame
 
 
 # HeyMac protocol version

@@ -18,7 +18,7 @@ HONR's numbering method differs from HiLow slightly
 to ease algorithm implementations for numbering and routing
 as well as to increase the human readability of the addresses.
 
-HONR is a Data Link Layer (layer 2) addressing and routing method
+HONR is a network layer addressing method
 that expects participating nodes to organize into a DAG (Directed Acyclic Graph).
 The hierarchically formed addresses according to position in the DAG.
 Nodes route messages between up and down along the DAG.

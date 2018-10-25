@@ -12,5 +12,5 @@ else:
 
 from .mac_cmds import *
 from .mac_frame import *
-from .dll_frame import *
-from .dll_udp import *
+from .net_frame import *
+from .trn_udp import *
