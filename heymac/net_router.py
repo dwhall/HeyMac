@@ -1,0 +1,107 @@
+"""
+Copyright 2018 Dean Hall.  See LICENSE for details.
+
+Routing
+-------
+
+In a DAG, message routing is either "up" or "down".
+Upward routes travel toward the DAG's Root.
+Downward routes travel toward a leaf node.
+
+Example DAG::
+
+    Root:                       0x0000
+                                |
+                +-------+-------+-------+-------+-------+
+                |       |       |       |       |       |
+    Rank 1:     0x1000  0x2000  0x5000  0x7000  0xA000  0xC000
+                |                       |               |
+                +-------+       +-------+               +
+                |       |       |       |               |
+    Rank 2:     0x1100  0x1800  0x7200  0x7C00          0xC500
+
+The HONR numbering method has two features that make routing easy.
+First, a node's HONR address is tantamount to
+the route from the Root to that node.  For example,
+to reach node 0xC59A from Root, the route is::
+
+    0x0000, 0xC000, 0xC500, 0xC590, 0xC59A
+
+Second, when routing from one node to another a simple
+up-down route is available.  The route proceeds from the source,
+up to the nearest ancestor common to both nodes
+and then down to the destination.  Determining the
+nearest common ancestor (NCA) address is trivial:
+
+1) Proceed along the address nibbles from left to right.
+2) If the source and destination nibbles match, copy that nibble to the NCA.
+3) If the source and destination nibbles do not match, the NCA's remaining nibbles are zeros.
+
+Two Hop Example::
+
+    Source:         0xC59A
+    Destination:    0xC59F
+    NCA:            0xC590
+
+                        0xC590
+                        ^       v
+    Route:          0xC59A      0xC59F
+
+Six Hop Example::
+
+    Source:         0xC59A
+    Destination:    0xC232
+    NCA:            0xC000
+                                0xC000
+                                ^       v
+                            0xC500      0xC200
+                            ^               v
+                        0xC590              0xC230
+                        ^                       v
+    Route:          0xC59A                      0xC232
+"""
+
+
+import net_honr
+
+
+def get_route(srcx, dstx):
+    """Returns the simple up-down route
+    from src to dst as a list of addresses
+    """
+    route = []
+    curi = net_honr.to_internal_repr(srcx)
+    dsti = net_honr.to_internal_repr(dstx)
+    ncax = net_honr.get_nearest_common_ancestor(srcx, dstx)
+    ncai = net_honr.to_internal_repr(ncax)
+    leftzero = net_honr.get_rank(srcx)
+    while curi != ncai:
+        route.append(net_honr.to_external_addr(curi))
+        leftzero -= 1
+        curi[leftzero] = 0
+    route.append(ncax)
+    while curi != dsti:
+        curi[leftzero] = dsti[leftzero]
+        route.append(net_honr.to_external_addr(curi))
+        leftzero += 1
+    return route
+
+
+# NOTE: This function returns False in some cases
+# where a node could opportunistically make routing improvements.
+# i.e. This function returns True only for simplest route.
+def should_route(resx, dstx, locx):
+    """Returns True if this node (loc) should route a frame
+    that has the given resender and destination addresses.
+    In this case, "resender" is the neighbor that transmitted
+    this frame to this node.
+    NOTE: The source address is not considered because it may be encrypted.
+    """
+    # Do not route, already at destination
+    if dstx == locx:
+        return False
+
+    # If the local address follows the resender in the ideal route
+    route = get_route(resx, dstx)
+    return (resx in route and locx in route
+            and route.index(locx) - route.index(resx) == 1)

@@ -21,10 +21,10 @@ as well as to increase the human readability of the addresses.
 HONR is a network layer addressing method
 that expects participating nodes to organize into a DAG (Directed Acyclic Graph).
 The hierarchically formed addresses according to position in the DAG.
-Nodes route messages between up and down along the DAG.
+Nodes route messages up and down along the DAG.
 All addresses in the DAG are either two octets or eight octets.
 Nodes join and leave the network at any time and the network
-has repair and address-reassignment operations.
+has repair and renumbering operations.
 
 .. _`IEEE 802.15.4`: https://en.wikipedia.org/wiki/IEEE_802.15.4
 .. _ROLL: https://datatracker.ietf.org/wg/roll/about/
@@ -96,66 +96,6 @@ This tradeoff is acceptable as each hop creates message latency
 and it is good to keep latency smaller.
 
 
-Routing
--------
-
-In a DAG, message routing is either "up" or "down".
-Upward routes travel toward the DAG's Root.
-Downward routes travel toward a leaf node.
-
-Example DAG::
-
-    Root:                       0x0000
-                                |
-                +-------+-------+-------+-------+-------+
-                |       |       |       |       |       |
-    Rank 1:     0x1000  0x2000  0x5000  0x7000  0xA000  0xC000
-                |                       |               |
-                +-------+       +-------+               +
-                |       |       |       |               |
-    Rank 2:     0x1100  0x1800  0x7200  0x7C00          0xC500
-
-The HONR numbering method has two features that make routing easy.
-First, a node's HONR address is tantamount to
-the route from the Root to that node.  For example,
-to reach node 0xC59A from Root, the route is::
-
-    0x0000, 0xC000, 0xC500, 0xC590, 0xC59A
-
-Second, when routing from one node to another a simple
-up-down route is available.  The route proceeds from the source,
-up to the nearest ancestor common to both nodes
-and then down to the destination.  Determining the
-nearest common ancestor (NCA) address is trivial:
-
-1) Proceed along the address nibbles from left to right.
-2) If the source and destination nibbles match, copy that nibble to the NCA.
-3) If the source and destination nibbles do not match, the NCA's remaining nibbles are zeros.
-
-Two Hop Example::
-
-    Source:         0xC59A
-    Destination:    0xC59F
-    NCA:            0xC590
-
-                        0xC590
-                        ^       v
-    Route:          0xC59A      0xC59F
-
-Six Hop Example::
-
-    Source:         0xC59A
-    Destination:    0xC232
-    NCA:            0xC000
-                                0xC000
-                                ^       v
-                            0xC500      0xC200
-                            ^               v
-                        0xC590              0xC230
-                        ^                       v
-    Route:          0xC59A                      0xC232
-
-
 Source Code Implementation Details
 ----------------------------------
 
@@ -180,7 +120,7 @@ the letter 'i' hold an internal address.
 ROOT2 = b"\x00\x00"
 
 
-def _to_internal_repr(addrx):
+def to_internal_repr(addrx):
     """Returns a bytearray twice the length of the given address
     so that each nibble may be indexed
     """
@@ -190,7 +130,7 @@ def _to_internal_repr(addrx):
     return addri
 
 
-def _to_external_addr(addri):
+def to_external_addr(addri):
     """Returns a bytes object half the length of the given address
     to be used outside this module
     """
@@ -205,10 +145,10 @@ def get_nearest_common_ancestor(srcx, dstx):
     which connects the src and dst nodes in a DAG
     in internal representation.
     """
-    srci = _to_internal_repr(srcx)
-    dsti = _to_internal_repr(dstx)
+    srci = to_internal_repr(srcx)
+    dsti = to_internal_repr(dstx)
     ncai = _get_nearest_common_ancestor(srci, dsti)
-    return _to_external_addr(ncai)
+    return to_external_addr(ncai)
 
 def _get_nearest_common_ancestor(srci, dsti):
     assert _is_addr_valid(srci)
@@ -232,7 +172,7 @@ def get_parent(addrx):
     """Returns the given address's parent address.
     Returns None if the Root address is given.
     """
-    addri = _to_internal_repr(addrx)
+    addri = to_internal_repr(addrx)
     return _get_parent(addri)
 
 def _get_parent(addri):
@@ -240,13 +180,13 @@ def _get_parent(addri):
         return None
     leftzero = _get_rank(addri)
     addri[leftzero - 1] = 0
-    return _to_external_addr(addri)
+    return to_external_addr(addri)
 
 
 def get_rank(addrx):
     """Retuns the rank of the given address [integer]
     """
-    addri = _to_internal_repr(addrx)
+    addri = to_internal_repr(addrx)
     return _get_rank(addri)
 
 def _get_rank(addri):
@@ -257,32 +197,6 @@ def _get_rank(addri):
     return leftzero
 
 
-def get_route(srcx, dstx):
-    """Returns the ideal route from src to dst
-    as a list of addresses (external representation)
-    """
-    srci = _to_internal_repr(srcx)
-    dsti = _to_internal_repr(dstx)
-    routi = _get_route(srci, dsti)
-    return list(map(_to_external_addr, routi))
-
-def _get_route(srci, dsti):
-    route = []
-    ncai = _get_nearest_common_ancestor(srci, dsti)
-    curi = srci.copy()
-    leftzero = _get_rank(curi)
-    while curi != ncai:
-        route.append(curi.copy())
-        leftzero -= 1
-        curi[leftzero] = 0
-    route.append(ncai.copy())
-    while curi != dsti:
-        curi[leftzero] = dsti[leftzero]
-        route.append(curi.copy())
-        leftzero += 1
-    return route
-
-
 def is_addr_valid(addrx):
     """Returns True if the address is a proper length
     and has a valid form
@@ -290,7 +204,7 @@ def is_addr_valid(addrx):
     """
     valid = False
     if type(addrx) is bytes:
-        addri = _to_internal_repr(addrx)
+        addri = to_internal_repr(addrx)
         valid = _is_addr_valid(addri)
     return valid
 
@@ -312,23 +226,3 @@ def _is_addr_valid(addri):
                     valid = True
 
     return valid
-
-
-# NOTE: This function returns False in some cases
-# where a node could opportunistically make routing improvements.
-# i.e. This function returns True only for simplest route.
-def should_route(resx, dstx, locx):
-    """Returns True if this node (loc) should route a frame
-    that has the given resender and destination addresses.
-    In this case, "resender" is the neighbor that transmitted
-    this frame to this node.
-    NOTE: The source address is not considered because it may be encrypted.
-    """
-    # Do not route, already at destination
-    if dstx == locx:
-        return False
-
-    # If the local address follows the resender in the ideal route
-    route = get_route(resx, dstx)
-    return (resx in route and locx in route
-            and route.index(locx) - route.index(resx) == 1)
