@@ -17,8 +17,8 @@
        <action box="0,0,10,2"/>
       </tran_glyph>
      </tran>
-     <state_glyph node="24,4,24,12">
-      <entry box="1,2,22,2"/>
+     <state_glyph node="24,4,28,12">
+      <entry box="1,2,27,2"/>
      </state_glyph>
     </state>
     <state name="running">
@@ -79,12 +79,6 @@
       <documentation>ex_prep()</documentation>
       <entry brief="rx until tmout"/>
       <exit brief="post(CANCEL, PHY)"/>
-      <tran trig="PHY_RXD_DATA">
-       <action brief="on_rxd_frame()"/>
-       <tran_glyph conn="24,44,3,-1,22">
-        <action box="0,-2,23,2"/>
-       </tran_glyph>
-      </tran>
       <tran trig="TM_EVT_TMOUT" target="../../4">
        <tran_glyph conn="24,46,3,3,32">
         <action box="0,-2,14,2"/>
