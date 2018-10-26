@@ -8,8 +8,6 @@ This file uses the excellent dpkt third-party module
 to define the structure of the compressed UDP frame.
 The UDP frame is compressed according to RFC6282.
 
-The APv6Udp class inherits from APv6Frame because
-these two classes create a frame at the same semantic layer.
 APv6Frame provides the IPHC, hops and addressing
 and APv6Udp provides the header type, checksum and ports.
 """
