@@ -23,20 +23,20 @@ class SX127xSpiAhsm(farc.Ahsm):
         """Pseudostate: SX127xSpiAhsm:initial
         """
         # self-signaling
-        farc.Signal.register("ALWAYS")
+        farc.Signal.register("_ALWAYS")
 
         # Outgoing
         farc.Signal.register("PHY_RXD_DATA")
 
         # Incoming
-        farc.Signal.register("CANCEL")
+        farc.Signal.register("PHY_STDBY")
 
         # Incoming from higher layer
-        farc.Framework.subscribe("CFG_LORA", me)
-        farc.Framework.subscribe("SLEEP", me)
-        farc.Framework.subscribe("CAD", me)
-        farc.Framework.subscribe("RECEIVE", me)
-        farc.Framework.subscribe("TRANSMIT", me)
+        farc.Framework.subscribe("PHY_CFG_LORA", me)
+        farc.Framework.subscribe("PHY_SLEEP", me)
+        farc.Framework.subscribe("PHY_CAD", me)
+        farc.Framework.subscribe("PHY_RECEIVE", me)
+        farc.Framework.subscribe("PHY_TRANSMIT", me)
 
         # Incoming from GPIO (SX127x's DIO pins)
         farc.Framework.subscribe("PHY_DIO0", me)
@@ -67,13 +67,13 @@ class SX127xSpiAhsm(farc.Ahsm):
             if me.sx127x.check_chip_ver():
                 me.sx127x.get_regs()
                 me.sx127x.set_op_mode('stdby') # FIXME: TEMPORARY!
-                me.postFIFO(farc.Event(farc.Signal.ALWAYS, None))
+                me.postFIFO(farc.Event(farc.Signal._ALWAYS, None))
             else:
                 # TODO: no SX127x or no SPI
                 pass
             return me.handled(me, event)
 
-        elif sig == farc.Signal.ALWAYS:
+        elif sig == farc.Signal._ALWAYS:
             # TODO: if lora and stdby: trans(idling) else: trans(sleeping)
             return me.tran(me, SX127xSpiAhsm.idling)
 
@@ -88,26 +88,26 @@ class SX127xSpiAhsm(farc.Ahsm):
         if sig == farc.Signal.ENTRY:
             return me.handled(me, event)
 
-        elif sig == farc.Signal.CFG_LORA:
+        elif sig == farc.Signal.PHY_CFG_LORA:
             me.sx127x.set_config(event.value)
             me.sx127x.set_pwr_cfg(boost=True)
             return me.handled(me, event)
 
-        elif sig == farc.Signal.SLEEP:
+        elif sig == farc.Signal.PHY_SLEEP:
             return me.tran(me, me.sleeping)
 
-        elif sig == farc.Signal.RECEIVE:
+        elif sig == farc.Signal.PHY_RECEIVE:
             me.rx_time = event.value[0]
             me.rx_freq = event.value[1]
             return me.tran(me, me.rx_prepping)
 
-        elif sig == farc.Signal.TRANSMIT:
+        elif sig == farc.Signal.PHY_TRANSMIT:
             me.tx_time = event.value[0]
             me.tx_freq = event.value[1]
             me.tx_data = event.value[2]
             return me.tran(me, me.tx_prepping)
 
-        elif sig == farc.Signal.CAD:
+        elif sig == farc.Signal.PHY_CAD:
             return me.tran(me, me.cad_ing)
 
         return me.super(me, me.top)
@@ -116,13 +116,13 @@ class SX127xSpiAhsm(farc.Ahsm):
     @farc.Hsm.state
     def working(me, event):
         """State SX127xSpiAhsm:working
-        This state provides a CANCEL handler that returns the radio to stdby.
+        This state provides a PHY_STDBY handler that returns the radio to stdby.
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             return me.handled(me, event)
 
-        elif sig == farc.Signal.CANCEL:
+        elif sig == farc.Signal.PHY_STDBY:
             me.sx127x.set_op_mode(mode="stdby")
             return me.tran(me, me.idling)
 
@@ -156,10 +156,10 @@ class SX127xSpiAhsm(farc.Ahsm):
             me.sx127x.set_rx_freq(me.rx_freq)
 
             # Reminder pattern
-            me.postFIFO(farc.Event(farc.Signal.ALWAYS, None))
+            me.postFIFO(farc.Event(farc.Signal._ALWAYS, None))
             return me.handled(me, event)
 
-        elif sig == farc.Signal.ALWAYS:
+        elif sig == farc.Signal._ALWAYS:
             if me.rx_time >= 0:
                 tiny_sleep = me.rx_time - farc.Framework._event_loop.time()
                 if 0.0 < tiny_sleep < MAX_BLOCK_TIME:
@@ -210,7 +210,7 @@ class SX127xSpiAhsm(farc.Ahsm):
         # If we are in Receiving but haven't received a header yet
         # and a request to Transmit arrives,
         # cancel the receive and do the Transmit
-        elif sig == farc.Signal.TRANSMIT:
+        elif sig == farc.Signal.PHY_TRANSMIT:
             if me.hdr_time == 0:
                 me.sx127x.set_op_mode(mode="stdby")
                 me.tx_time = event.value[0]
@@ -241,10 +241,10 @@ class SX127xSpiAhsm(farc.Ahsm):
             me.sx127x.set_tx_freq(me.tx_freq)
 
             # Reminder pattern
-            me.postFIFO(farc.Event(farc.Signal.ALWAYS, None))
+            me.postFIFO(farc.Event(farc.Signal._ALWAYS, None))
             return me.handled(me, event)
 
-        elif sig == farc.Signal.ALWAYS:
+        elif sig == farc.Signal._ALWAYS:
             # Calculate precise sleep time and apply a TX margin
             # to allow receivers time to get ready
             tiny_sleep = me.tx_time - farc.Framework._event_loop.time()

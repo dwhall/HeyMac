@@ -36,7 +36,7 @@ class GpioAhsm(farc.Ahsm):
     def initial(me, event):
         """Pseudostate: GpioAhsm:initial
         """
-        farc.Signal.register("ALWAYS")
+        farc.Signal.register("_ALWAYS")
 
         # Register signals to emit upon pin change
         me.sig_dio0 = farc.Signal.register(phy_cfg.dio0["sig_name"])
@@ -77,10 +77,10 @@ class GpioAhsm(farc.Ahsm):
             GPIO.add_event_detect(phy_cfg.pps["pin"], edge=GPIO.RISING, callback=lambda x: gpio_input_handler(me.sig_pps))
 
             # Reminder pattern
-            me.postFIFO(farc.Event(farc.Signal.ALWAYS, None))
+            me.postFIFO(farc.Event(farc.Signal._ALWAYS, None))
             return me.handled(me, event)
 
-        elif sig == farc.Signal.ALWAYS:
+        elif sig == farc.Signal._ALWAYS:
             return me.tran(me, GpioAhsm.running)
 
         return me.super(me, me.top)

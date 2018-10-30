@@ -79,11 +79,11 @@ class HeyMacAhsm(farc.Ahsm):
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
-            farc.Framework.post(farc.Event(farc.Signal.CFG_LORA, phy_cfg.sx127x_cfg), "SX127xSpiAhsm")
-            me.postFIFO(farc.Event(farc.Signal.ALWAYS, None))
+            farc.Framework.post(farc.Event(farc.Signal.PHY_CFG_LORA, phy_cfg.sx127x_cfg), "SX127xSpiAhsm")
+            me.postFIFO(farc.Event(farc.Signal._ALWAYS, None))
             return me.handled(me, event)
 
-        elif sig == farc.Signal.ALWAYS:
+        elif sig == farc.Signal._ALWAYS:
             return me.tran(me, HeyMacAhsm.listening)
 
         elif sig == farc.Signal.EXIT:
@@ -114,7 +114,7 @@ class HeyMacAhsm(farc.Ahsm):
             me.on_rxd_frame(me, rx_time, payld, rssi, snr)
             # immediate rx continuous
             rx_args = (-1, phy_cfg.rx_freq)
-            farc.Framework.post(farc.Event(farc.Signal.RECEIVE, rx_args), "SX127xSpiAhsm")
+            farc.Framework.post(farc.Event(farc.Signal.PHY_RECEIVE, rx_args), "SX127xSpiAhsm")
             return me.handled(me, event)
 
         elif sig == farc.Signal.GPS_NMEA:
@@ -141,7 +141,7 @@ class HeyMacAhsm(farc.Ahsm):
             logging.info("LISTENING")
             # rx continuously on the rx_freq
             value = (-1, phy_cfg.rx_freq)
-            farc.Framework.post(farc.Event(farc.Signal.RECEIVE, value), "SX127xSpiAhsm")
+            farc.Framework.post(farc.Event(farc.Signal.PHY_RECEIVE, value), "SX127xSpiAhsm")
             listen_secs = mac_cfg.N_SFRAMES_TO_LISTEN * (2 ** me.sf_order) / mac_cfg.TSLOTS_PER_SEC
             me.tm_evt.postIn(me, listen_secs)
             return me.handled(me, event)
@@ -245,7 +245,7 @@ class HeyMacAhsm(farc.Ahsm):
         # Resume continuous receive after beaconing
         elif self.asn % (2 ** self.sf_order) == self.bcn_slot + 1:
             rx_args = (-1, phy_cfg.rx_freq)
-            farc.Framework.post(farc.Event(farc.Signal.RECEIVE, rx_args), "SX127xSpiAhsm")
+            farc.Framework.post(farc.Event(farc.Signal.PHY_RECEIVE, rx_args), "SX127xSpiAhsm")
 
         # Send the top pkt in the tx queue
         elif self.txq:
@@ -353,7 +353,7 @@ class HeyMacAhsm(farc.Ahsm):
             ngbr_tx_slots=self.dll_data.get_bcn_slotmap(),
             )
         tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data
-        farc.Framework.post(farc.Event(farc.Signal.TRANSMIT, tx_args), "SX127xSpiAhsm")
+        farc.Framework.post(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
         self.mac_seq += 1
 
 
@@ -379,7 +379,7 @@ class HeyMacAhsm(farc.Ahsm):
             geoloc=self.gps_gprmc, #TODO: extract lat/lon from gprmc
             )
         tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data
-        farc.Framework.post(farc.Event(farc.Signal.TRANSMIT, tx_args), "SX127xSpiAhsm")
+        farc.Framework.post(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
         self.mac_seq += 1
 
 
@@ -393,7 +393,7 @@ class HeyMacAhsm(farc.Ahsm):
         self.mac_seq += 1
         frame.data = self.txq.pop()
         tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data
-        farc.Framework.post(farc.Event(farc.Signal.TRANSMIT, tx_args), "SX127xSpiAhsm")
+        farc.Framework.post(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
 
 
     @staticmethod
