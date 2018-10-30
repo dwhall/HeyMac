@@ -79,7 +79,6 @@ class HeyMacAhsm(farc.Ahsm):
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
-            farc.Framework.post(farc.Event(farc.Signal.PHY_CFG_LORA, phy_cfg.sx127x_cfg), "SX127xSpiAhsm")
             me.postFIFO(farc.Event(farc.Signal._ALWAYS, None))
             return me.handled(me, event)
 

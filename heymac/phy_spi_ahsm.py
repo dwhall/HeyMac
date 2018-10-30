@@ -32,7 +32,6 @@ class SX127xSpiAhsm(farc.Ahsm):
         farc.Signal.register("PHY_STDBY")
 
         # Incoming from higher layer
-        farc.Framework.subscribe("PHY_CFG_LORA", me)
         farc.Framework.subscribe("PHY_SLEEP", me)
         farc.Framework.subscribe("PHY_CAD", me)
         farc.Framework.subscribe("PHY_RECEIVE", me)
@@ -67,10 +66,16 @@ class SX127xSpiAhsm(farc.Ahsm):
             if me.sx127x.check_chip_ver():
                 me.sx127x.get_regs()
                 me.sx127x.set_op_mode('stdby') # FIXME: TEMPORARY!
-                me.postFIFO(farc.Event(farc.Signal._ALWAYS, None))
+                me.postFIFO(farc.Event(farc.Signal._DEFAULT_CFG, None))
             else:
                 # TODO: no SX127x or no SPI
                 pass
+            return me.handled(me, event)
+
+        elif sig == farc.Signal._DEFAULT_CFG:
+            me.sx127x.set_config(phy_cfg.sx127x_cfg)
+            me.sx127x.set_pwr_cfg(boost=True)
+            me.postFIFO(farc.Event(farc.Signal._ALWAYS, None))
             return me.handled(me, event)
 
         elif sig == farc.Signal._ALWAYS:
@@ -86,11 +91,6 @@ class SX127xSpiAhsm(farc.Ahsm):
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
-            return me.handled(me, event)
-
-        elif sig == farc.Signal.PHY_CFG_LORA:
-            me.sx127x.set_config(event.value)
-            me.sx127x.set_pwr_cfg(boost=True)
             return me.handled(me, event)
 
         elif sig == farc.Signal.PHY_SLEEP:
