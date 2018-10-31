@@ -18,8 +18,8 @@ HONR's numbering method differs from HiLow slightly
 to ease algorithm implementations for numbering and routing
 as well as to increase the human readability of the addresses.
 
-HONR is a network layer addressing method
-that expects participating nodes to organize into a DAG (Directed Acyclic Graph).
+HONR is a network layer addressing method that expects participating nodes
+to organize into a DAG (Directed Acyclic Graph).
 The hierarchically formed addresses according to position in the DAG.
 Nodes route messages up and down along the DAG.
 All addresses in the DAG are either two octets or eight octets.
@@ -38,7 +38,7 @@ Addressing
 The Root of the network is given the special address zero (0x000).
 All non-Root nodes have their address formed as follows:
 take the parent's address and replace the left-most-zero nibble
-with a non-zero nibble value (decimal 1..15 or hex 1..F).
+with a nibble value 1 through 14 (or hex 1 through E).
 
 The nodes that have the Root as their parent (a.k.a. Rank 1 nodes),
 have all nibbles except the leftmost set to zero.
@@ -49,7 +49,7 @@ Rank 1 Example::
     Child1:     0x1000
     Child2:     0x2000
     ...         ...
-    Child15:    0xF000
+    Child14:    0xE000
 
 Rank 2 nodes have their left nibble set to match
 their Rank 1 parent's first nibble and their second-to-left nibble
@@ -61,7 +61,7 @@ Rank 2 Example::
     Child1:     0xA100
     Child2:     0xA200
     ...         ...
-    Child15:    0xAF00
+    Child14:    0xAE00
 
 The HONR numbering method makes address assignment easy and efficient.
 Since a node's HONR address is dependent solely on its parent's address,
@@ -70,24 +70,42 @@ This distributes the effort of address assignment and there is no need
 for coordination between parent nodes because there is no possibility
 of address collision.
 
+Broadcast
+---------
+
+The nibble value fifteen (decimal 15, hex F) designates a broadcast value.
+Any node with children may broadcast to all its children by
+replacing the node address's left-most zero with the nibble F.
+For example, if the node 0xAE00 sends a message to 0xAEF0,
+then the nodes (0xAE10, 0xAE20 ... 0xAEE0), if they exist,
+accept and process the message.
+Furthermore, a node may broadcast more than one step down its DAG
+by appending as many fifteen nibbles as allowed.
+For example, if the node 0x2000 sends a message to 0x2FF0,
+all of 0x2000's Rank 2 and Rank 3 children and grandchildren
+will receive the message, but the Rank 4 great-grandchildren will not.
+The address 0xFFFF is broadcast to all nodes in the network, including Root.
 
 Expanse
 -------
 
 Networks using two octet HONR addresses may have up to 5 layers (Ranks 0..4),
-or eight hops between two maximally distant nodes having Root as their only common ancestor.
+or eight hops between two maximally distant nodes
+having Root as their only common ancestor.
 Whereas eight octet addressing allows networks to have 17 layers (Ranks 0..16)
 or thirty-two hops between two maximally distant nodes.
 The remainder of this document only deals with two octet addressing
 as eight octet addressing will not be implemented unless necessary.
 
-The HONR address creation method means that an address may not have
-a zero-value nibble that is left of a non-zero nibble. This yields::
+The HONR16 address creation method means that an address may not have
+a zero-value nibble that is left of a non-zero nibble.
+Also, the nibble value 15 (hex F) is reserved for broadcast
+and may not be used in a node's address.  This yields::
 
-    sum([15**n for n in range(5)]) = 54241
+    sum([14**n for n in range(5)]) = 41371
 
 addresses (including Root) available to use out of 65536 possible.
-That's only a 17% loss of address space.
+That is a 37% loss of address space.
 
 However, a node with no zero-value nibble (a.k.a. a Rank 4 node)
 may not assign any node to be its child.  So the HONR numbering system
@@ -114,6 +132,8 @@ In this module, variables that end with the letter 'x'
 hold an external address; whereas, variables that end with
 the letter 'i' hold an internal address.
 """
+
+from functools import reduce
 
 
 # Two-octet Root address
@@ -199,8 +219,12 @@ def _get_rank(addri):
 
 def is_addr_valid(addrx):
     """Returns True if the address is a proper length
-    and has a valid form
-    (all bytes right of the left-most zero must be zero).
+    and has a valid form.
+    To have a valid form, all of the following must be true:
+    1) all nibbles right of the left-most zero must be zero
+    2) all nibbles right of the left-most fifteen must be zero or fifteen
+    3) all nibbles right of the right-most fifteen must be zero
+    4) all nibbles between the left- and right-most fifteen must be fifteen
     """
     valid = False
     if type(addrx) is bytes:
@@ -208,21 +232,40 @@ def is_addr_valid(addrx):
         valid = _is_addr_valid(addri)
     return valid
 
+
 def _is_addr_valid(addri):
-    valid = False
+    """Returns True if the address is a proper length
+    and has a valid form.
+    To have a valid form, all of the following must be true:
+    1) all nibbles right of the left-most zero must be zero
+    2) if there is a fifteen nibble, all nibbles between
+        the left- and right-most fifteen must be fifteen
+    3) all nibbles right of the right-most fifteen must be zero
+    """
+    # Must have correct type and a length that equates to 2 or 8 octets
+    if type(addri) is not bytearray or len(addri) not in (4, 16):
+        return False
 
-    # Must have correct type and a length that equates to 2 or 16 octets
-    if type(addri) is bytearray:
-        if len(addri) in (4, 16):
+    # If 1) is not true, return false
+    left_most_0 = addri.find(0)
+    if left_most_0 >= 0 and sum(addri[left_most_0:]) != 0:
+        return False
 
-            # If no zero is found, the address is valid
-            leftzero = addri.find(0)
-            if leftzero < 0:
-                valid = True
+    # If 2) is not true, return false
+    left_most_F = addri.find(0xF)
+    if left_most_F >= 0:
+        right_most_F = addri.rfind(0xF)
+        is_not_fifteen = lambda x: x != 0xF
+        or_func = lambda x, y: x or y
+        any_is_not_fifteen = reduce(
+            or_func,
+            map(is_not_fifteen, addri[left_most_F:right_most_F]),
+            False)
+        if any_is_not_fifteen:
+            return False
 
-            # All bytes right of the left-most zero must be zero
-            else:
-                if sum(addri[leftzero:]) == 0:
-                    valid = True
+        # If 3) is not true, return false
+        if sum(addri[right_most_F + 1:]) != 0:
+            return False
 
-    return valid
+    return True
