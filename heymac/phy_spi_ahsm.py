@@ -24,6 +24,7 @@ class SX127xSpiAhsm(farc.Ahsm):
         """
         # self-signaling
         farc.Signal.register("_ALWAYS")
+        farc.Signal.register("_DEFAULT_CFG")
 
         # Outgoing
         farc.Signal.register("PHY_RXD_DATA")
