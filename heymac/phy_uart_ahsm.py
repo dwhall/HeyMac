@@ -7,10 +7,16 @@ Physical Layer State Machine for UART operations on the RasPi
 """
 
 
-import farc
-from heymac import serial
+import sys
 
-import phy_cfg
+import farc
+
+if sys.platform == "linux":
+    import serial
+else:
+    from . import mock_serial as serial
+
+from . import phy_cfg
 
 
 # Time period to check UART for NMEA data

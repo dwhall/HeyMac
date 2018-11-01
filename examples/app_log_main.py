@@ -13,18 +13,15 @@ import sys
 
 import farc
 
-import mac_tdma_ahsm
-import phy_gpio_ahsm
-import phy_spi_ahsm
-import phy_uart_ahsm
+import heymac
 
 
 def main():
     # Instantiate state machines
-    gpioAhsm = phy_gpio_ahsm.GpioAhsm(phy_gpio_ahsm.GpioAhsm.initial)
-    spiAhsm = phy_spi_ahsm.SX127xSpiAhsm(phy_spi_ahsm.SX127xSpiAhsm.initial)
-    uartAhsm = phy_uart_ahsm.UartAhsm(phy_uart_ahsm.UartAhsm.initial)
-    macAhsm = mac_tdma_ahsm.HeyMacAhsm(mac_tdma_ahsm.HeyMacAhsm.initial)
+    gpioAhsm = heymac.GpioAhsm(heymac.GpioAhsm.initial)
+    spiAhsm = heymac.SX127xSpiAhsm(heymac.SX127xSpiAhsm.initial)
+    uartAhsm = heymac.UartAhsm(heymac.UartAhsm.initial)
+    macAhsm = heymac.HeyMacAhsm(heymac.HeyMacAhsm.initial)
 
     # Start state machines
     spiAhsm.start(10)

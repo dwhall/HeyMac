@@ -13,8 +13,8 @@ import time
 
 import farc
 
-import phy_cfg
-import phy_sx127x_spi
+from . import phy_cfg
+from . import phy_sx127x_spi
 
 class SX127xSpiAhsm(farc.Ahsm):
 

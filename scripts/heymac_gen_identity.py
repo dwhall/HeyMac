@@ -14,7 +14,7 @@ import json
 import os.path
 import random
 
-import utl
+from heymac import utl
 
 
 def gen_keypair():

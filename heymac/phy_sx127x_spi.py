@@ -9,9 +9,9 @@ import collections, logging, time
 try:
     import spidev
 except:
-    import mock_spidev as spidev
+    from . import mock_spidev as spidev
 
-import phy_sx127x_cfg
+from . import phy_sx127x_cfg
 
 
 SPI_CLK_MAX = 20000000

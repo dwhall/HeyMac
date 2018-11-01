@@ -4,7 +4,8 @@ Copyright 2017 Dean Hall.  See LICENSE for details.
 """
 
 
-import collections, time
+import collections
+import time
 
 
 class SX127xConfig(object):

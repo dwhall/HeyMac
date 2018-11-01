@@ -62,7 +62,7 @@ Six Hop Example::
 """
 
 
-import net_honr
+from . import net_honr
 
 
 def get_route(srcx, dstx):

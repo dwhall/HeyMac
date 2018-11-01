@@ -8,7 +8,7 @@ This file uses the excellent dpkt third-party module
 to define the structure of the compressed UDP frame.
 The UDP frame is compressed according to RFC6282.
 
-APv6Frame provides the IPHC, hops and addressing
+APv6Frame (outside this module) provides the IPHC, hops and addressing
 and APv6Udp provides the header type, checksum and ports.
 """
 
@@ -17,12 +17,9 @@ import struct
 
 import dpkt # pip install dpkt
 
-from .net_frame import APv6Frame
-
 
 class APv6Udp(dpkt.Packet):
     """APv6 UDP packet definition
-    Inherits from APv6Frame in order to re-use setters/getters for the IPHC, Hops, Src and Dst fields.
     Derived from RFC6282
     """
     HDR_TYPE = 0b11110

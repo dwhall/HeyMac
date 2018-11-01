@@ -7,9 +7,9 @@ Tracks time-changing data.
 """
 
 
-import mac_cfg
-import mac_cmds
-import vdict
+from . import mac_cfg
+from . import mac_cmds
+from . import vdict
 
 
 # Some useful constants

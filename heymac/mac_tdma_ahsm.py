@@ -18,13 +18,13 @@ import socket
 
 import farc
 
-import dll_data
-import mac_cfg
-import mac_cmds
-import mac_discipline
-import mac_frame
-import phy_cfg
-import utl
+from . import dll_data
+from . import mac_cfg
+from . import mac_cmds
+from . import mac_discipline
+from . import mac_frame
+from . import phy_cfg
+from . import utl
 
 
 # Turn user JSON config files into Python dicts

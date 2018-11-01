@@ -15,7 +15,7 @@ is less accurate than PPS.
 import enum
 import logging
 
-import mac_cfg
+from . import mac_cfg
 
 
 class HeyMacDscplnEnum(enum.IntEnum):

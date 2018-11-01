@@ -36,8 +36,7 @@ class UdpBridgeAhsm(farc.Ahsm):
 
         loop = asyncio.get_event_loop()
         server = loop.create_datagram_endpoint(UdpServer, local_addr=("localhost", UDP_PORT))
-        #me.transport, me.protocol = loop.run_until_complete(server)
-        me.transport, _ = loop.run_until_complete(server)
+        me.transport, me.protocol = loop.run_until_complete(server)
         return me.tran(me, UdpBridgeAhsm.bridging)
 
 
@@ -49,8 +48,8 @@ class UdpBridgeAhsm(farc.Ahsm):
 
         elif sig == farc.Signal.DLL_BRIDGE_IN:
             pkt, me.latest_addr = event.value
-            # TODO: ack?
-            print("bridge in")
+            print("from", me.latest_addr, ": ", pkt)
+            me.transport.sendto(b"got: " + pkt, me.latest_addr)
             return me.handled(me, event)
 
         elif sig == farc.Signal.DLL_BRIDGE_ERR:

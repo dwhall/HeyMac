@@ -9,11 +9,14 @@ Physical Layer State Machine for GPIO operations on the RasPi device
 """
 
 
-from heymac import GPIO
-
 import farc
 
-import phy_cfg
+try:
+    import RPi.GPIO as GPIO
+except:
+    from . import mock_gpio as GPIO
+
+from . import phy_cfg
 
 
 # The RPi.GPIO module responds to external I/O in a separate thread.
