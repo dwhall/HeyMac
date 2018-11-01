@@ -269,3 +269,29 @@ def _is_addr_valid(addri):
             return False
 
     return True
+
+
+def is_addr_valid_bcast(addrx):
+    """Returns True if the address is a proper broadcast address.
+    """
+    valid = False
+    if type(addrx) is bytes:
+        addri = to_internal_repr(addrx)
+        valid = _is_addr_valid_bcast(addri)
+    return valid
+
+def _is_addr_valid_bcast(addri):
+    return _is_addr_valid(addri) and 0xF in addri
+
+
+def is_addr_valid_node(addrx):
+    """Returns True if the address is a proper node address (not broadcast).
+    """
+    valid = False
+    if type(addrx) is bytes:
+        addri = to_internal_repr(addrx)
+        valid = _is_addr_valid_node(addri)
+    return valid
+
+def _is_addr_valid_node(addri):
+    return _is_addr_valid(addri) and 0xF not in addri

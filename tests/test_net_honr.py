@@ -117,5 +117,61 @@ class TestNetHonr(unittest.TestCase):
         self.assertFalse(net_honr.is_addr_valid(b"\xF1\xF0"))
 
 
+    def test_is_addr_valid_bcast(self,):
+        # Valid broadcast addresses
+        self.assertTrue(net_honr.is_addr_valid_bcast(b"\xF0\x00"))
+        self.assertTrue(net_honr.is_addr_valid_bcast(b"\x1F\x00"))
+        self.assertTrue(net_honr.is_addr_valid_bcast(b"\x2F\xF0"))
+        self.assertTrue(net_honr.is_addr_valid_bcast(b"\x32\xFF"))
+        self.assertTrue(net_honr.is_addr_valid_bcast(b"\xFF\xFF"))
+        # Invalid addresses
+        # zero left of non-zero
+        self.assertFalse(net_honr.is_addr_valid_bcast(b"\x00\x10"))
+        self.assertFalse(net_honr.is_addr_valid_bcast(b"\x00\x00\x00\x00\x00\x00\x00\x01"))
+        self.assertFalse(net_honr.is_addr_valid_bcast(b"\x1E\x0E"))
+        self.assertFalse(net_honr.is_addr_valid_bcast(b"\x1F\x01"))
+        # addr wrong size
+        self.assertFalse(net_honr.is_addr_valid_bcast(b"\x10\x00\x00"))
+        self.assertFalse(net_honr.is_addr_valid_bcast(b"\x10\x00\x00\x00\x00\x00\x00\x00\x00"))
+        # bad datatype
+        self.assertFalse(net_honr.is_addr_valid_bcast(0x0000))
+        self.assertFalse(net_honr.is_addr_valid_bcast("\x10\x00"))
+        # invalid broadcast
+        self.assertFalse(net_honr.is_addr_valid_bcast(b"\x00\x0F"))
+        self.assertFalse(net_honr.is_addr_valid_bcast(b"\x1F\x0F"))
+        self.assertFalse(net_honr.is_addr_valid_bcast(b"\xF1\xF0"))
+
+
+    def test_is_addr_valid_node(self,):
+        # Valid addresses
+        self.assertTrue(net_honr.is_addr_valid(b"\x00\x00"))
+        self.assertTrue(net_honr.is_addr_valid(b"\x00\x00\x00\x00\x00\x00\x00\x00"))
+        self.assertTrue(net_honr.is_addr_valid(b"\x10\x00"))
+        self.assertTrue(net_honr.is_addr_valid(b"\x10\x00\x00\x00\x00\x00\x00\x00"))
+        self.assertTrue(net_honr.is_addr_valid(b"\x1E\xEE"))
+        # Valid broadcast addresses
+        self.assertFalse(net_honr.is_addr_valid_node(b"\xF0\x00"))
+        self.assertFalse(net_honr.is_addr_valid_node(b"\x1F\x00"))
+        self.assertFalse(net_honr.is_addr_valid_node(b"\x2F\xF0"))
+        self.assertFalse(net_honr.is_addr_valid_node(b"\x32\xFF"))
+        self.assertFalse(net_honr.is_addr_valid_node(b"\xFF\xFF"))
+        # Invalid addresses
+        # zero left of non-zero
+        self.assertFalse(net_honr.is_addr_valid_node(b"\x00\x10"))
+        self.assertFalse(net_honr.is_addr_valid_node(b"\x00\x00\x00\x00\x00\x00\x00\x01"))
+        self.assertFalse(net_honr.is_addr_valid_node(b"\x1E\x0E"))
+        self.assertFalse(net_honr.is_addr_valid_node(b"\x1F\x01"))
+        # addr wrong size
+        self.assertFalse(net_honr.is_addr_valid_node(b"\x10\x00\x00"))
+        self.assertFalse(net_honr.is_addr_valid_node(b"\x10\x00\x00\x00\x00\x00\x00\x00\x00"))
+        # bad datatype
+        self.assertFalse(net_honr.is_addr_valid_node(0x0000))
+        self.assertFalse(net_honr.is_addr_valid_node("\x10\x00"))
+        # invalid broadcast
+        self.assertFalse(net_honr.is_addr_valid_node(b"\x00\x0F"))
+        self.assertFalse(net_honr.is_addr_valid_node(b"\x1F\x0F"))
+        self.assertFalse(net_honr.is_addr_valid_node(b"\xF1\xF0"))
+
+
 if __name__ == '__main__':
     unittest.main()
