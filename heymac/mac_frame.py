@@ -23,32 +23,32 @@ from .net_frame import APv6Frame
 # HeyMac protocol version
 HEYMAC_VERSION = 1
 
-# Frame Control Field (Fctl) subfield values
-FCTL_TYPE_MIN = 0b00
-FCTL_TYPE_MAC = 0b01
-FCTL_TYPE_NET = 0b10
-FCTL_TYPE_EXT = 0b11
-FCTL_TYPE_MASK = 0b11000000
-FCTL_TYPE_SHIFT = 6
-FCTL_L_SHIFT = 5
-FCTL_R_SHIFT = 4
-FCTL_N_SHIFT = 3
-FCTL_D_SHIFT = 2
-FCTL_I_SHIFT = 1
-FCTL_S_SHIFT = 0
-
-# Pend Ver Seq (PVS) subfield values
-PVS_P_MASK = 0b10000000
-PVS_P_SHIFT = 7
-PVS_V_MASK = 0b01110000
-PVS_V_SHIFT = 4
-PVS_S_MASK = 0b00001111
-PVS_S_SHIFT = 0
-
 
 class HeyMacFrame(dpkt.Packet):
     """HeyMac frame definition
     """
+    # Frame Control Field (Fctl) subfield values
+    FCTL_TYPE_MIN = 0b00
+    FCTL_TYPE_MAC = 0b01
+    FCTL_TYPE_NET = 0b10
+    FCTL_TYPE_EXT = 0b11
+    FCTL_TYPE_MASK = 0b11000000
+    FCTL_TYPE_SHIFT = 6
+    FCTL_L_SHIFT = 5
+    FCTL_R_SHIFT = 4
+    FCTL_N_SHIFT = 3
+    FCTL_D_SHIFT = 2
+    FCTL_I_SHIFT = 1
+    FCTL_S_SHIFT = 0
+
+    # Pend Ver Seq (PVS) subfield values
+    PVS_P_MASK = 0b10000000
+    PVS_P_SHIFT = 7
+    PVS_V_MASK = 0b01110000
+    PVS_V_SHIFT = 4
+    PVS_S_MASK = 0b00001111
+    PVS_S_SHIFT = 0
+
     __byte_order__ = '!' # Network order
     __hdr__ = (
         # The underscore prefix means do not access that field directly.
@@ -70,9 +70,9 @@ class HeyMacFrame(dpkt.Packet):
 
     # Functions to help determine which fields are present
     def _has_pvs_field(self,): # PVS exists in all but Min frame types
-        return self.fctl_type != FCTL_TYPE_MIN
+        return self.fctl_type != HeyMacFrame.FCTL_TYPE_MIN
     def _has_exttype_field(self,): # ExtType exists when Fctl type is Extended
-        return self.fctl_type == FCTL_TYPE_EXT
+        return self.fctl_type == HeyMacFrame.FCTL_TYPE_EXT
     def _has_raddr_field(self,):
         return self.fctl_r != 0
     def _has_netid_field(self,):
@@ -136,43 +136,43 @@ class HeyMacFrame(dpkt.Packet):
     def fctl_type(self,):
         """Gets the frame type value from the Fctl field.
         """
-        return ((self._fctl & FCTL_TYPE_MASK) >> FCTL_TYPE_SHIFT)
+        return ((self._fctl & HeyMacFrame.FCTL_TYPE_MASK) >> HeyMacFrame.FCTL_TYPE_SHIFT)
 
     @property
     def fctl_l(self,):
         """Gets the Long address flag from the Fctl field.
         """
-        return 1 & (self._fctl >> FCTL_L_SHIFT)
+        return 1 & (self._fctl >> HeyMacFrame.FCTL_L_SHIFT)
 
     @property
     def fctl_r(self,):
         """Gets the Resender address present flag from the Fctl field.
         """
-        return 1 & (self._fctl >> FCTL_R_SHIFT)
+        return 1 & (self._fctl >> HeyMacFrame.FCTL_R_SHIFT)
 
     @property
     def fctl_n(self,):
         """Gets the NetID present flag from the Fctl field.
         """
-        return 1 & (self._fctl >> FCTL_N_SHIFT)
+        return 1 & (self._fctl >> HeyMacFrame.FCTL_N_SHIFT)
 
     @property
     def fctl_d(self,):
         """Gets the Dest address present flag from the Fctl field.
         """
-        return 1 & (self._fctl >> FCTL_D_SHIFT)
+        return 1 & (self._fctl >> HeyMacFrame.FCTL_D_SHIFT)
 
     @property
     def fctl_i(self,):
         """Gets the IE present flag from the Fctl field.
         """
-        return 1 & (self._fctl >> FCTL_I_SHIFT)
+        return 1 & (self._fctl >> HeyMacFrame.FCTL_I_SHIFT)
 
     @property
     def fctl_s(self,):
         """Gets the Src address present flag from the Fctl field.
         """
-        return 1 & (self._fctl >> FCTL_S_SHIFT)
+        return 1 & (self._fctl >> HeyMacFrame.FCTL_S_SHIFT)
 
 
     # Setters for the _fctl field
@@ -189,9 +189,9 @@ class HeyMacFrame(dpkt.Packet):
         in the PVS field (if the PVS field does not yet exist).
         """
         assert val <= 3, "Invalid frame type"
-        self._fctl = (self._fctl & ~FCTL_TYPE_MASK) | (val << FCTL_TYPE_SHIFT)
+        self._fctl = (self._fctl & ~HeyMacFrame.FCTL_TYPE_MASK) | (val << HeyMacFrame.FCTL_TYPE_SHIFT)
         if val != 0 and not hasattr(self, "_pvs"):
-            self._pvs = HEYMAC_VERSION << PVS_V_SHIFT
+            self._pvs = HEYMAC_VERSION << HeyMacFrame.PVS_V_SHIFT
 
     def _fctl_setter_for_bit(self, val, bit_idx):
         """Sets or clears one of the L,R,N,D,I,S bits
@@ -199,44 +199,44 @@ class HeyMacFrame(dpkt.Packet):
         """
         assert 0 <= val <= 1
         assert 0 <= bit_idx <= 7
-        self._fctl &= (FCTL_TYPE_MASK | ~(1 << bit_idx))
+        self._fctl &= (HeyMacFrame.FCTL_TYPE_MASK | ~(1 << bit_idx))
         self._fctl |= (val << bit_idx)
 
     @fctl_l.setter
     def fctl_l(self, val):
         """Sets the Long address flag in the Fctl field.
         """
-        return self._fctl_setter_for_bit(val, FCTL_L_SHIFT)
+        return self._fctl_setter_for_bit(val, HeyMacFrame.FCTL_L_SHIFT)
 
     @fctl_r.setter
     def fctl_r(self, val):
         """Sets the Resender address present flag in the Fctl field.
         """
-        return self._fctl_setter_for_bit(val, FCTL_R_SHIFT)
+        return self._fctl_setter_for_bit(val, HeyMacFrame.FCTL_R_SHIFT)
 
     @fctl_n.setter
     def fctl_n(self, val):
         """Sets the NetID present flag in the Fctl field.
         """
-        return self._fctl_setter_for_bit(val, FCTL_N_SHIFT)
+        return self._fctl_setter_for_bit(val, HeyMacFrame.FCTL_N_SHIFT)
 
     @fctl_d.setter
     def fctl_d(self, val):
         """Sets the Dest address present flag in the Fctl field.
         """
-        return self._fctl_setter_for_bit(val, FCTL_D_SHIFT)
+        return self._fctl_setter_for_bit(val, HeyMacFrame.FCTL_D_SHIFT)
 
     @fctl_i.setter
     def fctl_i(self, val):
         """Sets the IEs present flag in the Fctl field.
         """
-        return self._fctl_setter_for_bit(val, FCTL_I_SHIFT)
+        return self._fctl_setter_for_bit(val, HeyMacFrame.FCTL_I_SHIFT)
 
     @fctl_s.setter
     def fctl_s(self, val):
         """Sets the Source address present flag in the Fctl field.
         """
-        return self._fctl_setter_for_bit(val, FCTL_S_SHIFT)
+        return self._fctl_setter_for_bit(val, HeyMacFrame.FCTL_S_SHIFT)
 
 
     # Getters for the _pvs field
@@ -245,7 +245,7 @@ class HeyMacFrame(dpkt.Packet):
         """Gets the Pending value from the PVS field.
         """
         if self._pvs:
-            return (self._pvs[0] & PVS_P_MASK) >> PVS_P_SHIFT
+            return (self._pvs[0] & HeyMacFrame.PVS_P_MASK) >> HeyMacFrame.PVS_P_SHIFT
         else:
             return b""
 
@@ -254,7 +254,7 @@ class HeyMacFrame(dpkt.Packet):
         """Gets the Version value from the PVS field.
         """
         if self._pvs:
-            return (self._pvs[0] & PVS_V_MASK) >> PVS_V_SHIFT
+            return (self._pvs[0] & HeyMacFrame.PVS_V_MASK) >> HeyMacFrame.PVS_V_SHIFT
         else:
             return b""
 
@@ -263,7 +263,7 @@ class HeyMacFrame(dpkt.Packet):
         """Gets the Sequence value from the PVS field.
         """
         if self._pvs:
-            return (self._pvs[0] & PVS_S_MASK) >> PVS_S_SHIFT
+            return (self._pvs[0] & HeyMacFrame.PVS_S_MASK) >> HeyMacFrame.PVS_S_SHIFT
         else:
             return b""
 
@@ -275,9 +275,9 @@ class HeyMacFrame(dpkt.Packet):
         """
         pvs = 0
         if self._pvs:
-            pvs = self._pvs[0] & ~PVS_P_MASK
+            pvs = self._pvs[0] & ~HeyMacFrame.PVS_P_MASK
         if p:
-            pvs |= PVS_P_MASK
+            pvs |= HeyMacFrame.PVS_P_MASK
         self._pvs = pvs.to_bytes(1, "big")
 
     @seq.setter
@@ -287,8 +287,8 @@ class HeyMacFrame(dpkt.Packet):
         """
         pvs = 0
         if self._pvs:
-            pvs = self._pvs[0] & ~PVS_S_MASK
-        pvs |= (HEYMAC_VERSION << PVS_V_SHIFT) | (s << PVS_S_SHIFT)
+            pvs = self._pvs[0] & ~HeyMacFrame.PVS_S_MASK
+        pvs |= (HEYMAC_VERSION << HeyMacFrame.PVS_V_SHIFT) | (s << HeyMacFrame.PVS_S_SHIFT)
         self._pvs = pvs.to_bytes(1, "big")
 
 
@@ -347,7 +347,7 @@ class HeyMacFrame(dpkt.Packet):
             self.data = self.data[sz:]
 
         # Unpack the payload for known frame types
-        if self.fctl_type == FCTL_TYPE_MAC:
+        if self.fctl_type == HeyMacFrame.FCTL_TYPE_MAC:
             if self.data:
                 if self.data[0] == HeyMacCmdId.SBCN.value:
                     self.data = HeyMacCmdSbcn(self.data)
@@ -359,7 +359,7 @@ class HeyMacFrame(dpkt.Packet):
                     logging.info("unsupp MAC cmd %f", self.data[0])
             # else:
             #     raise dpkt.NeedData("for MAC payld")
-        elif self.fctl_type == FCTL_TYPE_NET:
+        elif self.fctl_type == HeyMacFrame.FCTL_TYPE_NET:
             if self.data:
                 self.data = APv6Frame(self.data)
             # else:
@@ -405,7 +405,7 @@ class HeyMacFrame(dpkt.Packet):
             self.exttype = b'\x00'
         if self.exttype or self._has_exttype_field():
             nbytes += 1
-            self.fctl_type = FCTL_TYPE_EXT
+            self.fctl_type = HeyMacFrame.FCTL_TYPE_EXT
             d.append(self.exttype)
 
         if self.netid:
