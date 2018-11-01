@@ -56,7 +56,7 @@ def _gen_specific_keypair(prefix):
 if __name__ == "__main__":
     name = input("Full name: ")
     callsign = input("Callsign: ")
-    _, pub_key = gen_feb12b_keypair()
+    _, pub_key = gen_personal_keypair()
 
     fn = os.path.join(utl.get_app_data_path("HeyMac"), "mac_identity.json")
     with open(fn, 'w') as f:
