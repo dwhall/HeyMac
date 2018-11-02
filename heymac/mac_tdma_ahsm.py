@@ -363,7 +363,8 @@ class HeyMacAhsm(farc.Ahsm):
         my_bcn_slotmap = bytearray((2 ** self.sf_order) // 8)
         my_bcn_slotmap[ self.bcn_slot // 8 ] |= (1 << (self.bcn_slot % 8))
         frame = self.build_mac_frame(self, self.mac_seq)
-        if not hasattr(self, "gps_gprmc"): self.gps_gprmc = ""
+        if not hasattr(self, "gps_gprmc"):
+            self.gps_gprmc = b""
         frame.data = mac_cmds.HeyMacCmdEbcn(
             sf_order=self.sf_order,
             eb_order=self.eb_order,
