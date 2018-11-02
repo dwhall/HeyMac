@@ -363,8 +363,6 @@ class HeyMacAhsm(farc.Ahsm):
         my_bcn_slotmap = bytearray((2 ** self.sf_order) // 8)
         my_bcn_slotmap[ self.bcn_slot // 8 ] |= (1 << (self.bcn_slot % 8))
         frame = self.build_mac_frame(self, self.mac_seq)
-        if not hasattr(self, "gps_gprmc"):
-            self.gps_gprmc = b""
         frame.data = mac_cmds.HeyMacCmdEbcn(
             sf_order=self.sf_order,
             eb_order=self.eb_order,
@@ -376,7 +374,7 @@ class HeyMacAhsm(farc.Ahsm):
             ngbr_tx_slots=self.dll_data.get_bcn_slotmap(),
             # extended fields:
             station_id=socket.gethostname().encode(),
-            geoloc=self.gps_gprmc, #TODO: extract lat/lon from gprmc
+            geoloc=getattr(self, "gps_gprmc", b""), #TODO: extract lat/lon from gprmc
             )
         tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data
         farc.Framework.post(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
