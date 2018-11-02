@@ -58,8 +58,8 @@ class HeyMacFrame(dpkt.Packet):
         # Below this are optional fields as indicated by '0s'.
         # The underscore prefix means do not access that field directly.
         # Access properties .pend, .ver and .seq, instead.
-        ('_pvs', '0s', b''),
         ('raddr', '0s', b''),
+        ('_pvs', '0s', b''),
         ('exttype', '0s', b''),
         ('netid', '0s', b''),
         ('daddr', '0s', b''),

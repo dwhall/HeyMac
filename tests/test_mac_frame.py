@@ -424,5 +424,34 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(f.data, b"6x7")
 
 
+    def test_raddr_pvs(self,):
+        # Pack
+        f = heymac.HeyMacFrame()
+        f.fctl_type = heymac.HeyMacFrame.FCTL_TYPE_MAC
+        f.raddr = b"\x11\x11"
+        f.seq = 9
+        f.data = b"6x7"
+        b = bytes(f)
+        self.assertEqual(b, b"\x50\x11\x11\x196x7")
+        # Unpack
+        f = heymac.HeyMacFrame(b)
+        self.assertEqual(f.fctl_type, heymac.HeyMacFrame.FCTL_TYPE_MAC)
+        self.assertEqual(f.fctl_l, 0)
+        self.assertEqual(f.fctl_r, 1)
+        self.assertEqual(f.fctl_n, 0)
+        self.assertEqual(f.fctl_d, 0)
+        self.assertEqual(f.fctl_i, 0)
+        self.assertEqual(f.fctl_s, 0)
+        self.assertEqual(f.raddr, b"\x11\x11")
+        self.assertEqual(f.pend, 0)
+        self.assertEqual(f.ver, 1)
+        self.assertEqual(f.seq, 9)
+        self.assertEqual(f.exttype, b"")
+        self.assertEqual(f.netid, b"")
+        self.assertEqual(f.daddr, b"")
+        self.assertEqual(f.saddr, b"")
+        self.assertEqual(f.data, b"6x7")
+
+
 if __name__ == '__main__':
     unittest.main()
