@@ -376,6 +376,8 @@ class HeyMacFrame(dpkt.Packet):
         # Skip Fctl field for now, insert it at the end of this function
 
         if self.raddr:
+            if type(self.raddr) is int:
+                self.raddr = struct.pack("!H", self.raddr)
             len_raddr = len(self.raddr)
             if len_raddr == 8:
                 self.fctl_l = 1
@@ -416,11 +418,14 @@ class HeyMacFrame(dpkt.Packet):
 
         if self.netid:
             self.fctl_n = 1
-            if len(self.netid) != 2:
-                raise dpkt.PackError("invalid netid length")
+            if type(self.netid) is int:
+                self.netid = struct.pack("!H", self.netid)
+            assert len(self.netid) == 2
             d.extend(self.netid)
 
         if self.daddr:
+            if type(self.daddr) is int:
+                self.daddr = struct.pack("!H", self.daddr)
             len_daddr = len(self.daddr)
             if len_daddr == 8:
                 self.fctl_l = 1
@@ -432,6 +437,8 @@ class HeyMacFrame(dpkt.Packet):
         # TODO: add IEs
 
         if self.saddr:
+            if type(self.saddr) is int:
+                self.saddr = struct.pack("!H", self.saddr)
             len_saddr = len(self.saddr)
             if len_saddr == 8:
                 self.fctl_l = 1
