@@ -57,11 +57,10 @@ class APv6Frame(dpkt.Packet):
         # The underscore prefix means do not access that field directly.
         # Access properties .iphc, .iphc_nhc, etc. instead.
         ('_iphc', 'B', APV6_PREFIX),
+        # Fields with '0s' are optional or variable-length
         ('hops', '0s', b''),
         ('src', '0s', b''),
         ('dst', '0s', b''),
-        # The NextHeader fields that may follow
-        # are defined by sub-classes of APv6Frame
     )
 
     # Functions to help determine which fields are present
@@ -217,7 +216,11 @@ class APv6Frame(dpkt.Packet):
         self.iphc_nhc = APv6Frame.DEFAULT_NHC
 
         if self.hops:
-            v = self.hops[0]
+            if type(self.hops) is bytes:
+                v = self.hops[0]
+            else:
+                v = self.hops
+                self.hops = struct.pack("B", v)
             if v == 1:
                 self.iphc_hlim = 0b01
             elif v == 64:
@@ -245,7 +248,4 @@ class APv6Frame(dpkt.Packet):
         else:
             self.iphc_dam = APv6Frame.DEFAULT_DAM
 
-        # Insert IPHC because we modify it above
-        d.insert(0, super().pack_hdr()[0])
-
-        return bytes(d)
+        return super().pack_hdr() + bytes(d)

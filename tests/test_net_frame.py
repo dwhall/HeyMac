@@ -319,5 +319,27 @@ class TestAPv6Frame(unittest.TestCase):
         self.assertEqual(f.dst, b"\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDa\xDb\xDc\xDd\xDe\xDf")
 
 
+    def test_regression_hops_from_int(self,):
+        """Allow hops to be given as an int
+        """
+        # Pack
+        f = heymac.APv6Frame(
+                hops=0x33,
+                src=b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f",
+                dst=b"\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDa\xDb\xDc\xDd\xDe\xDf")
+        b = bytes(f)
+        self.assertEqual(b, b"\xD0\x33\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDa\xDb\xDc\xDd\xDe\xDf")
+        # Unpack
+        f = heymac.APv6Frame(b)
+        self.assertEqual(f.iphc_prefix, 6)
+        self.assertEqual(f.iphc_nhc, 1)
+        self.assertEqual(f.iphc_hlim, 0)
+        self.assertEqual(f.iphc_sam, 0)
+        self.assertEqual(f.iphc_dam, 0)
+        self.assertEqual(f.hops, 0x33)
+        self.assertEqual(f.src, b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f")
+        self.assertEqual(f.dst, b"\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDa\xDb\xDc\xDd\xDe\xDf")
+
+
 if __name__ == "__main__":
     unittest.main()
