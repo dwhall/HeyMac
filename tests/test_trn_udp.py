@@ -13,7 +13,9 @@ class TestAPv6Udp(unittest.TestCase):
 
     def test_min(self,):
         # Pack
-        f = heymac.APv6Udp()
+        f = heymac.APv6Udp(
+            src_port=0xF0B0,
+            dst_port=0xF0B0)
         b = bytes(f)
         self.assertEqual(b, b"\xF7\x00")
         # Unpack
@@ -27,7 +29,10 @@ class TestAPv6Udp(unittest.TestCase):
 
     def test_chksum(self,):
         # Pack
-        f = heymac.APv6Udp(chksum=0x2A3B)
+        f = heymac.APv6Udp(
+            chksum=0x2A3B,
+            src_port=0xF0B0,
+            dst_port=0xF0B0)
         b = bytes(f)
         self.assertEqual(b, b"\xF3\x2A\x3B\x00")
         # Unpack
@@ -41,7 +46,9 @@ class TestAPv6Udp(unittest.TestCase):
 
     def test_src_port_f0b3(self,):
         # Pack
-        f = heymac.APv6Udp(src_port=0xF0B3)
+        f = heymac.APv6Udp(
+            src_port=0xF0B3,
+            dst_port=0xF0B0)
         b = bytes(f)
         self.assertEqual(b, b"\xF7\x30")
         # Unpack
@@ -55,7 +62,9 @@ class TestAPv6Udp(unittest.TestCase):
 
     def test_src_port_f009(self,):
         # Pack
-        f = heymac.APv6Udp(src_port=0xF009)
+        f = heymac.APv6Udp(
+            src_port=0xF009,
+            dst_port=0xF0B0)
         b = bytes(f)
         self.assertEqual(b, b"\xF6\x09\xF0\xB0")
         # Unpack
@@ -69,7 +78,9 @@ class TestAPv6Udp(unittest.TestCase):
 
     def test_src_port_abcd(self,):
         # Pack
-        f = heymac.APv6Udp(src_port=0xABCD)
+        f = heymac.APv6Udp(
+            src_port=0xABCD,
+            dst_port=0xF0B0)
         b = bytes(f)
         self.assertEqual(b, b"\xF5\xAB\xCD\xB0")
         # Unpack
@@ -83,7 +94,9 @@ class TestAPv6Udp(unittest.TestCase):
 
     def test_dst_port_f009(self,):
         # Pack
-        f = heymac.APv6Udp(dst_port=0xF009)
+        f = heymac.APv6Udp(
+            src_port=0xF0B0,
+            dst_port=0xF009)
         b = bytes(f)
         self.assertEqual(b, b"\xF6\xB0\xF0\x09")
         # Unpack
@@ -97,7 +110,9 @@ class TestAPv6Udp(unittest.TestCase):
 
     def test_dst_port_abcd(self,):
         # Pack
-        f = heymac.APv6Udp(dst_port=0xABCD)
+        f = heymac.APv6Udp(
+            src_port=0xF0B0,
+            dst_port=0xABCD)
         b = bytes(f)
         self.assertEqual(b, b"\xF6\xB0\xAB\xCD")
         # Unpack
@@ -125,6 +140,28 @@ class TestAPv6Udp(unittest.TestCase):
         self.assertEqual(f.chksum, 0xC1C2)
         self.assertEqual(f.src_port, 0x1112)
         self.assertEqual(f.dst_port, 0x2122)
+
+    def test_regression_serialize_twice(self,):
+        """Problem: serializing an APv6Udp() a second time
+        caused an assertion::
+
+            >>> u = heymac.APv6Udp()
+            >>> u.src_port = 0xF0B1
+            >>> print(u)
+            b'\xf7\x10'
+            >>> u.dst_port = 0xF0B9
+            >>> print(u)
+            Traceback (most recent call last):
+            ...<snip>...
+            struct.error: required argument is not an integer
+        """
+        # Pack
+        f = heymac.APv6Udp(
+            src_port = 0x1112,
+            dst_port=0xF0B0)
+        b1 = bytes(f)
+        f.dst_port = 0x2122
+        b2 = bytes(f)
 
 
 if __name__ == "__main__":

@@ -38,8 +38,6 @@ class APv6Udp(dpkt.Packet):
     HDR_PORTS_SRC_F0BX_DST_F0BX = 0b11
 
     DEFAULT_CHKSUM = b""
-    DEFAULT_SRC_PORT = 0xF0B0
-    DEFAULT_DST_PORT = 0xF0B0
 
 
     __hdr__ = (
@@ -158,33 +156,40 @@ class APv6Udp(dpkt.Packet):
             self.hdr_co = 1
             self.chksum = APv6Udp.DEFAULT_CHKSUM
 
-        if self.src_port:
-            sp = self.src_port
-        else:
-            sp = APv6Udp.DEFAULT_SRC_PORT
-        self.src_port = struct.pack("!H", sp)
+        # Accept source port as int or bytes types
+        # and make sure we have the bytes in src_port
+        # and the int in src_port_int
+        if type(self.src_port) is int:
+            self.src_port_int = self.src_port
+            self.src_port = struct.pack("!H", self.src_port)
+        elif type(self.src_port) is bytes:
+            self.src_port_int = struct.unpack("!H", self.src_port)[0]
 
-        if self.dst_port:
-            dp = self.dst_port
-        else:
-            dp = APv6Udp.DEFAULT_DST_PORT
-        self.dst_port = struct.pack("!H", dp)
+        # Accept dest port as int or bytes types
+        # and make sure we have the bytes in dst_port
+        # and the int in dst_port_int
+        if type(self.dst_port) is int:
+            self.dst_port_int = self.dst_port
+            self.dst_port = struct.pack("!H", self.dst_port)
+        elif type(self.dst_port) is bytes:
+            self.dst_port_int = struct.unpack("!H", self.dst_port)[0]
 
-        if (sp & 0xFFF0) == 0xF0B0 and (dp & 0xFFF0) == 0xF0B0:
+        if ((self.src_port_int & 0xFFF0) == 0xF0B0 and
+                (self.dst_port_int & 0xFFF0) == 0xF0B0):
             self.hdr_ports = APv6Udp.HDR_PORTS_SRC_F0BX_DST_F0BX
-            src_nbl = sp & 0x000F
-            dst_nbl = dp & 0x000F
+            src_nbl = self.src_port_int & 0x000F
+            dst_nbl = self.dst_port_int & 0x000F
             d.append(src_nbl << 4 | dst_nbl)
 
-        elif (sp & 0xFF00) == 0xF000:
+        elif (self.src_port_int & 0xFF00) == 0xF000:
             self.hdr_ports = APv6Udp.HDR_PORTS_SRC_F0XX_DST_INLN
-            d.append(sp & 0x00FF)
+            d.append(self.src_port_int & 0x00FF)
             d.extend(self.dst_port)
 
-        elif (dp & 0xFF00) == 0xF000:
+        elif (self.dst_port_int & 0xFF00) == 0xF000:
             self.hdr_ports = APv6Udp.HDR_PORTS_SRC_INLN_DST_F0XX
             d.extend(self.src_port)
-            d.append(dp & 0x00FF)
+            d.append(self.dst_port_int & 0x00FF)
 
         else:
             self.hdr_ports = APv6Udp.HDR_PORTS_SRC_INLN_DST_INLN
