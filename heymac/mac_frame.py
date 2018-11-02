@@ -190,7 +190,7 @@ class HeyMacFrame(dpkt.Packet):
         """
         assert val <= 3, "Invalid frame type"
         self._fctl = (self._fctl & ~HeyMacFrame.FCTL_TYPE_MASK) | (val << HeyMacFrame.FCTL_TYPE_SHIFT)
-        if val != 0 and not hasattr(self, "_pvs"):
+        if val != HeyMacFrame.FCTL_TYPE_MIN and not hasattr(self, "_pvs"):
             self._pvs = HEYMAC_VERSION << HeyMacFrame.PVS_V_SHIFT
 
     def _fctl_setter_for_bit(self, val, bit_idx):
@@ -371,20 +371,18 @@ class HeyMacFrame(dpkt.Packet):
         This function is called when bytes() or len() is called
         on an instance of HeyMacFrame.
         """
-        d = []
-        nbytes = 0
+        d = bytearray()
 
         # Skip Fctl field for now, insert it at the end of this function
 
         if self.raddr:
             len_raddr = len(self.raddr)
-            nbytes += len_raddr
             if len_raddr == 8:
                 self.fctl_l = 1
                 self.fctl_r = 1
             elif len_raddr == 2:
                 self.fctl_r = 1
-            d.append(self.raddr)
+            d.extend(self.raddr)
 
         # If Fctl indicates PVS should be present
         # and PVS was not set by the caller,
@@ -396,48 +394,50 @@ class HeyMacFrame(dpkt.Packet):
         # If PVS was set by caller
         if self._pvs:
             # If Fctl type is MIN, error
-            if not self._has_pvs_field():
+            if self.fctl_type == HeyMacFrame.FCTL_TYPE_MIN:
                 raise dpkt.PackError("PVS set but Fctl type is MIN")
-            nbytes += 1
-            d.append(self._pvs)
+            if type(self._pvs) is bytes:
+                v = self._pvs[0]
+            else:
+                v = self._pvs
+                self._pvs = struct.pack("B", v)
+            d.append(v)
 
         if self._has_exttype_field() and not self.exttype:
             self.exttype = b'\x00'
         if self.exttype or self._has_exttype_field():
-            nbytes += 1
             self.fctl_type = HeyMacFrame.FCTL_TYPE_EXT
-            d.append(self.exttype)
+            if type(self.exttype) is bytes:
+                v = self.exttype[0]
+            else:
+                v = self.exttype
+                self.exttype = struct.pack("B", v)
+            d.append(v)
 
         if self.netid:
-            nbytes += len(self.netid)
             self.fctl_n = 1
             if len(self.netid) != 2:
                 raise dpkt.PackError("invalid netid length")
-            d.append(self.netid)
+            d.extend(self.netid)
 
         if self.daddr:
             len_daddr = len(self.daddr)
-            nbytes += len_daddr
             if len_daddr == 8:
                 self.fctl_l = 1
                 self.fctl_d = 1
             elif len_daddr == 2:
                 self.fctl_d = 1
-            d.append(self.daddr)
+            d.extend(self.daddr)
 
         # TODO: add IEs
 
         if self.saddr:
             len_saddr = len(self.saddr)
-            nbytes += len_saddr
             if len_saddr == 8:
                 self.fctl_l = 1
                 self.fctl_s = 1
             elif len_saddr == 2:
                 self.fctl_s = 1
-            d.append(self.saddr)
+            d.extend(self.saddr)
 
-        # Repack Fctl because we modify it above
-        d.insert(0, super().pack_hdr())
-
-        return b"".join(d)
+        return super().pack_hdr() + bytes(d)
