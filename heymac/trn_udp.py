@@ -148,9 +148,12 @@ class APv6Udp(dpkt.Packet):
         # Field setter functions affect _hdr value,
         # so insert _hdr at the end of this function
 
+        # Accept checksum as int or bytes types
+        # and convert to bytes if given as an int
         if self.chksum:
             self.hdr_co = 0
-            self.chksum = struct.pack("!H", self.chksum)
+            if type(self.chksum) is int:
+                self.chksum = struct.pack("!H", self.chksum)
             d.extend(self.chksum)
         else:
             self.hdr_co = 1

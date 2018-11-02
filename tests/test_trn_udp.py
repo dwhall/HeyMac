@@ -141,6 +141,22 @@ class TestAPv6Udp(unittest.TestCase):
         self.assertEqual(f.src_port, 0x1112)
         self.assertEqual(f.dst_port, 0x2122)
 
+    def test_regression_serialize_without_port(self,):
+        """An assertion should be thrown if
+        the coder does not give src/dst ports
+        """
+        import struct
+        f = heymac.APv6Udp()
+        with self.assertRaises(struct.error):
+            b = bytes(f)
+        f = heymac.APv6Udp(src_port=0x1234)
+        with self.assertRaises(struct.error):
+            b = bytes(f)
+        f = heymac.APv6Udp(dst_port=0x1234)
+        with self.assertRaises(struct.error):
+            b = bytes(f)
+
+
     def test_regression_serialize_twice(self,):
         """Problem: serializing an APv6Udp() a second time
         caused an assertion::
@@ -162,6 +178,14 @@ class TestAPv6Udp(unittest.TestCase):
         b1 = bytes(f)
         f.dst_port = 0x2122
         b2 = bytes(f)
+
+
+    def test_regression_give_chksum_as_bytes(self,):
+        f = heymac.APv6Udp(
+            src_port=0x1234,
+            dst_port=0x5678,
+            chksum=b"\x9A\xBC")
+        b = bytes(f)
 
 
 if __name__ == "__main__":
