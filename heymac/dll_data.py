@@ -12,14 +12,16 @@ from . import mac_cmds
 from . import vdict
 
 
-# Some useful constants
-TM_TSLOT_PERIOD = (1.0 / mac_cfg.TSLOTS_PER_SEC)
-TM_SF_PERIOD = (2 ** mac_cfg.FRAME_SPEC_SF_ORDER) * TM_TSLOT_PERIOD
-TM_EB_PERIOD = (2 ** mac_cfg.FRAME_SPEC_EB_ORDER) * TM_TSLOT_PERIOD
-BCN_EXPIRATION = 4 * TM_SF_PERIOD
-
-
 class DllData(object):
+
+    # FIXME:    SF/EB ORDER values may change at runtime in mac_tdma_ahsm.py
+    #           to match the established network.
+    # Some useful constants
+    TM_TSLOT_PERIOD = (1.0 / mac_cfg.TSLOTS_PER_SEC)
+    TM_SF_PERIOD = (2 ** mac_cfg.FRAME_SPEC_SF_ORDER) * TM_TSLOT_PERIOD
+    TM_EB_PERIOD = (2 ** mac_cfg.FRAME_SPEC_EB_ORDER) * TM_SF_PERIOD
+    BCN_EXPIRATION = 4 * TM_SF_PERIOD
+
 
     def __init__(self,):
         self._d = {}
@@ -35,7 +37,7 @@ class DllData(object):
         """
         assert isinstance(bcn, mac_cmds.HeyMacCmdSbcn)
         self._d["bcn"][ngbr_addr] = bcn
-        self._d["bcn"].set_expiration(ngbr_addr, BCN_EXPIRATION)
+        self._d["bcn"].set_expiration(ngbr_addr, DllData.BCN_EXPIRATION)
 
 
     def get_bcn_slotmap(self,):
