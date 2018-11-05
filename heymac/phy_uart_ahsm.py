@@ -3,7 +3,7 @@
 Copyright 2017 Dean Hall.  See LICENSE for details.
 
 Physical Layer State Machine for UART operations on the RasPi
-- reads a UART, parses NMEA sentences and posts them as GPS_NMEA events
+- reads a UART, parses NMEA sentences and posts them as PHY_GPS_NMEA events
 """
 
 
@@ -33,7 +33,7 @@ class UartAhsm(farc.Ahsm):
         """Pseudostate: UartAhsm:initial
         """
         # Outgoing signals
-        farc.Signal.register("GPS_NMEA") # Value is one NMEA sentence [bytes]
+        farc.Signal.register("PHY_GPS_NMEA") # Value is one NMEA sentence [bytes]
 
         # Initialize a timer event used to schedule the NMEA handler
         me.te_nmea = farc.TimeEvent("GPS_NMEA_PRDC")
@@ -69,7 +69,7 @@ class UartAhsm(farc.Ahsm):
                     nmea_sentence = bytes(me.nmea_data[0:n+2])
                     me.nmea_data = me.nmea_data[n+2:]
                     if b"GPRMC" in nmea_sentence:
-                        farc.Framework.publish(farc.Event(farc.Signal.GPS_NMEA, nmea_sentence))
+                        farc.Framework.publish(farc.Event(farc.Signal.PHY_GPS_NMEA, nmea_sentence))
                     n = me.nmea_data.find(b"\r\n")
 
             # If there are no newlines and the buffer is getting big, flush the junk data

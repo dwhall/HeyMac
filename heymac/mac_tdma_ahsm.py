@@ -43,7 +43,7 @@ class HeyMacAhsm(farc.Ahsm):
         farc.Signal.register("MAC_TX_REQ")
         farc.Framework.subscribe("PHY_GPS_PPS", me)
         farc.Framework.subscribe("PHY_RXD_DATA", me)
-        farc.Framework.subscribe("GPS_NMEA", me)
+        farc.Framework.subscribe("PHY_GPS_NMEA", me)
 
         # Initialize a timer event
         me.tm_evt = farc.TimeEvent("TM_EVT_TMOUT")
@@ -116,7 +116,7 @@ class HeyMacAhsm(farc.Ahsm):
             farc.Framework.post(farc.Event(farc.Signal.PHY_RECEIVE, rx_args), "SX127xSpiAhsm")
             return me.handled(me, event)
 
-        elif sig == farc.Signal.GPS_NMEA:
+        elif sig == farc.Signal.PHY_GPS_NMEA:
             me.gps_gprmc = event.value
             return me.handled(me, event)
 
