@@ -182,7 +182,10 @@ class HeyMacAhsm(farc.Ahsm):
 
         elif sig == farc.Signal.TM_EVT_TMOUT:
             me.beaconing_and_next_tslot(me)
-            return me.handled(me, event)
+            if me.ngbr_hears_me(me):
+                return me.tran(me, HeyMacAhsm.networking)
+            else:
+                return me.handled(me, event)
 
         elif sig == farc.Signal.EXIT:
             me.tm_evt.disarm()
@@ -289,29 +292,42 @@ class HeyMacAhsm(farc.Ahsm):
             logging.warning("rxd pkt failed unpacking")
             return
 
+        if f.fctl_type == mac_frame.HeyMacFrame.FCTL_TYPE_MAC:
+            self.on_rxd_mac_frame(self, rx_time, f, rssi, snr)
+        elif f.fctl_type == mac_frame.HeyMacFrame.FCTL_TYPE_NET:
+            self.on_rxd_net_frame(self, rx_time, f, rssi, snr)
+        else:
+            logging.warning("rxd unhandled frame type: MIN/EXT")
+
+
+    @staticmethod
+    def on_rxd_mac_frame(self, rx_time, frame, rssi, snr):
         # Filter by protocol version
-        if f.ver is not None and f.ver > mac_frame.HEYMAC_VERSION:
+        if frame.ver > mac_frame.HEYMAC_VERSION:
             logging.warning("rxd pkt has unsupported/invalid HEYMAC_VERSION")
         else:
             logging.info(
                 "rx_time        %f\tRXD %d bytes, rssi=%d dBm, snr=%.3f dB\t%s",
-                rx_time, len(payld), rssi, snr, repr(f))
+                rx_time, len(frame), rssi, snr, repr(frame))
 
             # Handle reception of a beacon
-            if isinstance(f.data, mac_cmds.HeyMacCmdSbcn) or isinstance(f.data, mac_cmds.HeyMacCmdEbcn):
-                self.on_rxd_bcn(self, rx_time, f.raddr, f.data, rssi, snr)
+            if isinstance(frame.data, mac_cmds.HeyMacCmdSbcn) or isinstance(frame.data, mac_cmds.HeyMacCmdEbcn):
+                self.on_rxd_mac_bcn(self, rx_time, frame, rssi, snr)
 
             # TEMPORARY: give warning of unknown packets
-            elif isinstance(f.data, mac_cmds.HeyMacCmdTxt):
+            elif isinstance(frame.data, mac_cmds.HeyMacCmdTxt):
                 pass
             else:
                 logging.warning("rxd pkt has an unknown MAC cmd")
 
 
     @staticmethod
-    def on_rxd_bcn(self, rx_time, ngbr_addr, bcn, rssi, snr):
+    def on_rxd_mac_bcn(self, rx_time, frame, rssi, snr):
         """Handles reception of a beacon frame.
+        Assumes caller has checked that frame is a beacon
         """
+        bcn = frame.data
+
         # If the frame spec is incompatible
         if( bcn.sf_order != self.sf_order or bcn.eb_order != self.eb_order):
             # If the beaconer has the greater ASN, adopt its frame spec
@@ -331,7 +347,14 @@ class HeyMacAhsm(farc.Ahsm):
         if bcn.asn > self.asn:
             self.asn = bcn.asn
 
-        self.dll_data.update_bcn(bcn, ngbr_addr)
+        self.dll_data.update_bcn(bcn, frame.raddr)
+
+
+    @staticmethod
+    def on_rxd_net_frame(self, rx_time, frame, rssi, snr):
+        """Handles a frame designated for the network layer
+        """
+        pass
 
 
     @staticmethod
@@ -392,6 +415,16 @@ class HeyMacAhsm(farc.Ahsm):
         frame.data = self.mac_cmd_txq.pop()
         tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data
         farc.Framework.post(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
+
+
+    @staticmethod
+    def ngbr_hears_me(self,):
+        """Returns True if at least one neighbor lists this node
+        in its extended beacon neighbor report;
+        proving two-way transmission has taken place.
+        """
+        #TODO: implementation
+        return False
 
 
     @staticmethod
