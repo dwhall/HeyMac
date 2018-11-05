@@ -116,6 +116,10 @@ class HeyMacAhsm(farc.Ahsm):
             farc.Framework.post(farc.Event(farc.Signal.PHY_RECEIVE, rx_args), "SX127xSpiAhsm")
             return me.handled(me, event)
 
+        elif sig == farc.Signal.MAC_TX_REQ:
+            me.mac_cmd_txq.insert(0, event.value)
+            return me.handled(me, event)
+
         elif sig == farc.Signal.PHY_GPS_NMEA:
             me.gps_gprmc = event.value
             return me.handled(me, event)
@@ -178,10 +182,6 @@ class HeyMacAhsm(farc.Ahsm):
 
         elif sig == farc.Signal.TM_EVT_TMOUT:
             me.beaconing_and_next_tslot(me)
-            return me.handled(me, event)
-
-        elif sig == farc.Signal.MAC_TX_REQ:
-            me.txq.insert(0, event.value)
             return me.handled(me, event)
 
         elif sig == farc.Signal.EXIT:
