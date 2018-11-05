@@ -288,7 +288,8 @@ class HeyMacFrame(dpkt.Packet):
         pvs = 0
         if self._pvs:
             pvs = self._pvs[0] & ~HeyMacFrame.PVS_S_MASK
-        pvs |= (HEYMAC_VERSION << HeyMacFrame.PVS_V_SHIFT) | (s << HeyMacFrame.PVS_S_SHIFT)
+        pvs |= ((HEYMAC_VERSION << HeyMacFrame.PVS_V_SHIFT) |
+                ((s << HeyMacFrame.PVS_S_SHIFT) & HeyMacFrame.PVS_S_MASK))
         self._pvs = pvs.to_bytes(1, "big")
 
 
