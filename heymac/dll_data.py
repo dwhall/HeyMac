@@ -51,7 +51,7 @@ class DllData(object):
     def get_ebcns(self,):
         """Returns dict of received beacons
         """
-        return self._d["bcn"]
+        return self._d["ebcn"]
 
 
     def get_bcn_slotmap(self,):
