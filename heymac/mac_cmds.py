@@ -139,13 +139,19 @@ class HeyMacCmdSbcn(HeyMacCmd):
         """
         b = bytearray(super().pack_hdr())
 
-        # Pack the variable-length fields
-        if not self.tx_slots:
-            # Create a bytearray with 1 bit for every Tslot in an Sframe
+        # Ensure the given neighbor tx slotmap is the correct length or
+        # create an empty neighbor tx slotmap of the correct length
+        if self.tx_slots:
+            assert len(self.tx_slots) == ((2 ** self.sf_order) // 8)
+        else:
             self.tx_slots = bytearray((2 ** self.sf_order) // 8)
         b.extend(self.tx_slots)
-        if not self.ngbr_tx_slots:
-            # Create a bytearray with 1 bit for every Tslot in an Sframe
+
+        # Ensure the given neighbor tx slotmap is the correct length or
+        # create an empty neighbor tx slotmap of the correct length
+        if self.ngbr_tx_slots:
+            assert len(self.ngbr_tx_slots) == ((2 ** self.sf_order) // 8)
+        else:
             self.ngbr_tx_slots = bytearray((2 ** self.sf_order) // 8)
         b.extend(self.ngbr_tx_slots)
 
@@ -160,21 +166,22 @@ class HeyMacCmdSbcn(HeyMacCmd):
         # Unpack the fixed-length fields
         super().unpack(buf)
 
-        # The Frame Spec defines the size of tx_slots and ngbr_tx_slots
-        sz = (2 ** self.sf_order) // 8
-        if sz < 1:
-            sz = 1
+        # The Frame Spec's SF Order value defines
+        # the size of tx_slots and ngbr_tx_slots
+        slotmap_sz = (2 ** self.sf_order) // 8
+        if slotmap_sz < 1:
+            slotmap_sz = 1
 
-        # Unpack the variable-length fields
+        # Unpack the slot maps
         hl = self.__hdr_len__
-        self.tx_slots = buf[hl : hl + sz]
-        self.ngbr_tx_slots = buf[hl + sz : hl + 2 * sz]
-        assert len(self.ngbr_tx_slots) == sz, "len()=%d, sz=%d" % (len(self.ngbr_tx_slots), sz)
+        self.tx_slots = buf[hl : hl + slotmap_sz]
+        self.ngbr_tx_slots = buf[hl + slotmap_sz : hl + 2 * slotmap_sz]
+        assert len(self.ngbr_tx_slots) == slotmap_sz, "len()=%d, slotmap_sz=%d" % (len(self.ngbr_tx_slots), slotmap_sz)
 
         # Do it this way so that an Sbcn's .data will be empty
         # but an Ebcn's .data will have extended data fields in there
         # (i.e. HeyMacCmdEbcn inherits from this class and re-uses this method)
-        self.data = buf[hl + 2 * sz:]
+        self.data = buf[hl + 2 * slotmap_sz:]
 
 
 class HeyMacCmdEbcn(HeyMacCmdSbcn):
@@ -188,6 +195,9 @@ class HeyMacCmdEbcn(HeyMacCmdSbcn):
     FRAME_SPEC_EB_ORDER_SHIFT = 4
     FRAME_SPEC_SF_ORDER_MASK = 0b00001111
     FRAME_SPEC_SF_ORDER_SHIFT = 0
+
+    NGBR_FMT = "8sBB"
+    NTWK_FMT = "!H8sH"
 
     __byte_order__ = '!' # Network order
     __hdr__ = (
@@ -204,7 +214,7 @@ class HeyMacCmdEbcn(HeyMacCmdSbcn):
         ('ngbr_tx_slots', '0s', b''),
         # Extended Beacon fields:
         ('station_id', '0s', b''),
-        ('_nghbrs', '0s', b''),
+        ('_ngbrs', '0s', b''),
         ('_ntwks', '0s', b''),
         ('geoloc', '0s', b''),
     )
@@ -218,12 +228,40 @@ class HeyMacCmdEbcn(HeyMacCmdSbcn):
         # Pack the fields shared with Sbcn
         b = bytearray(super().pack_hdr())
 
+        # Pack the Station ID and ensure it has a null terminator
         b.extend(self.station_id)
-        # TODO: _nghbrs
-        # TODO: _ntwks
+        if self.station_id[-1] != b'\x00':
+            b.append(0)
+
+        self.pack_ngbrs(b)
+        self.pack_ntwks(b)
         b.extend(self.geoloc)
 
         return bytes(b)
+
+
+    def pack_ngbrs(self, b):
+        """Packs neighbor data and appends it
+        to the given bytearray
+        """
+        if hasattr(self, "ngbrs"):
+            b.append(len(self.ngbrs))  # Count of neighbors
+            for n in self.ngbrs:
+                b.extend(struct.pack(HeyMacCmdEbcn.NGBR_FMT, n[0], n[1], n[2]))
+        else:
+            b.append(0) # Count of neighbors
+
+
+    def pack_ntwks(self, b):
+        """Packs network data and appends it
+        to the given bytearray
+        """
+        if hasattr(self, "ntwks"):
+            b.append(len(self.ntwks))  # Count of networks
+            for n in self.ntwks:
+                b.extend(struct.pack(HeyMacCmdEbcn.NTWK_FMT, n[0], n[1], n[2]))
+        else:
+            b.append(0) # Count of networks
 
 
     def unpack(self, buf):
@@ -232,14 +270,55 @@ class HeyMacCmdEbcn(HeyMacCmdSbcn):
         by passing a bytes object to the constructor
         """
         # Unpack the fields shared with Sbcn
+        # (expects self.data to be set with leftover data)
         super().unpack(buf)
 
-        # Simple parsing for temporary data representation
-        self.station_id, self.geoloc = self.data.split(b"$")
+        # Station ID is a null-terminated, variable-length UTF-8 string
+        first_null = self.data.find(b"\x00")
+        assert first_null > 0
+        # Increment first_null so that station_id includes
+        # the null term and self.data does not
+        first_null += 1
 
-        # All data is used, so .data is emptied
-        # so it doesn't show up in repr/prints
-        self.data = b""
+        self.station_id = self.data[:first_null]
+        self.data = self.data[first_null:]
+
+        self.ngbrs = self.unpack_ngbrs()
+        self.ntwks = self.unpack_ntwks()
+
+        # TODO: unpack geoloc properly and ensure no leftover data
+        self.geoloc = self.data
+        self.data = []
+
+
+    def unpack_ngbrs(self,):
+        """Returns the unpacked Neighbors data.
+        Neighbors is a sequence of (address, SNR, RSSI) tuples
+        the first byte is the number of tuples in the sequence
+        """
+        ngbrs_cnt = self.data[0]
+        offset = 1
+        ngbrs = []
+        for n in range(ngbrs_cnt):
+            ngbrs.append(struct.unpack_from(HeyMacCmdEbcn.NGBR_FMT, self.data, offset))
+            offset += struct.calcsize(HeyMacCmdEbcn.NGBR_FMT)
+        self.data = self.data[offset:]
+        return ngbrs
+
+
+    def unpack_ntwks(self,):
+        """Returns the unpacked networks data.
+        Networks is a sequence of (NetId, RootAddr, HONR) tuples
+        the first byte is the number of tuples in the sequence
+        """
+        ntwks_cnt = self.data[0]
+        offset = 1
+        ntwks = []
+        for n in range(ntwks_cnt):
+            ntwks.append(struct.unpack_from(HeyMacCmdEbcn.NTWK_FMT, self.data, offset))
+            offset += struct.calcsize(HeyMacCmdEbcn.NTWK_FMT)
+        self.data = self.data[offset:]
+        return ntwks
 
 
 class HeyMacCmdTxt(HeyMacCmd):

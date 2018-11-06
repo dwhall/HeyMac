@@ -423,7 +423,11 @@ class HeyMacAhsm(farc.Ahsm):
         in its extended beacon neighbor report;
         proving two-way transmission has taken place.
         """
-        #TODO: implementation
+        ngbr_ebcns = self.dll_data.get_ebcns()
+        for ngbr, ebcn in ngbr_ebcns.items():
+            for n in ebcn.ngbrs:
+                if n[0] == self.saddr:
+                    return True
         return False
 
 

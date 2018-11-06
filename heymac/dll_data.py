@@ -21,6 +21,7 @@ class DllData(object):
     TM_SF_PERIOD = (2 ** mac_cfg.FRAME_SPEC_SF_ORDER) * TM_TSLOT_PERIOD
     TM_EB_PERIOD = (2 ** mac_cfg.FRAME_SPEC_EB_ORDER) * TM_SF_PERIOD
     BCN_EXPIRATION = 4 * TM_SF_PERIOD
+    EBCN_EXPIRATION = 2 * TM_EB_PERIOD
 
 
     def __init__(self,):
@@ -29,15 +30,28 @@ class DllData(object):
 
 
     def init(self,):
-        self._d["bcn"] = vdict.ValidatedDict()
+        d = vdict.ValidatedDict()
+        d.set_default_expiration(DllData.BCN_EXPIRATION)
+        self._d["bcn"] = d
+
+        d = vdict.ValidatedDict()
+        d.set_default_expiration(DllData.EBCN_EXPIRATION)
+        self._d["ebcn"] = vdict.ValidatedDict()
 
 
     def update_bcn(self, bcn, ngbr_addr):
         """Stores the given beacon and updates its timestamp.
         """
-        assert isinstance(bcn, mac_cmds.HeyMacCmdSbcn)
-        self._d["bcn"][ngbr_addr] = bcn
-        self._d["bcn"].set_expiration(ngbr_addr, DllData.BCN_EXPIRATION)
+        if isinstance(bcn, mac_cmds.HeyMacCmdSbcn):
+            self._d["bcn"][ngbr_addr] = bcn
+        elif isinstance(bcn, mac_cmds.HeyMacCmdEbcn):
+            self._d["ebcn"][ngbr_addr] = bcn
+
+
+    def get_ebcns(self,):
+        """Returns dict of received beacons
+        """
+        return self._d["bcn"]
 
 
     def get_bcn_slotmap(self,):

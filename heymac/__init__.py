@@ -1,5 +1,6 @@
 
 from .mac_cmds import \
+    HeyMacCmdId, \
     HeyMacCmdSbcn, \
     HeyMacCmdEbcn, \
     HeyMacCmdTxt
