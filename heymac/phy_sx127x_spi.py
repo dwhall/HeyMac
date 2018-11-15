@@ -279,8 +279,8 @@ class SX127xSpi(object):
         """Assumes caller has already determined rx_is_valid().
         Returns a tuple of: (payld, rssi, snr)
         payld is a list of integers.
-        rssi is an integer.
-        snr is a float.
+        rssi is an integer [dBm].
+        snr is a float [dB].
         """
         # Get length of data received
         nbytes = self._read(REG_RX_NUM_BYTES)[0]
