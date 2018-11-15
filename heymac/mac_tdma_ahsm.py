@@ -21,7 +21,7 @@ import farc
 from . import dll_data
 from . import mac_cfg
 from . import mac_cmds
-from . import mac_discipline
+from . import mac_tdma_discipline
 from . import mac_frame
 from . import phy_cfg
 from . import utl
@@ -61,7 +61,7 @@ class HeyMacAhsm(farc.Ahsm):
         me.eb_order = mac_cfg.FRAME_SPEC_EB_ORDER
         me.mac_seq = 0
         me.time_of_last_rxd_bcn = None
-        me.dscpln = mac_discipline.HeyMacDiscipline()
+        me.dscpln = mac_tdma_discipline.HeyMacDiscipline()
 
         # Data Link Layer data
         me.dll_data = dll_data.DllData()
@@ -338,7 +338,7 @@ class HeyMacAhsm(farc.Ahsm):
             return
 
         # If the beacon has good discipline, measure it
-        if bcn.dscpln >= mac_discipline.HeyMacDscplnEnum.PPS.value:
+        if bcn.dscpln >= mac_tdma_discipline.HeyMacDscplnEnum.PPS.value:
             self.dscpln.update_bcn(rx_time)
             self.time_of_last_rxd_bcn = rx_time
             self.tslots_since_last_bcn = 0
