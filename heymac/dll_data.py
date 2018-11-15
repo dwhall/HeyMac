@@ -7,36 +7,24 @@ Tracks time-changing data.
 """
 
 
-from . import mac_cfg
 from . import mac_cmds
 from . import vdict
 
 
 class DllData(object):
 
-    # FIXME:    SF/EB ORDER values may change at runtime in mac_tdma_ahsm.py
-    #           to match the established network.
-    # Some useful constants
-    TM_TSLOT_PERIOD = (1.0 / mac_cfg.TSLOTS_PER_SEC)
-    TM_SF_PERIOD = (2 ** mac_cfg.FRAME_SPEC_SF_ORDER) * TM_TSLOT_PERIOD
-    TM_EB_PERIOD = (2 ** mac_cfg.FRAME_SPEC_EB_ORDER) * TM_SF_PERIOD
-    BCN_EXPIRATION = 4 * TM_SF_PERIOD
-    EBCN_EXPIRATION = 2 * TM_EB_PERIOD
-
-
-    def __init__(self,):
+    def __init__(self, bcn_expiration, ebcn_expiration):
         self._d = {}
-        self.init()
+        self._bcn_expiration = bcn_expiration
+        self._ebcn_expiration = ebcn_expiration
 
-
-    def init(self,):
         d = vdict.ValidatedDict()
-        d.set_default_expiration(DllData.BCN_EXPIRATION)
+        d.set_default_expiration(bcn_expiration)
         self._d["bcn"] = d
 
         d = vdict.ValidatedDict()
-        d.set_default_expiration(DllData.EBCN_EXPIRATION)
-        self._d["ebcn"] = vdict.ValidatedDict()
+        d.set_default_expiration(ebcn_expiration)
+        self._d["ebcn"] = d
 
 
     def update_bcn(self, bcn, ngbr_addr):
@@ -54,15 +42,16 @@ class DllData(object):
         return self._d["ebcn"]
 
 
-    def get_bcn_slotmap(self,):
+    def get_bcn_slotmap(self, sf_order):
         """Returns a slotmap (bytearray) with a bit set
         for every valid 1-hop neighbor's beacon slot.
+        The slotmap is sized according to the given sf_order.
         Neighbors are invalid when they are silent for over 4 Sframes.
         """
-        slotmap = bytearray((2 ** mac_cfg.FRAME_SPEC_SF_ORDER) // 8)
+        slotmap = bytearray((2 ** sf_order) // 8)
         for bcn in self._d["bcn"].values():
             if bcn.valid:
-                bcnslot = bcn.value.asn % (2 ** mac_cfg.FRAME_SPEC_SF_ORDER)
+                bcnslot = bcn.value.asn % (2 ** sf_order)
                 slotmap[ bcnslot // 8 ] |= (1 << (bcnslot % 8))
         return slotmap
 

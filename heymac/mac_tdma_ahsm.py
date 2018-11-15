@@ -64,8 +64,14 @@ class HeyMacAhsm(farc.Ahsm):
         me.dscpln = mac_tdma_discipline.HeyMacDiscipline()
 
         # Data Link Layer data
-        me.dll_data = dll_data.DllData()
-        me.dll_data.init()
+        # TODO: network's SF/EB_ORDER values may change at runtime.
+        #       Need to have dll_data's ValidatedDicts adapt.
+        tm_tslot_period = (1.0 / mac_cfg.TSLOTS_PER_SEC)
+        tm_sf_period = (2 ** mac_cfg.FRAME_SPEC_SF_ORDER) * tm_tslot_period
+        tm_eb_period = (2 ** mac_cfg.FRAME_SPEC_EB_ORDER) * tm_sf_period
+        bcn_expiration = 4 * tm_sf_period
+        ebcn_expiration = 2 * tm_eb_period
+        me.dll_data = dll_data.DllData(bcn_expiration, ebcn_expiration)
 
         # Transmit queue
         me.mac_cmd_txq = []
@@ -372,7 +378,7 @@ class HeyMacAhsm(farc.Ahsm):
             status=0,
             asn=self.asn,
             tx_slots=my_bcn_slotmap, # FIXME
-            ngbr_tx_slots=self.dll_data.get_bcn_slotmap(),
+            ngbr_tx_slots=self.dll_data.get_bcn_slotmap(mac_cfg.FRAME_SPEC_SF_ORDER),
             )
         tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data
         farc.Framework.post(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
@@ -394,7 +400,7 @@ class HeyMacAhsm(farc.Ahsm):
             status=0,
             asn=self.asn,
             tx_slots=my_bcn_slotmap, # FIXME
-            ngbr_tx_slots=self.dll_data.get_bcn_slotmap(),
+            ngbr_tx_slots=self.dll_data.get_bcn_slotmap(mac_cfg.FRAME_SPEC_SF_ORDER),
             # extended fields:
             station_id=socket.gethostname().encode(),
             geoloc=getattr(self, "gps_gprmc", b""), #TODO: extract lat/lon from gprmc
@@ -447,7 +453,7 @@ class HeyMacAhsm(farc.Ahsm):
                    % (2 ** self.sf_order)
 
         # Increment the intial value while there is a collision with neighboring beacons
-        bcn_slotmap = self.dll_data.get_bcn_slotmap()
+        bcn_slotmap = self.dll_data.get_bcn_slotmap(mac_cfg.FRAME_SPEC_SF_ORDER)
         while bcn_slotmap[ bcn_slot // 8 ] & (1 << (bcn_slot % 8)):
             bcn_slot += 1
 
