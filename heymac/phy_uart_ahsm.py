@@ -36,7 +36,7 @@ class UartAhsm(farc.Ahsm):
         farc.Signal.register("PHY_GPS_NMEA") # Value is one NMEA sentence [bytes]
 
         # Initialize a timer event used to schedule the NMEA handler
-        me.te_nmea = farc.TimeEvent("GPS_NMEA_PRDC")
+        me.tm_evt = farc.TimeEvent("_PHY_UART_TM_EVT")
 
         return me.tran(me, UartAhsm.running)
 
@@ -55,10 +55,10 @@ class UartAhsm(farc.Ahsm):
             me.ser = serial.Serial(port=phy_cfg.uart_port, baudrate=phy_cfg.uart_baud, timeout=0)
 
             # Start the repeating timer event
-            me.te_nmea.postEvery(me, GPS_NMEA_PERIOD)
+            me.tm_evt.postEvery(me, GPS_NMEA_PERIOD)
             return me.handled(me, event)
 
-        elif sig == farc.Signal.GPS_NMEA_PRDC:
+        elif sig == farc.Signal._PHY_UART_TM_EVT:
             # Read the available data from the serial port
             me.nmea_data.extend(me.ser.read(SER_FIFO_MAX))
 
@@ -82,7 +82,7 @@ class UartAhsm(farc.Ahsm):
             return me.tran(me, me.exiting)
 
         elif sig == farc.Signal.EXIT:
-            me.te_nmea.disarm()
+            me.tm_evt.disarm()
             me.ser.close()
             return me.handled(me, event)
 

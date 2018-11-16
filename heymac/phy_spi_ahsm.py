@@ -49,7 +49,7 @@ class SX127xSpiAhsm(farc.Ahsm):
         me.sx127x = phy_sx127x_spi.SX127xSpi()
 
         # A time event used for setting timeouts
-        me.tm_evt = farc.TimeEvent("PHY_SPI_TMOUT")
+        me.tm_evt = farc.TimeEvent("_PHY_SPI_TMOUT")
 
         return me.tran(me, SX127xSpiAhsm.initializing)
 
@@ -278,7 +278,7 @@ class SX127xSpiAhsm(farc.Ahsm):
             me.tm_evt.disarm()
             return me.tran(me, SX127xSpiAhsm.idling)
 
-        elif sig == farc.Signal.PHY_SPI_TMOUT: # software timeout
+        elif sig == farc.Signal._PHY_SPI_TMOUT: # software timeout
             me.sx127x.set_op_mode(mode="stdby")
             return me.tran(me, SX127xSpiAhsm.idling)
 

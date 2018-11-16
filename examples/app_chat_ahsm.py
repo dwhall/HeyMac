@@ -29,7 +29,7 @@ class ChatAhsm(farc.Ahsm):
         farc.Framework.subscribe("PHY_RXD_DATA", me)
 
         # Init a timer event
-        me.tmr = farc.TimeEvent("TMR_TMOUT")
+        me.tm_evt = farc.TimeEvent("_APP_CHAT_TM_EVT_TMOUT")
 
         # Init curses
         stdscr = curses.initscr()
@@ -66,10 +66,10 @@ class ChatAhsm(farc.Ahsm):
 
         sig = event.signal
         if sig == farc.Signal.ENTRY:
-            me.tmr.postEvery(me, 0.075)
+            me.tm_evt.postEvery(me, 0.075)
             return me.handled(me, event)
 
-        elif sig == farc.Signal.TMR_TMOUT:
+        elif sig == farc.Signal._APP_CHAT_TM_EVT_TMOUT:
             # Get all characters into the bytearray
             c = 0
             while c >= 0:
@@ -142,6 +142,10 @@ class ChatAhsm(farc.Ahsm):
 
         elif sig == farc.Signal.SIGTERM:
             return me.tran(me, ChatAhsm.exiting)
+
+        elif sig == farc.Signal.EXIT:
+            me.tm_evt.disarm()
+            return me.handled(me, event)
 
         return me.super(me, me.top)
 

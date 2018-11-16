@@ -46,7 +46,7 @@ class HeyMacAhsm(farc.Ahsm):
         farc.Framework.subscribe("PHY_GPS_NMEA", me)
 
         # Initialize a timer event
-        me.tm_evt = farc.TimeEvent("TM_EVT_TMOUT")
+        me.tm_evt = farc.TimeEvent("_MAC_TDMA_TM_EVT_TMOUT")
 
         # Calculate the 128-bit source address from the identity's pub_key
         h = hashlib.sha512()
@@ -155,7 +155,7 @@ class HeyMacAhsm(farc.Ahsm):
             me.tm_evt.postIn(me, listen_secs)
             return me.handled(me, event)
 
-        elif sig == farc.Signal.TM_EVT_TMOUT:
+        elif sig == farc.Signal._MAC_TDMA_TM_EVT_TMOUT:
             # listening timer has expired, transition to beaconing
             return me.tran(me, me.beaconing)
 
@@ -186,7 +186,7 @@ class HeyMacAhsm(farc.Ahsm):
             me.tm_evt.postAt(me, me.next_tslot - mac_tdma_cfg.TSLOT_PREP_TIME)
             return me.handled(me, event)
 
-        elif sig == farc.Signal.TM_EVT_TMOUT:
+        elif sig == farc.Signal._MAC_TDMA_TM_EVT_TMOUT:
             me.beaconing_and_next_tslot(me)
             if me.ngbr_hears_me(me):
                 return me.tran(me, HeyMacAhsm.networking)
