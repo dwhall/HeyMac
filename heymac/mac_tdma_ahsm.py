@@ -19,7 +19,7 @@ import socket
 import farc
 
 from . import dll_data
-from . import mac_cfg
+from . import mac_tdma_cfg
 from . import mac_cmds
 from . import mac_tdma_discipline
 from . import mac_frame
@@ -57,8 +57,8 @@ class HeyMacAhsm(farc.Ahsm):
 
         # Init HeyMac values
         me.asn = 0
-        me.sf_order = mac_cfg.FRAME_SPEC_SF_ORDER
-        me.eb_order = mac_cfg.FRAME_SPEC_EB_ORDER
+        me.sf_order = mac_tdma_cfg.FRAME_SPEC_SF_ORDER
+        me.eb_order = mac_tdma_cfg.FRAME_SPEC_EB_ORDER
         me.mac_seq = 0
         me.time_of_last_rxd_bcn = None
         me.dscpln = mac_tdma_discipline.HeyMacDiscipline()
@@ -66,9 +66,9 @@ class HeyMacAhsm(farc.Ahsm):
         # Data Link Layer data
         # TODO: network's SF/EB_ORDER values may change at runtime.
         #       Need to have dll_data's ValidatedDicts adapt.
-        tm_tslot_period = (1.0 / mac_cfg.TSLOTS_PER_SEC)
-        tm_sf_period = (2 ** mac_cfg.FRAME_SPEC_SF_ORDER) * tm_tslot_period
-        tm_eb_period = (2 ** mac_cfg.FRAME_SPEC_EB_ORDER) * tm_sf_period
+        tm_tslot_period = (1.0 / mac_tdma_cfg.TSLOTS_PER_SEC)
+        tm_sf_period = (2 ** mac_tdma_cfg.FRAME_SPEC_SF_ORDER) * tm_tslot_period
+        tm_eb_period = (2 ** mac_tdma_cfg.FRAME_SPEC_EB_ORDER) * tm_sf_period
         bcn_expiration = 4 * tm_sf_period
         ebcn_expiration = 2 * tm_eb_period
         me.dll_data = dll_data.DllData(bcn_expiration, ebcn_expiration)
@@ -151,7 +151,7 @@ class HeyMacAhsm(farc.Ahsm):
             # rx continuously on the rx_freq
             value = (-1, phy_cfg.rx_freq)
             farc.Framework.post(farc.Event(farc.Signal.PHY_RECEIVE, value), "SX127xSpiAhsm")
-            listen_secs = mac_cfg.N_SFRAMES_TO_LISTEN * (2 ** me.sf_order) / mac_cfg.TSLOTS_PER_SEC
+            listen_secs = mac_tdma_cfg.N_SFRAMES_TO_LISTEN * (2 ** me.sf_order) / mac_tdma_cfg.TSLOTS_PER_SEC
             me.tm_evt.postIn(me, listen_secs)
             return me.handled(me, event)
 
@@ -183,7 +183,7 @@ class HeyMacAhsm(farc.Ahsm):
             now = farc.Framework._event_loop.time()
             me.next_tslot = me.dscpln.get_time_of_next_tslot(now)
             logging.info("next_tslot = %f", me.next_tslot)
-            me.tm_evt.postAt(me, me.next_tslot - mac_cfg.TSLOT_PREP_TIME)
+            me.tm_evt.postAt(me, me.next_tslot - mac_tdma_cfg.TSLOT_PREP_TIME)
             return me.handled(me, event)
 
         elif sig == farc.Signal.TM_EVT_TMOUT:
@@ -272,7 +272,7 @@ class HeyMacAhsm(farc.Ahsm):
         """
         now = farc.Framework._event_loop.time()
         self.next_tslot = self.dscpln.get_time_of_next_tslot(now)
-        self.tm_evt.postAt(self, self.next_tslot - mac_cfg.TSLOT_PREP_TIME)
+        self.tm_evt.postAt(self, self.next_tslot - mac_tdma_cfg.TSLOT_PREP_TIME)
 
 
     @staticmethod
@@ -378,7 +378,7 @@ class HeyMacAhsm(farc.Ahsm):
             status=0,
             asn=self.asn,
             tx_slots=my_bcn_slotmap, # FIXME
-            ngbr_tx_slots=self.dll_data.get_bcn_slotmap(mac_cfg.FRAME_SPEC_SF_ORDER),
+            ngbr_tx_slots=self.dll_data.get_bcn_slotmap(mac_tdma_cfg.FRAME_SPEC_SF_ORDER),
             )
         tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data
         farc.Framework.post(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
@@ -400,7 +400,7 @@ class HeyMacAhsm(farc.Ahsm):
             status=0,
             asn=self.asn,
             tx_slots=my_bcn_slotmap, # FIXME
-            ngbr_tx_slots=self.dll_data.get_bcn_slotmap(mac_cfg.FRAME_SPEC_SF_ORDER),
+            ngbr_tx_slots=self.dll_data.get_bcn_slotmap(mac_tdma_cfg.FRAME_SPEC_SF_ORDER),
             # extended fields:
             station_id=socket.gethostname().encode(),
             geoloc=getattr(self, "gps_gprmc", b""), #TODO: extract lat/lon from gprmc
@@ -453,7 +453,7 @@ class HeyMacAhsm(farc.Ahsm):
                    % (2 ** self.sf_order)
 
         # Increment the intial value while there is a collision with neighboring beacons
-        bcn_slotmap = self.dll_data.get_bcn_slotmap(mac_cfg.FRAME_SPEC_SF_ORDER)
+        bcn_slotmap = self.dll_data.get_bcn_slotmap(mac_tdma_cfg.FRAME_SPEC_SF_ORDER)
         while bcn_slotmap[ bcn_slot // 8 ] & (1 << (bcn_slot % 8)):
             bcn_slot += 1
 

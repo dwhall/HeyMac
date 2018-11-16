@@ -15,7 +15,7 @@ is less accurate than PPS.
 import enum
 import logging
 
-from . import mac_cfg
+from . import mac_tdma_cfg
 
 
 class HeyMacDscplnEnum(enum.IntEnum):
@@ -90,17 +90,17 @@ class HeyMacDiscipline:
             assert time_now > self.time_of_last_rxd_bcn
 
         # PPS discipline
-        if self.time_of_last_pps and time_now - self.time_of_last_pps < mac_cfg.DSCPLN_PPS_TIMEOUT:
+        if self.time_of_last_pps and time_now - self.time_of_last_pps < mac_tdma_cfg.DSCPLN_PPS_TIMEOUT:
             self._dscpln = HeyMacDscplnEnum.PPS
-            tslots_since_last_pps = round((time_now - self.time_of_last_pps) * mac_cfg.TSLOTS_PER_SEC)
-            cpu_time_per_tslot = (1.0 - self.pps_err) / mac_cfg.TSLOTS_PER_SEC
+            tslots_since_last_pps = round((time_now - self.time_of_last_pps) * mac_tdma_cfg.TSLOTS_PER_SEC)
+            cpu_time_per_tslot = (1.0 - self.pps_err) / mac_tdma_cfg.TSLOTS_PER_SEC
             tm = self.time_of_last_pps + (1 + tslots_since_last_pps) * cpu_time_per_tslot
 
         # BCN discipline
-        elif self.time_of_last_rxd_bcn and time_now - self.time_of_last_rxd_bcn < mac_cfg.DSCPLN_BCN_TIMEOUT:
+        elif self.time_of_last_rxd_bcn and time_now - self.time_of_last_rxd_bcn < mac_tdma_cfg.DSCPLN_BCN_TIMEOUT:
             self._dscpln = HeyMacDscplnEnum.BCN
-            tslots_since_last_bcn = round((time_now - self.time_of_last_rxd_bcn) * mac_cfg.TSLOTS_PER_SEC)
-            cpu_time_per_tslot = (1.0 - self.bcn_err) / mac_cfg.TSLOTS_PER_SEC
+            tslots_since_last_bcn = round((time_now - self.time_of_last_rxd_bcn) * mac_tdma_cfg.TSLOTS_PER_SEC)
+            cpu_time_per_tslot = (1.0 - self.bcn_err) / mac_tdma_cfg.TSLOTS_PER_SEC
             tm = self.time_of_last_rxd_bcn + (1 + tslots_since_last_bcn) * cpu_time_per_tslot
 
         # no discipline
@@ -109,19 +109,19 @@ class HeyMacDiscipline:
 
             # If PPS discipline was ever achieved and is more recent, use its time
             if self.time_of_last_pps and self.time_of_last_pps > self.time_of_last_rxd_bcn:
-                tslots_since_last_pps = round((time_now - self.time_of_last_pps) * mac_cfg.TSLOTS_PER_SEC)
-                cpu_time_per_tslot = (1.0 - self.pps_err) / mac_cfg.TSLOTS_PER_SEC
+                tslots_since_last_pps = round((time_now - self.time_of_last_pps) * mac_tdma_cfg.TSLOTS_PER_SEC)
+                cpu_time_per_tslot = (1.0 - self.pps_err) / mac_tdma_cfg.TSLOTS_PER_SEC
                 tm = self.time_of_last_pps + (1 + tslots_since_last_pps) * cpu_time_per_tslot
 
             # otherwise, if beacon discipline was ever achieved and is more recent, use its time
             elif self.time_of_last_rxd_bcn:
-                tslots_since_last_bcn = round((time_now - self.time_of_last_rxd_bcn) * mac_cfg.TSLOTS_PER_SEC)
-                cpu_time_per_tslot = (1.0 - self.bcn_err) / mac_cfg.TSLOTS_PER_SEC
+                tslots_since_last_bcn = round((time_now - self.time_of_last_rxd_bcn) * mac_tdma_cfg.TSLOTS_PER_SEC)
+                cpu_time_per_tslot = (1.0 - self.bcn_err) / mac_tdma_cfg.TSLOTS_PER_SEC
                 tm = self.time_of_last_rxd_bcn + (1 + tslots_since_last_bcn) * cpu_time_per_tslot
 
             # otherwise use this node's CPU time as the source.
             else:
-                tslot_period = 1.0 / mac_cfg.TSLOTS_PER_SEC
+                tslot_period = 1.0 / mac_tdma_cfg.TSLOTS_PER_SEC
                 remainder = time_now % tslot_period
                 time_of_prev_tslot = time_now - remainder
                 tm = time_of_prev_tslot + 2 * tslot_period
@@ -133,8 +133,8 @@ class HeyMacDiscipline:
         #
         # WARNING: This MAY result in a miscalculation of ASN in mac_tdma_ahsm
         # and ruin everything.
-        #if tm < time_now + mac_cfg.TSLOT_PREP_TIME:
-        #    tm += (1.0 / mac_cfg.TSLOTS_PER_SEC)
+        #if tm < time_now + mac_tdma_cfg.TSLOT_PREP_TIME:
+        #    tm += (1.0 / mac_tdma_cfg.TSLOTS_PER_SEC)
 
         assert tm > time_now, "Got tm=%f, time_now=%f" % (tm, time_now)
         return tm
@@ -149,7 +149,7 @@ class HeyMacDiscipline:
         # The DIO3/ValidHeader signal used to capture the RX time arrives some
         # amount of time after the beginning of the Beacon frame.  We must
         # remove that time in order to get a good estimate of the Beacon arrival
-        time_of_rxd_bcn -= mac_cfg.TIME_TO_VALID_HEADER
+        time_of_rxd_bcn -= mac_tdma_cfg.TIME_TO_VALID_HEADER
         logging.info("adj rxd_bcn    %f" % (time_of_rxd_bcn))
 
 
@@ -158,7 +158,7 @@ class HeyMacDiscipline:
             delta = time_of_rxd_bcn - self.time_of_last_rxd_bcn
 
             # Reset or increment the consecutive beacon count
-            if delta > mac_cfg.DSCPLN_BCN_TIMEOUT:
+            if delta > mac_tdma_cfg.DSCPLN_BCN_TIMEOUT:
                 self.consec_bcn_cnt = 1
             else:
                 self.consec_bcn_cnt += 1
@@ -166,11 +166,11 @@ class HeyMacDiscipline:
                 # Remove the whole number of tslots and divide by the number
                 # of slots to get the amount of error per slot
                 # in order to maximize significant digits of floating point
-                delta *= mac_cfg.TSLOTS_PER_SEC
+                delta *= mac_tdma_cfg.TSLOTS_PER_SEC
                 whole_slots = float(round(delta))
                 err = (delta - whole_slots) / whole_slots
                 # Then restore the error to cpu-counts per second
-                err /= mac_cfg.TSLOTS_PER_SEC
+                err /= mac_tdma_cfg.TSLOTS_PER_SEC
 
                 # A cheap IIR low-pass filter
                 self.bcn_err = (self.bcn_err + err) * 0.5
@@ -189,7 +189,7 @@ class HeyMacDiscipline:
             delta = time_of_pps - self.time_of_last_pps
 
             # Reset or increment the consecutive PPS count
-            if delta > mac_cfg.DSCPLN_PPS_TIMEOUT:
+            if delta > mac_tdma_cfg.DSCPLN_PPS_TIMEOUT:
                 self.consec_pps_cnt = 1
             else:
                 self.consec_pps_cnt += 1
