@@ -259,17 +259,11 @@ class HeyMacAhsm(farc.Ahsm):
         elif self.mac_cmd_txq:
             self.tx_from_cmd_queue(self, self.next_tslot)
 
-        # Count this Tslot and set the TimeEvent to expire at the next Prep Time
-        self._post_time_event_for_next_tslot(self)
-
-
-    @staticmethod
-    def _post_time_event_for_next_tslot(self,):
-        """Sets the TimeEvent to expire at the next Prep Time.
-        When calculating next_tslot it is important to reference to the
-        source of absolute time (time of most recent PPS) so that there is
-        less accumulated error.
-        """
+        # Count this Tslot and set the TimeEvent to expire at the next Prep Time.
+        # Sets the TimeEvent to expire at the next Prep Time.
+        # When calculating next_tslot it is important to reference to the
+        # source of absolute time (time of most recent PPS) so that there is
+        # less accumulated error.
         now = farc.Framework._event_loop.time()
         self.next_tslot = self.dscpln.get_time_of_next_tslot(now)
         self.tm_evt.postAt(self, self.next_tslot - mac_tdma_cfg.TSLOT_PREP_TIME)
