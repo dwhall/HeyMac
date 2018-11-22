@@ -4,15 +4,15 @@
 import time
 import unittest
 
-import vdict
+import heymac
 
 
 class TestValidatedDict(unittest.TestCase):
-    """Tests the vdict.ValidatedDict
+    """Tests the heymac.vdict.ValidatedDict
     """
 
     def test_happy(self,):
-        d = vdict.ValidatedDict()
+        d = heymac.HeyMacCmdSbcnvdict.ValidatedDict()
         d[0] = "zero"
         d[1] = "one"
         self.assertEqual(d[0].value, "zero")
@@ -34,7 +34,7 @@ class TestValidatedDict(unittest.TestCase):
         self.assertEqual(d[1].valid, False)
 
     def test_str(self,):
-        d = vdict.ValidatedDict()
+        d = heymac.HeyMacCmdSbcnvdict.ValidatedDict()
         d[0] = "zero"
         d[1] = "one"
         s = str(d[0])

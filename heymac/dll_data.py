@@ -30,9 +30,9 @@ class DllData(object):
     def update_bcn(self, bcn, ngbr_addr):
         """Stores the given beacon and updates its timestamp.
         """
-        if isinstance(bcn, mac_cmds.HeyMacCmdSbcn):
+        if type(bcn) is mac_cmds.HeyMacCmdSbcn:
             self._d["bcn"][ngbr_addr] = bcn
-        elif isinstance(bcn, mac_cmds.HeyMacCmdEbcn):
+        elif type(bcn) is mac_cmds.HeyMacCmdEbcn:
             self._d["ebcn"][ngbr_addr] = bcn
 
 

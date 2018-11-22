@@ -32,47 +32,47 @@ class ValidatedDict(collections.UserDict):
     """
     def __init__(self, initialdata={}):
         super().__init__(initialdata)
-        self.valid = {}
-        self.timestamp = {}
-        self.default_expdelta = None
-        self.expdelta = {}
+        self._valid = {}
+        self._timestamp = {}
+        self._default_expdelta = None
+        self._expdelta = {}
         now = time.time()
         for k in initialdata:
             self.data[k] = initialdata[k]
-            self.valid[k] = False
-            self.timestamp[k] = now
-            self.expdelta[k] = None
+            self._valid[k] = False
+            self._timestamp[k] = now
+            self._expdelta[k] = None
 
     def __getitem__(self, key):
         """Returns an item from the dict wrapped in a ValueValid obj (.value, .valid).
         """
         # Item-specific expiration overrides default expiration
-        exp = self.default_expdelta
-        if self.expdelta[key] is not None:
-            exp = self.expdelta[key]
+        exp = self._default_expdelta
+        if self._expdelta[key] is not None:
+            exp = self._expdelta[key]
 
         # If there is an expiration, invalidate if stale
         if exp:
-            if time.time() > self.timestamp[key] + exp:
-                self.valid[key] = False
+            if time.time() > self._timestamp[key] + exp:
+                self._valid[key] = False
 
-        return ValueValid(self.data[key], self.valid[key])
+        return ValueValid(self.data[key], self._valid[key])
 
     def __setitem__(self, key, value, valid=True):
         """Sets a key,value in the dictionary.
         Also updates the item's validity and timestamp.
         """
         self.data[key] = value
-        self.timestamp[key] = time.time()
-        self.valid[key] = valid
-        self.expdelta[key] = self.default_expdelta
+        self._timestamp[key] = time.time()
+        self._valid[key] = valid
+        self._expdelta[key] = self._default_expdelta
 
     def set_default_expiration(self, delta):
         """Sets the default expiration delta [float] for all items
         """
-        self.default_expdelta = delta
+        self._default_expdelta = delta
 
     def set_expiration(self, key, delta):
         """Sets the expiration delta [float] for a specific item
         """
-        self.expdelta[key] = delta
+        self._expdelta[key] = delta
