@@ -424,9 +424,9 @@ class HeyMacAhsm(farc.Ahsm):
         proving two-way transmission has taken place.
         """
         ngbr_ebcns = self.dll_data.get_ebcns()
-        if ngbr_ebcns.valid:
-            ngbr_ebcns = ngbr_ebcns.value
-            for ngbr, ebcn in ngbr_ebcns.items():
+        for ngbr, ebcn in ngbr_ebcns.items():
+            if ebcn.valid:
+                ebcn = ebcn.value
                 for n in ebcn.ngbrs:
                     if n[0] == self.saddr:
                         return True
