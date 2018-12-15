@@ -1,6 +1,6 @@
 import unittest
 
-import net_router
+from heymac import net_router
 
 
 class TestNetRouter(unittest.TestCase):

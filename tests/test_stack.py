@@ -13,12 +13,12 @@ class TestAll(unittest.TestCase):
 
     def test_mac_min(self,):
         # Pack
-        fmac = heymac.HeyMacFrame(fctl_type = heymac.FCTL_TYPE_MIN)
+        fmac = heymac.HeyMacFrame(fctl_type = heymac.HeyMacFrame.FCTL_TYPE_MIN)
         b = bytes(fmac)
         self.assertEqual(b, b"\x00")
         # Unpack
         fmac = heymac.HeyMacFrame(b)
-        self.assertEqual(fmac.fctl_type, heymac.FCTL_TYPE_MIN)
+        self.assertEqual(fmac.fctl_type, heymac.HeyMacFrame.FCTL_TYPE_MIN)
         self.assertEqual(fmac.fctl_l, 0)
         self.assertEqual(fmac.fctl_r, 0)
         self.assertEqual(fmac.fctl_n, 0)
@@ -37,14 +37,14 @@ class TestAll(unittest.TestCase):
 
     def test_mac_net_min(self,):
         # Pack
-        fmac = heymac.HeyMacFrame(fctl_type=heymac.FCTL_TYPE_NET)
+        fmac = heymac.HeyMacFrame(fctl_type=heymac.HeyMacFrame.FCTL_TYPE_NET)
         fnet = heymac.APv6Frame()
         fmac.data = fnet
         b = bytes(fmac)
         self.assertEqual(b, b"\x80\x10\xD7")
         # Unpack HeyMacFrame
         fmac = heymac.HeyMacFrame(b)
-        self.assertEqual(fmac.fctl_type, heymac.FCTL_TYPE_NET)
+        self.assertEqual(fmac.fctl_type, heymac.HeyMacFrame.FCTL_TYPE_NET)
         self.assertEqual(fmac.fctl_l, 0)
         self.assertEqual(fmac.fctl_r, 0)
         self.assertEqual(fmac.fctl_n, 0)
@@ -74,16 +74,16 @@ class TestAll(unittest.TestCase):
 
     def test_mac_net_udp_min(self,):
         # Pack
-        fmac = heymac.HeyMacFrame(fctl_type=heymac.FCTL_TYPE_NET)
+        fmac = heymac.HeyMacFrame(fctl_type=heymac.HeyMacFrame.FCTL_TYPE_NET)
         fnet = heymac.APv6Frame()
-        fudp = heymac.APv6Udp()
+        fudp = heymac.APv6Udp(src_port=0xF0B0, dst_port=0xF0B0)
         fmac.data = fnet
         fnet.data = fudp
         b = bytes(fmac)
         self.assertEqual(b, b"\x80\x10\xD7\xF7\x00")
         # Unpack HeyMacFrame
         fmac = heymac.HeyMacFrame(b)
-        self.assertEqual(fmac.fctl_type, heymac.FCTL_TYPE_NET)
+        self.assertEqual(fmac.fctl_type, heymac.HeyMacFrame.FCTL_TYPE_NET)
         self.assertEqual(fmac.fctl_l, 0)
         self.assertEqual(fmac.fctl_r, 0)
         self.assertEqual(fmac.fctl_n, 0)
@@ -124,7 +124,7 @@ class TestAll(unittest.TestCase):
     def test_mac_net_udp_to_root(self,):
         # Pack
         fmac = heymac.HeyMacFrame(
-            fctl_type=heymac.FCTL_TYPE_NET,
+            fctl_type=heymac.HeyMacFrame.FCTL_TYPE_NET,
             pend=0,
             seq=2,
             saddr=b"\x35\x16"
@@ -141,7 +141,7 @@ class TestAll(unittest.TestCase):
         self.assertEqual(b, b"\x81\x12\x35\x16\xD7\xF7\x60UdpData")
         # Unpack HeyMacFrame
         fmac = heymac.HeyMacFrame(b)
-        self.assertEqual(fmac.fctl_type, heymac.FCTL_TYPE_NET)
+        self.assertEqual(fmac.fctl_type, heymac.HeyMacFrame.FCTL_TYPE_NET)
         self.assertEqual(fmac.fctl_l, 0)
         self.assertEqual(fmac.fctl_r, 0)
         self.assertEqual(fmac.fctl_n, 0)
@@ -183,7 +183,7 @@ class TestAll(unittest.TestCase):
     def test_mac_net_udp_to_node(self,):
         # Pack
         fmac = heymac.HeyMacFrame(
-            fctl_type=heymac.FCTL_TYPE_NET,
+            fctl_type=heymac.HeyMacFrame.FCTL_TYPE_NET,
             pend=0,
             seq=4,
             saddr=b"\x35\x16",
@@ -201,7 +201,7 @@ class TestAll(unittest.TestCase):
         self.assertEqual(b, b"\x85\x14\x83\x11\x35\x16\xD7\xF7\xAFnodedata")
         # Unpack HeyMacFrame
         fmac = heymac.HeyMacFrame(b)
-        self.assertEqual(fmac.fctl_type, heymac.FCTL_TYPE_NET)
+        self.assertEqual(fmac.fctl_type, heymac.HeyMacFrame.FCTL_TYPE_NET)
         self.assertEqual(fmac.fctl_l, 0)
         self.assertEqual(fmac.fctl_r, 0)
         self.assertEqual(fmac.fctl_n, 0)
@@ -243,7 +243,7 @@ class TestAll(unittest.TestCase):
     def test_mac_net_udp_to_google(self,):
         # Pack
         fmac = heymac.HeyMacFrame(
-            fctl_type=heymac.FCTL_TYPE_NET,
+            fctl_type=heymac.HeyMacFrame.FCTL_TYPE_NET,
             pend=0,
             seq=8,
             saddr=b"\x35\x16",
@@ -263,7 +263,7 @@ class TestAll(unittest.TestCase):
         self.assertEqual(b, b"\x81\x18\x35\x16\xD6" + google_ipv6_addr + b"\xF6\xB0\x00\x35DnsRequest")
         # Unpack HeyMacFrame
         fmac = heymac.HeyMacFrame(b)
-        self.assertEqual(fmac.fctl_type, heymac.FCTL_TYPE_NET)
+        self.assertEqual(fmac.fctl_type, heymac.HeyMacFrame.FCTL_TYPE_NET)
         self.assertEqual(fmac.fctl_l, 0)
         self.assertEqual(fmac.fctl_r, 0)
         self.assertEqual(fmac.fctl_n, 0)

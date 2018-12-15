@@ -1,6 +1,6 @@
 import unittest
 
-import net_honr
+from heymac import net_honr
 
 
 class TestNetHonr(unittest.TestCase):

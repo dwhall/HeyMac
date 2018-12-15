@@ -12,7 +12,7 @@ class TestValidatedDict(unittest.TestCase):
     """
 
     def test_happy(self,):
-        d = heymac.HeyMacCmdSbcnvdict.ValidatedDict()
+        d = heymac.vdict.ValidatedDict()
         d[0] = "zero"
         d[1] = "one"
         self.assertEqual(d[0].value, "zero")
@@ -34,7 +34,7 @@ class TestValidatedDict(unittest.TestCase):
         self.assertEqual(d[1].valid, False)
 
     def test_str(self,):
-        d = heymac.HeyMacCmdSbcnvdict.ValidatedDict()
+        d = heymac.vdict.ValidatedDict()
         d[0] = "zero"
         d[1] = "one"
         s = str(d[0])

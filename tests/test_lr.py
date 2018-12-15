@@ -3,7 +3,7 @@
 
 import unittest
 
-import mth_lr
+from heymac import mth_lr
 
 
 class TestLinearRegression(unittest.TestCase):
