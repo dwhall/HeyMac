@@ -15,8 +15,7 @@ import logging
 
 import farc
 
-import mac_cmds
-import mac_frame
+import heymac
 
 
 class ChatAhsm(farc.Ahsm):
@@ -81,7 +80,7 @@ class ChatAhsm(farc.Ahsm):
                     me.inmsg = bytearray()
 
                     # Send the payload to the MAC layer
-                    txt = mac_cmds.HeyMacCmdTxt()
+                    txt = heymac.mac_cmds.HeyMacCmdTxt()
                     txt.msg = msg
                     farc.Framework.post(farc.Event(farc.Signal.MAC_TX_REQ, txt), "HeyMacAhsm")
 
@@ -118,11 +117,11 @@ class ChatAhsm(farc.Ahsm):
             # Unpack the rxd data to see if it is a CmdTxt
             rx_time, payld, rssi, snr = event.value
             try:
-                f = mac_frame.HeyMacFrame(bytes(payld))
-                if isinstance(f.data, mac_cmds.HeyMacCmdTxt):
+                f = heymac.mac_frame.HeyMacFrame(bytes(payld))
+                if isinstance(f.data, heymac.mac_cmds.HeyMacCmdTxt):
                     scrnmsg = "<rssi=%d dBm, snr=%.3f dB>: %s" \
                         % (rssi, snr, f.data.msg.decode())
-                elif isinstance(f.data, mac_cmds.HeyMacCmdSbcn):
+                elif isinstance(f.data, heymac.mac_cmds.HeyMacCmdSbcn):
                     scrnmsg = "<bcn from %s: rssi=%d dBm, snr=%.3f dB, asn=%d>" \
                         % (f.raddr[0:4], rssi, snr, f.data.asn)
                 else:
