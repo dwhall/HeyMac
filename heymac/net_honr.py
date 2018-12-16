@@ -193,14 +193,16 @@ def get_parent(addrx):
     Returns None if the Root address is given.
     """
     addri = to_internal_repr(addrx)
-    return _get_parent(addri)
+    addri = _get_parent(addri)
+    return to_external_addr(addri)
+
 
 def _get_parent(addri):
     if sum(addri) == 0:
         return None
     leftzero = _get_rank(addri)
     addri[leftzero - 1] = 0
-    return to_external_addr(addri)
+    return addri
 
 
 def get_rank(addrx):
