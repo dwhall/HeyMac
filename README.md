@@ -12,7 +12,7 @@ copied from the [lora_driver](https://github.com/dwhall/lora_driver) project.
 
 HeyMac is written in Python3 using the [farc](https://github.com/dwhall/farc)
 hierarchical state machine framework.
-You may read about the [HeyMac protocol details here](HeyMacProtocol.md).
+You may read about the [HeyMac protocol details here](docs/HeyMacProtocol.md).
 HeyMac requires the asyncio module found in Python 3.4 and later.
 
 I am a licensed amateur radio operator in the USA.  So I am using frequencies,
