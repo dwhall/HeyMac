@@ -119,7 +119,7 @@ class HeyMacAhsm(farc.Ahsm):
             me.on_rxd_frame(me, rx_time, payld, rssi, snr)
             # immediate rx continuous
             rx_args = (-1, phy_cfg.rx_freq)
-            farc.Framework.post(farc.Event(farc.Signal.PHY_RECEIVE, rx_args), "SX127xSpiAhsm")
+            farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_RECEIVE, rx_args), "SX127xSpiAhsm")
             return me.handled(me, event)
 
         elif sig == farc.Signal.MAC_TX_REQ:
@@ -150,7 +150,7 @@ class HeyMacAhsm(farc.Ahsm):
             logging.info("LISTENING")
             # rx continuously on the rx_freq
             value = (-1, phy_cfg.rx_freq)
-            farc.Framework.post(farc.Event(farc.Signal.PHY_RECEIVE, value), "SX127xSpiAhsm")
+            farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_RECEIVE, value), "SX127xSpiAhsm")
             listen_secs = mac_tdma_cfg.N_SFRAMES_TO_LISTEN * (2 ** me.sf_order) / mac_tdma_cfg.TSLOTS_PER_SEC
             me.tm_evt.postIn(me, listen_secs)
             return me.handled(me, event)
@@ -253,7 +253,7 @@ class HeyMacAhsm(farc.Ahsm):
         # Resume continuous receive after beaconing
         elif self.asn % (2 ** self.sf_order) == self.bcn_slot + 1:
             rx_args = (-1, phy_cfg.rx_freq)
-            farc.Framework.post(farc.Event(farc.Signal.PHY_RECEIVE, rx_args), "SX127xSpiAhsm")
+            farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_RECEIVE, rx_args), "SX127xSpiAhsm")
 
         # Send the top pkt in the tx queue
         elif self.mac_cmd_txq:
@@ -375,7 +375,7 @@ class HeyMacAhsm(farc.Ahsm):
             ngbr_tx_slots=self.dll_data.get_bcn_slotmap(mac_tdma_cfg.FRAME_SPEC_SF_ORDER),
             )
         tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data
-        farc.Framework.post(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
+        farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
         self.mac_seq += 1
 
 
@@ -400,7 +400,7 @@ class HeyMacAhsm(farc.Ahsm):
             geoloc=getattr(self, "gps_gprmc", b""), #TODO: extract lat/lon from gprmc
             )
         tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data
-        farc.Framework.post(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
+        farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
         self.mac_seq += 1
 
 
@@ -414,7 +414,7 @@ class HeyMacAhsm(farc.Ahsm):
         self.mac_seq += 1
         frame.data = self.mac_cmd_txq.pop()
         tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data
-        farc.Framework.post(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
+        farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
 
 
     @staticmethod

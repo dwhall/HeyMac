@@ -82,7 +82,7 @@ class ChatAhsm(farc.Ahsm):
                     # Send the payload to the MAC layer
                     txt = heymac.mac_cmds.HeyMacCmdTxt()
                     txt.msg = msg
-                    farc.Framework.post(farc.Event(farc.Signal.MAC_TX_REQ, txt), "HeyMacAhsm")
+                    farc.Framework.post_by_name(farc.Event(farc.Signal.MAC_TX_REQ, txt), "HeyMacAhsm")
 
                     # Echo the message to the outwin
                     outy,_ = me.outwin.getmaxyx()

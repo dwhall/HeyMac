@@ -26,15 +26,3 @@ sx127x_cfg = phy_sx127x_cfg.SX127xConfig(
 # RaspberryPi UART (to GPS) configuration.
 uart_port = "/dev/serial0"
 uart_baud = 9600
-
-# RaspberryPi GPIO configuration.
-# This configuration is for the Dragino LoRa GPS Hat v1.3
-# with extra connections for DIO3-5 made by the author
-reset = {"pin":17, "sig_name":"GPS_RST"}
-dio0 = {"pin":4, "sig_name":"PHY_DIO0"}
-dio1 = {"pin":23, "sig_name":"PHY_DIO1"}
-dio2 = {"pin":24, "sig_name":"PHY_DIO2"}
-dio3 = {"pin":6, "sig_name":"PHY_DIO3"}
-dio4 = {"pin":5, "sig_name":"PHY_DIO4"}
-dio5 = {"pin":22, "sig_name":"PHY_DIO5"}
-pps = {"pin":26, "sig_name":"PHY_GPS_PPS"}

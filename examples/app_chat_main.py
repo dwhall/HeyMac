@@ -18,6 +18,7 @@ logging.basicConfig(
 import heymac
 
 import app_chat_ahsm
+import prj_cfg
 
 
 def main():
@@ -27,6 +28,12 @@ def main():
     uartAhsm = heymac.phy_uart_ahsm.UartAhsm(heymac.phy_uart_ahsm.UartAhsm.initial)
     macAhsm = heymac.mac_tdma_ahsm.HeyMacAhsm(heymac.mac_tdma_ahsm.HeyMacAhsm.initial)
     chatAhsm = app_chat_ahsm.ChatAhsm(app_chat_ahsm.ChatAhsm.initial)
+
+    # Configure GPIO
+    for pin_nmbr, pin_edge, sig_name in prj_cfg.gpio_ins:
+        gpioAhsm.register_pin_in(pin_nmbr, pin_edge, sig_name)
+    for pin_nmbr, pin_initial in prj_cfg.gpio_outs:
+        gpioAhsm.register_pin_out(pin_nmbr, pin_initial)
 
     # Start state machines (with priorities)
     spiAhsm.start(10)
