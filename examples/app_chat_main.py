@@ -23,7 +23,7 @@ import app_chat_ahsm
 def main():
     # Instantiate state machines
     gpioAhsm = heymac.phy_gpio_ahsm.GpioAhsm(heymac.phy_gpio_ahsm.GpioAhsm.initial)
-    spiAhsm = heymac.phy_spi_ahsm.SX127xSpiAhsm(heymac.phy_spi_ahsm.SX127xSpiAhsm.initial)
+    spiAhsm = heymac.phy_sx127x_ahsm.SX127xSpiAhsm(heymac.phy_sx127x_ahsm.SX127xSpiAhsm.initial)
     uartAhsm = heymac.phy_uart_ahsm.UartAhsm(heymac.phy_uart_ahsm.UartAhsm.initial)
     macAhsm = heymac.mac_tdma_ahsm.HeyMacAhsm(heymac.mac_tdma_ahsm.HeyMacAhsm.initial)
     chatAhsm = app_chat_ahsm.ChatAhsm(app_chat_ahsm.ChatAhsm.initial)

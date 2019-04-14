@@ -2,8 +2,9 @@
 """
 Copyright 2017 Dean Hall.  See LICENSE for details.
 
-Physical Layer State Machine for SPI operations to the SX127x device
+Physical Layer State Machine for SX127x device
 - models SX127x device operation
+- SX127x device control via SPI bus
 - establishes Transmit and Receive sequences
 - responds to a handful of events (expected from Layer 2 (MAC))
 """
