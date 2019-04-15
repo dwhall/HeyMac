@@ -25,8 +25,8 @@ def main():
     # Instantiate state machines
     gpioAhsm = heymac.GpioAhsm(heymac.GpioAhsm.initial)
     spiAhsm = heymac.SX127xSpiAhsm(heymac.SX127xSpiAhsm.initial)
-    uartAhsm = heymac.phy_uart_ahsm.UartAhsm(heymac.phy_uart_ahsm.UartAhsm.initial)
-    macAhsm = heymac.mac_tdma_ahsm.HeyMacAhsm(heymac.mac_tdma_ahsm.HeyMacAhsm.initial)
+    uartAhsm = heymac.UartAhsm(heymac.UartAhsm.initial)
+    macAhsm = heymac.HeyMacAhsm(heymac.HeyMacAhsm.initial)
     chatAhsm = app_chat_ahsm.ChatAhsm(app_chat_ahsm.ChatAhsm.initial)
 
     # Configure GPIO
