@@ -1,0 +1,3 @@
+[submodule "deps/sx127x_ahsm"]
+	path = deps/sx127x_ahsm
+	url = git@github.com:dwhall/sx127x_ahsm.git

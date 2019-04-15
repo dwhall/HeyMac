@@ -24,11 +24,11 @@ def main():
     uartAhsm = heymac.UartAhsm(heymac.UartAhsm.initial)
     macAhsm = heymac.HeyMacAhsm(heymac.HeyMacAhsm.initial)
 
-    # Configure GPIO
+    # Register GPIO inputs to emit signals
     for pin_nmbr, pin_edge, sig_name in prj_cfg.gpio_ins:
         gpioAhsm.register_pin_in(pin_nmbr, pin_edge, sig_name)
-    for pin_nmbr, pin_initial in prj_cfg.gpio_outs:
-        gpioAhsm.register_pin_out(pin_nmbr, pin_initial)
+#    for pin_nmbr, pin_initial in prj_cfg.gpio_outs:
+#        gpioAhsm.register_pin_out(pin_nmbr, pin_initial)
 
     # Start state machines
     spiAhsm.start(10)
