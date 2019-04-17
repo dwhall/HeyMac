@@ -1,19 +1,17 @@
 # HeyMac
 
-I don't have a great naming scheme yet, so right now HeyMac is two things.
-HeyMac is this project where I'm doing a bunch of experimental coding
-for wireless data transfer.  HeyMac also happens to be the name I gave
-the Medium Access Control, or MAC layer.
+HeyMac is a flexible frame definition and communication protocol
+designed to carry Data Link (Layer 2) and Network (Layer 3) frames
+between modest data rate, small payload radio modems such as the Semtech SX127x.
+HeyMac is distilled from and incompatible with IEEE 802.15.4.
 
-HeyMac is a TDMA-style Data Link Layer (Layer 2) designed for use with
-low data rate radio modems such as a LoRa radio module on a Raspberry Pi 3.
-HeyMac includes a Physical Layer (Layer 1) LoRa radio driver
-copied from the [lora_driver](https://github.com/dwhall/lora_driver) project.
+HeyMac is written in Python 3 using the [farc](https://github.com/dwhall/farc)
+hierarchical state machine framework and is intended to run
+on a Raspberry Pi 3 running Linux.
+HeyMac and farc require the asyncio module found in Python 3.4 and later.
 
-HeyMac is written in Python3 using the [farc](https://github.com/dwhall/farc)
-hierarchical state machine framework.
-You may read about the [HeyMac protocol details here](docs/HeyMacProtocol.md).
-HeyMac requires the asyncio module found in Python 3.4 and later.
+This project formerly included its own Physical Layer (Layer 1) radio driver,
+but that code is now its own [submodule](https://github.com/dwhall/sx127x_ahsm).
 
 I am a licensed amateur radio operator in the USA.  So I am using frequencies,
 modulations and antenna gains that are not allowed by unlicensed individuals

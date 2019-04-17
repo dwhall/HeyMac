@@ -10,8 +10,8 @@ Extensions for cryptographic authentication and encryption are possible.
 
 
 This implementation of HeyMac:
-* includes a Physical Layer (Layer 1) LoRa radio driver copied
-  from the [lora_driver](https://github.com/dwhall/lora_driver) project.
+* includes the Physical Layer (Layer 1) LoRa radio driver submodule
+  from the [sx127x_ahsm](https://github.com/dwhall/sx127x_ahsm) project.
 * is written in Python3 using the [farc](https://github.com/dwhall/farc)
   hierarchical state machine framework.
 
