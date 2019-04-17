@@ -1,8 +1,13 @@
 # HeyMac
 
-HeyMac is a Data Link Layer (Layer 2) protocol designed for use with
-low data rate, small payload radio modems such as a Semtech LoRa device.
+HeyMac is a flexible frame definition and communication protocol
+designed to carry Data Link (Layer 2) and Network (Layer 3) frames
+between modest data rate, small payload radio modems such as the Semtech SX127x.
 HeyMac is distilled from and incompatible with IEEE 802.15.4.
+
+HeyMac offers 16- and 64-bit addressing, multi-network and multi-hop capabilities.
+Extensions for cryptographic authentication and encryption are possible.
+
 
 This implementation of HeyMac:
 * includes a Physical Layer (Layer 1) LoRa radio driver copied
@@ -16,7 +21,7 @@ The HeyMac frame is composed of three general parts: the header,
 optional information elements (IEs) and the payload.
 
 The length of a HeyMac frame MUST be conveyed by the physical layer.
-So the LoRa Explicit Header mode is used.
+So HeyMac uses LoRa's Explicit Header mode.
 
 There is no CRC or message authentication code in this layer
 because either the physical layer SHOULD have a CRC or
@@ -94,7 +99,7 @@ Details:
   </dd>
 
   <dt><strong>L</strong></dt>
-  <dd>Long Addressing:  If 1, the resender, destination and/or source addresses
+  <dd>Long Addressing:  If 1, the resender, destination and/or source address fields
   are 8 octets (64 bits) in size, if present.
   If 0, the addresses are 2 octets (16 bits) in size, if present.
   </dd>
@@ -103,8 +108,8 @@ Details:
   <dd>Resender Address:  If 1, the Resender Address is present in the header.
   The Resender Address is added to or changed within the frame by a node that detects
   that it is responsible for routing the frame.
-  A frame recipient uses the Resender Address, the Destination Address and the recipient's
-  address to calculate if the recipient must route the frame and in which direction (up or down).
+  The recipient of a frame uses its own address, the frame's Resender Address
+  and the frame's Destination Address to determine frame routing.
   </dd>
 
   <dt><strong>N</strong></dt>
@@ -120,7 +125,8 @@ Details:
   </dd>
 
   <dt><strong>I</strong></dt>
-  <dd>Information Elements:  If 1, a string of IEs follow the Destination Address.
+  <dd>Information Elements:  If 1, a string of one or more IEs
+  follow the Destination Address.
   </dd>
 
   <dt><strong>S</strong></dt>
@@ -134,7 +140,7 @@ Details:
 
 A Null Frame is a HeyMac frame where the Fctl field is 0 (8b00000000)
 and no payload is present.  The Fctl value of 0 indicates a Minimum type frame
-with no IEs, no NetID, no addresses and no Pending frames.
+with no addresses, no NetID and no IEs.
 A true Null Frame MUST have an empty payload;
 its frame length is 1 as reported by the Physical layer.
 However, it is also possible that a Minimum frame is created
@@ -144,7 +150,7 @@ as greater than 1.
 
 ### Resender Address Field
 
-The Resender Address field is present unless the Fctl Frame Type is Minimum (2b00).
+The Resender Address field is present when the Fctl R bit is set (1b1).
 When the Resender Address field is present, it is a two or eight octet (16 or 64 bits)
 unsigned value representing the address of the re-sender for this frame.
 If the Fctl L bit is set (1b1), the Resender Address field is 8 octets.
@@ -155,7 +161,7 @@ to the destination.
 
 ### PVS: Pending, Version and Sequence Field
 
-The PVS field is present unless the Fctl Frame Type is Minimum (2b00).
+The PVS field is present when the Fctl P bit is set (1b1).
 When the PVS field is present, it is an 8-bit unsigned value
 consisting of three sub-fields.
 
@@ -176,6 +182,7 @@ Values and their meanings are TBD.
 
 ### Network ID Field
 
+The Network ID field is present when the Fctl N bit is set (1b1).
 When the Network ID field is present, it is a two octet (16 bits) unsigned value
 representing this network's identity.
 TBD: subfields may indicate network type and instance.
@@ -189,18 +196,23 @@ If the Fctl L bit is set (1b1), the Destination Address field is 8 octets
 
 ### HeyMac Information Elements
 
+One or more Information Elements (IEs) are present when the Fctl I bit is set (1b1).
 Information Elements provide meta information about the frame
 and the data carried within the frame.
 
 There are optionally Header Information Elements and
 optionally Body Information Elements
-and a way to delineate between the two.
+and a way to distinguish the two.
+The difference between Header and Body IEs is that
+Body IEs are encrypted when the HeyMac frame is enciphered,
+but Header IEs are not.
 TODO: Add more details.
 
 ### Source Address Field
 
+The Source Address field is present when the Fctl S bit is set (1b1).
 When the Source Address field is present, it is a two or eight octet (16 or 64 bits)
-unsigned value representing the address of the source for this frame.
+unsigned value representing the address of the source, or origin, for this frame.
 
 
 ### Payload
@@ -233,7 +245,7 @@ for a frame.  The IE also gives the encryption method details.
 When encryption is enabled, the Body IEs, Source Address and Payload fields
 are encrypted.
 
-### HeyMac Authentcation
+### HeyMac Authentication
 
 An entry in the Header Information Elements indicates authentication is enabled
 for a frame.  The IE also gives the authentication method details.
