@@ -16,20 +16,16 @@ class TestHeyMacFrame(unittest.TestCase):
         f = heymac.HeyMacFrame()
         f.fctl_type = heymac.HeyMacFrame.FCTL_TYPE_MIN
         b = bytes(f)
-        self.assertEqual(b, b"\x00")
+        self.assertEqual(b, b"\xE2\x00")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_type, heymac.HeyMacFrame.FCTL_TYPE_MIN)
         self.assertEqual(f.fctl_l, 0)
-        self.assertEqual(f.fctl_r, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 0)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 0)
-        self.assertEqual(f.raddr, b"")
-        self.assertEqual(f.pend, b"")
-        self.assertEqual(f.ver, b"")
-        self.assertEqual(f.seq, b"")
         self.assertEqual(f.exttype, b"")
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"")
@@ -41,20 +37,16 @@ class TestHeyMacFrame(unittest.TestCase):
         f = heymac.HeyMacFrame()
         f.fctl_type = heymac.HeyMacFrame.FCTL_TYPE_MAC
         b = bytes(f)
-        self.assertEqual(b, b"\x40\x10")
+        self.assertEqual(b, b"\xE2\x40")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_type, heymac.HeyMacFrame.FCTL_TYPE_MAC)
         self.assertEqual(f.fctl_l, 0)
-        self.assertEqual(f.fctl_r, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 0)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 0)
-        self.assertEqual(f.raddr, b"")
-        self.assertEqual(f.pend, 0)
-        self.assertEqual(f.ver, 1)
-        self.assertEqual(f.seq, 0)
         self.assertEqual(f.exttype, b"")
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"")
@@ -66,20 +58,16 @@ class TestHeyMacFrame(unittest.TestCase):
         f = heymac.HeyMacFrame()
         f.fctl_type = heymac.HeyMacFrame.FCTL_TYPE_NET
         b = bytes(f)
-        self.assertEqual(b, b"\x80\x10")
+        self.assertEqual(b, b"\xE2\x80")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_type, heymac.HeyMacFrame.FCTL_TYPE_NET)
         self.assertEqual(f.fctl_l, 0)
-        self.assertEqual(f.fctl_r, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 0)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 0)
-        self.assertEqual(f.raddr, b"")
-        self.assertEqual(f.pend, 0)
-        self.assertEqual(f.ver, 1)
-        self.assertEqual(f.seq, 0)
         self.assertEqual(f.exttype, b"")
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"")
@@ -91,20 +79,16 @@ class TestHeyMacFrame(unittest.TestCase):
         f = heymac.HeyMacFrame()
         f.fctl_type = heymac.HeyMacFrame.FCTL_TYPE_EXT
         b = bytes(f)
-        self.assertEqual(b, b"\xC0\x10\x00")
+        self.assertEqual(b, b"\xE2\xC0\x00")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_type, heymac.HeyMacFrame.FCTL_TYPE_EXT)
         self.assertEqual(f.fctl_l, 0)
-        self.assertEqual(f.fctl_r, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 0)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 0)
-        self.assertEqual(f.raddr, b"")
-        self.assertEqual(f.pend, 0)
-        self.assertEqual(f.ver, 1)
-        self.assertEqual(f.seq, 0)
         self.assertEqual(f.exttype, 0)
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"")
@@ -116,20 +100,16 @@ class TestHeyMacFrame(unittest.TestCase):
         f = heymac.HeyMacFrame()
         f.exttype = b"\x05"
         b = bytes(f)
-        self.assertEqual(b, b"\xC0\x10\x05")
+        self.assertEqual(b, b"\xE2\xC0\x05")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_type, heymac.HeyMacFrame.FCTL_TYPE_EXT)
         self.assertEqual(f.fctl_l, 0)
-        self.assertEqual(f.fctl_r, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 0)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 0)
-        self.assertEqual(f.raddr, b"")
-        self.assertEqual(f.pend, 0)
-        self.assertEqual(f.ver, 1)
-        self.assertEqual(f.seq, 0)
         self.assertEqual(f.exttype, 5)
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"")
@@ -142,20 +122,16 @@ class TestHeyMacFrame(unittest.TestCase):
         f.fctl_type = heymac.HeyMacFrame.FCTL_TYPE_MIN
         f.data = b"ABCD"
         b = bytes(f)
-        self.assertEqual(b, b"\x00ABCD")
+        self.assertEqual(b, b"\xE2\x00ABCD")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_type, heymac.HeyMacFrame.FCTL_TYPE_MIN)
         self.assertEqual(f.fctl_l, 0)
-        self.assertEqual(f.fctl_r, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 0)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 0)
-        self.assertEqual(f.raddr, b"")
-        self.assertEqual(f.pend, b"")
-        self.assertEqual(f.ver, b"")
-        self.assertEqual(f.seq, b"")
         self.assertEqual(f.exttype, b"")
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"")
@@ -168,20 +144,16 @@ class TestHeyMacFrame(unittest.TestCase):
         f.fctl_type = heymac.HeyMacFrame.FCTL_TYPE_MAC
         f.seq = 7
         b = bytes(f)
-        self.assertEqual(b, b"\x40\x17")
+        self.assertEqual(b, b"\xE2\x40")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_type, heymac.HeyMacFrame.FCTL_TYPE_MAC)
         self.assertEqual(f.fctl_l, 0)
-        self.assertEqual(f.fctl_r, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 0)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 0)
-        self.assertEqual(f.raddr, b"")
-        self.assertEqual(f.pend, 0)
-        self.assertEqual(f.ver, 1)
-        self.assertEqual(f.seq, 7)
         self.assertEqual(f.exttype, b"")
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"")
@@ -194,20 +166,16 @@ class TestHeyMacFrame(unittest.TestCase):
         f.fctl_type = heymac.HeyMacFrame.FCTL_TYPE_MIN
         f.saddr = b"\x01\x02\x03\x04\x05\x06\x07\x08"
         b = bytes(f)
-        self.assertEqual(b, b"\x21\x01\x02\x03\x04\x05\x06\x07\x08")
+        self.assertEqual(b, b"\xE2\x21\x01\x02\x03\x04\x05\x06\x07\x08")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_type, heymac.HeyMacFrame.FCTL_TYPE_MIN)
         self.assertEqual(f.fctl_l, 1)
-        self.assertEqual(f.fctl_r, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 0)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 1)
-        self.assertEqual(f.raddr, b"")
-        self.assertEqual(f.pend, b"")
-        self.assertEqual(f.ver, b"")
-        self.assertEqual(f.seq, b"")
         self.assertEqual(f.exttype, b"")
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"")
@@ -221,20 +189,16 @@ class TestHeyMacFrame(unittest.TestCase):
         f.seq = 9
         f.saddr = b"\x01\x02\x03\x04\x05\x06\x07\x08"
         b = bytes(f)
-        self.assertEqual(b, b"\x61\x19\x01\x02\x03\x04\x05\x06\x07\x08")
+        self.assertEqual(b, b"\xE2\x61\x01\x02\x03\x04\x05\x06\x07\x08")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_type, heymac.HeyMacFrame.FCTL_TYPE_MAC)
         self.assertEqual(f.fctl_l, 1)
-        self.assertEqual(f.fctl_r, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 0)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 1)
-        self.assertEqual(f.raddr, b"")
-        self.assertEqual(f.pend, 0)
-        self.assertEqual(f.ver, 1)
-        self.assertEqual(f.seq, 9)
         self.assertEqual(f.exttype, b"")
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"")
@@ -258,20 +222,16 @@ class TestHeyMacFrame(unittest.TestCase):
         )
         f.data = bytes(bcn)
         b = bytes(f)
-        self.assertEqual(b, b"\x41\x12\x11\x12\x01\xf5\x02\x03\x04\x00\x00\x00\x2a\x00\x00\x00\x00\x00\x00\x00\x00")
+        self.assertEqual(b, b"\xE2\x41\x11\x12\x01\xf5\x02\x03\x04\x00\x00\x00\x2a\x00\x00\x00\x00\x00\x00\x00\x00")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_type, heymac.HeyMacFrame.FCTL_TYPE_MAC)
         self.assertEqual(f.fctl_l, 0)
-        self.assertEqual(f.fctl_r, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 0)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 1)
-        self.assertEqual(f.raddr, b"")
-        self.assertEqual(f.pend, 0)
-        self.assertEqual(f.ver, 1)
-        self.assertEqual(f.seq, 2)
         self.assertEqual(f.exttype, b"")
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"")
@@ -292,20 +252,16 @@ class TestHeyMacFrame(unittest.TestCase):
         f.seq = 2
         f.saddr = b"\x01\x02\x03\x04\x05\x06\x07\x08"
         b = bytes(f)
-        self.assertEqual(b, b"\x61\x12\x01\x02\x03\x04\x05\x06\x07\x08")
+        self.assertEqual(b, b"\xE2\x61\x01\x02\x03\x04\x05\x06\x07\x08")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_type, heymac.HeyMacFrame.FCTL_TYPE_MAC)
         self.assertEqual(f.fctl_l, 1)
-        self.assertEqual(f.fctl_r, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 0)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 1)
-        self.assertEqual(f.raddr, b"")
-        self.assertEqual(f.pend, 0)
-        self.assertEqual(f.ver, 1)
-        self.assertEqual(f.seq, 2)
         self.assertEqual(f.exttype, b"")
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"")
@@ -320,20 +276,16 @@ class TestHeyMacFrame(unittest.TestCase):
         f.saddr = b"\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8"
         f.data = b"hi"
         b = bytes(f)
-        self.assertEqual(b, b"\x65\x10\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8hi")
+        self.assertEqual(b, b"\xE2\x65\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8hi")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_type, heymac.HeyMacFrame.FCTL_TYPE_MAC)
         self.assertEqual(f.fctl_l, 1)
-        self.assertEqual(f.fctl_r, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 1)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 1)
-        self.assertEqual(f.raddr, b"")
-        self.assertEqual(f.pend, 0)
-        self.assertEqual(f.ver, 1)
-        self.assertEqual(f.seq, 0)
         self.assertEqual(f.exttype, b"")
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8")
@@ -348,20 +300,16 @@ class TestHeyMacFrame(unittest.TestCase):
         f.saddr = b"\xc1\xc2"
         f.data = b"hello world"
         b = bytes(f)
-        self.assertEqual(b, b"\x45\x10\xd1\xd2\xc1\xc2hello world")
+        self.assertEqual(b, b"\xE2\x45\xd1\xd2\xc1\xc2hello world")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_type, heymac.HeyMacFrame.FCTL_TYPE_MAC)
         self.assertEqual(f.fctl_l, 0)
-        self.assertEqual(f.fctl_r, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 1)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 1)
-        self.assertEqual(f.raddr, b"")
-        self.assertEqual(f.pend, 0)
-        self.assertEqual(f.ver, 1)
-        self.assertEqual(f.seq, 0)
         self.assertEqual(f.exttype, b"")
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"\xd1\xd2")
@@ -374,20 +322,16 @@ class TestHeyMacFrame(unittest.TestCase):
         f.fctl_type = heymac.HeyMacFrame.FCTL_TYPE_NET
         f.data = heymac.APv6Frame()
         b = bytes(f)
-        self.assertEqual(b, b"\x80\x10\xD7")
+        self.assertEqual(b, b"\xE2\x80\xD7")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_type, heymac.HeyMacFrame.FCTL_TYPE_NET)
         self.assertEqual(f.fctl_l, 0)
-        self.assertEqual(f.fctl_r, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 0)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 0)
-        self.assertEqual(f.raddr, b"")
-        self.assertEqual(f.pend, 0)
-        self.assertEqual(f.ver, 1)
-        self.assertEqual(f.seq, 0)
         self.assertEqual(f.exttype, b"")
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"")
@@ -399,24 +343,19 @@ class TestHeyMacFrame(unittest.TestCase):
         # Pack
         f = heymac.HeyMacFrame()
         f.fctl_type = heymac.HeyMacFrame.FCTL_TYPE_EXT
-        f.raddr = b"\x11\x11"
         f.exttype = b"\x2A"
         f.data = b"6x7"
         b = bytes(f)
-        self.assertEqual(b, b"\xD0\x11\x11\x10\x2A6x7")
+        self.assertEqual(b, b"\xE2\xC0\x2A6x7")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_type, heymac.HeyMacFrame.FCTL_TYPE_EXT)
         self.assertEqual(f.fctl_l, 0)
-        self.assertEqual(f.fctl_r, 1)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 0)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 0)
-        self.assertEqual(f.raddr, b"\x11\x11")
-        self.assertEqual(f.pend, 0)
-        self.assertEqual(f.ver, 1)
-        self.assertEqual(f.seq, 0)
         self.assertEqual(f.exttype, 42)
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"")
@@ -424,31 +363,26 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(f.data, b"6x7")
 
 
-    def test_raddr_pvs(self,):
-        """Tests a frame with raddr and _pvs field present
+    def test_pvs(self,):
+        """Tests a frame with _pvs field present
         to ensure fields are in proper order
         """
         # Pack
         f = heymac.HeyMacFrame()
         f.fctl_type = heymac.HeyMacFrame.FCTL_TYPE_MAC
-        f.raddr = b"\x11\x11"
         f.seq = 9
         f.data = b"6x7"
         b = bytes(f)
-        self.assertEqual(b, b"\x50\x11\x11\x196x7")
+        self.assertEqual(b, b"\xE2\x406x7")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_type, heymac.HeyMacFrame.FCTL_TYPE_MAC)
         self.assertEqual(f.fctl_l, 0)
-        self.assertEqual(f.fctl_r, 1)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 0)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 0)
-        self.assertEqual(f.raddr, b"\x11\x11")
-        self.assertEqual(f.pend, 0)
-        self.assertEqual(f.ver, 1)
-        self.assertEqual(f.seq, 9)
         self.assertEqual(f.exttype, b"")
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"")
@@ -457,7 +391,7 @@ class TestHeyMacFrame(unittest.TestCase):
 
 
     def test_exttype_netid(self,):
-        """Tests a frame with raddr and _pvs field present
+        """Tests a frame with exttype and NetID fields present
         to ensure fields are in proper order
         """
         # Pack
@@ -467,20 +401,16 @@ class TestHeyMacFrame(unittest.TestCase):
         f.netid = 0x80A5
         f.data = b"data"
         b = bytes(f)
-        self.assertEqual(b, b"\xC8\x10\x03\x80\xa5data")
+        self.assertEqual(b, b"\xE2\xC8\x03\x80\xa5data")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_type, heymac.HeyMacFrame.FCTL_TYPE_EXT)
         self.assertEqual(f.fctl_l, 0)
-        self.assertEqual(f.fctl_r, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 1)
         self.assertEqual(f.fctl_d, 0)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 0)
-        self.assertEqual(f.raddr, b"")
-        self.assertEqual(f.pend, 0)
-        self.assertEqual(f.ver, 1)
-        self.assertEqual(f.seq, 0)
         self.assertEqual(f.exttype, 3)
         self.assertEqual(f.netid, b"\x80\xA5")
         self.assertEqual(f.daddr, b"")
@@ -489,7 +419,7 @@ class TestHeyMacFrame(unittest.TestCase):
 
 
     def test_netid_daddr(self,):
-        """Tests a frame with raddr and _pvs field present
+        """Tests a frame with NetID and Dest addr fields present
         to ensure fields are in proper order
         """
         # Pack
@@ -499,25 +429,43 @@ class TestHeyMacFrame(unittest.TestCase):
         f.daddr = 0xd1d2
         f.data = b"data"
         b = bytes(f)
-        self.assertEqual(b, b"\x4C\x10\x80\xa5\xd1\xd2data")
+        self.assertEqual(b, b"\xE2\x4C\x80\xa5\xd1\xd2data")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_type, heymac.HeyMacFrame.FCTL_TYPE_MAC)
         self.assertEqual(f.fctl_l, 0)
-        self.assertEqual(f.fctl_r, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 1)
         self.assertEqual(f.fctl_d, 1)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 0)
-        self.assertEqual(f.raddr, b"")
-        self.assertEqual(f.pend, 0)
-        self.assertEqual(f.ver, 1)
-        self.assertEqual(f.seq, 0)
         self.assertEqual(f.exttype, b"")
         self.assertEqual(f.netid, b"\x80\xA5")
         self.assertEqual(f.daddr, b"\xd1\xd2")
         self.assertEqual(f.saddr, b"")
         self.assertEqual(f.data, b"data")
+
+
+class TestHeyMacFloodFrame(unittest.TestCase):
+    def test_min(self,):
+        f = heymac.HeyMacFloodFrame()
+        f.fctl_type = heymac.HeyMacFloodFrame.FCTL_TYPE_MIN
+        b = bytes(f)
+        self.assertEqual(b, b"\xF2\x00")
+        # Unpack
+        f = heymac.HeyMacFloodFrame(b)
+        self.assertEqual(f.fctl_type, heymac.HeyMacFloodFrame.FCTL_TYPE_MIN)
+        self.assertEqual(f.fctl_l, 0)
+        self.assertEqual(f.fctl_p, 0)
+        self.assertEqual(f.fctl_n, 0)
+        self.assertEqual(f.fctl_d, 0)
+        self.assertEqual(f.fctl_i, 0)
+        self.assertEqual(f.fctl_s, 0)
+        self.assertEqual(f.exttype, b"")
+        self.assertEqual(f.netid, b"")
+        self.assertEqual(f.daddr, b"")
+        self.assertEqual(f.saddr, b"")
+        self.assertEqual(f.data, b"")
 
 
 if __name__ == '__main__':

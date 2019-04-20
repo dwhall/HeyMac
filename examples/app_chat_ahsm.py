@@ -123,7 +123,7 @@ class ChatAhsm(farc.Ahsm):
                         % (rssi, snr, f.data.msg.decode())
                 elif isinstance(f.data, heymac.mac_cmds.HeyMacCmdSbcn):
                     scrnmsg = "<bcn from %s: rssi=%d dBm, snr=%.3f dB, asn=%d>" \
-                        % (f.raddr[0:4], rssi, snr, f.data.asn)
+                        % (f.saddr[0:4], rssi, snr, f.data.asn)
                 else:
                     scrnmsg = b"<pkt not a known MAC cmd>"
             except Exception as e:

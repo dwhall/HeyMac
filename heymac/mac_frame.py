@@ -9,6 +9,9 @@ which may be installed via::
 
     pip3 install dpkt
 
+or::
+
+    pip install dpkt
 """
 
 
@@ -21,12 +24,21 @@ from .net_frame import APv6Frame
 
 
 # HeyMac protocol version
-HEYMAC_VERSION = 1
+HEYMAC_VERSION = 2
 
 
 class HeyMacFrame(dpkt.Packet):
     """HeyMac frame definition
     """
+    # HeyMac Protocol IDs
+    PV_PID_HEYMAC = 0b1110
+    PV_PID_HEYMAC_FLOOD = 0b1111
+    PV_PID_MASK = 0b11110000
+    PV_PID_SHIFT = 4
+    PV_VER_HEYMAC2 = HEYMAC_VERSION
+    PV_VER_MASK = 0b00001111
+    PV_VER_SHIFT = 0
+
     # Frame Control Field (Fctl) subfield values
     FCTL_TYPE_MIN = 0b00
     FCTL_TYPE_MAC = 0b01
@@ -35,31 +47,23 @@ class HeyMacFrame(dpkt.Packet):
     FCTL_TYPE_MASK = 0b11000000
     FCTL_TYPE_SHIFT = 6
     FCTL_L_SHIFT = 5
-    FCTL_R_SHIFT = 4
+    FCTL_P_SHIFT = 4
     FCTL_N_SHIFT = 3
     FCTL_D_SHIFT = 2
     FCTL_I_SHIFT = 1
     FCTL_S_SHIFT = 0
 
-    # Pend Ver Seq (PVS) subfield values
-    PVS_P_MASK = 0b10000000
-    PVS_P_SHIFT = 7
-    PVS_V_MASK = 0b01110000
-    PVS_V_SHIFT = 4
-    PVS_S_MASK = 0b00001111
-    PVS_S_SHIFT = 0
-
     __byte_order__ = '!' # Network order
     __hdr__ = (
         # The underscore prefix means do not access that field directly.
+        # Access properties .pv_pid, .pv_ver instead.
+        ('_pv', 'B',
+            PV_PID_HEYMAC << PV_PID_SHIFT |
+            PV_VER_HEYMAC2 << PV_VER_SHIFT),
         # Access properties .fctl, .fctl_type, .fctl_l, etc. instead.
         ('_fctl', 'B', FCTL_TYPE_MAC << FCTL_TYPE_SHIFT),
-        # Fctl is the only field guaranteed to be present.
+        # The fields above are guaranteed to be present.
         # Below this are optional fields as indicated by '0s'.
-        # The underscore prefix means do not access that field directly.
-        # Access properties .pend, .ver and .seq, instead.
-        ('raddr', '0s', b''),
-        ('_pvs', '0s', b''),
         ('exttype', '0s', b''),
         ('netid', '0s', b''),
         ('daddr', '0s', b''),
@@ -69,12 +73,8 @@ class HeyMacFrame(dpkt.Packet):
     )
 
     # Functions to help determine which fields are present
-    def _has_pvs_field(self,): # PVS exists in all but Min frame types
-        return self.fctl_type != HeyMacFrame.FCTL_TYPE_MIN
     def _has_exttype_field(self,): # ExtType exists when Fctl type is Extended
         return self.fctl_type == HeyMacFrame.FCTL_TYPE_EXT
-    def _has_raddr_field(self,):
-        return self.fctl_r != 0
     def _has_netid_field(self,):
         return self.fctl_n != 0
     def _has_daddr_field(self,):
@@ -105,25 +105,56 @@ class HeyMacFrame(dpkt.Packet):
             sz = 0
         return sz
 
-    def _sizeof_raddr_field(self,):
-        if self._has_raddr_field():
-            if self.fctl_l != 0:
-                sz = 8
-            else:
-                sz = 2
-        else:
-            sz = 0
-        return sz
-
     def _sizeof_ie_fields(self,):
         """Returns the sizes of the hIE and bIE fields
         as a tuple (size_of_hIE, size_of_bIE).
-        These sizes are dynamic and are calculated by
+        These sizes are variable from one packet to another
+        but are fixed for a given packet and are calculated by
         parsing the contents of the hIE and bIE fields.
         """
         # FIXME
         return (0,0)
 
+
+    # Getters for the _pv field
+    @property
+    def pv(self,):
+        """Gets the full value (all bits) from the PID-Ver field.
+        """
+        return self._pv
+
+    @property
+    def pv_pid(self,):
+        """Gets the Protocol ID value from the PID-Ver field.
+        """
+        return ((self._pv & HeyMacFrame.PV_PID_MASK) >> HeyMacFrame.PV_PID_SHIFT)
+
+    @property
+    def pv_ver(self,):
+        """Gets the Protocol version value from the PID-Ver field.
+        """
+        return ((self._pv & HeyMacFrame.PV_VER_MASK) >> HeyMacFrame.PV_VER_SHIFT)
+
+    # Setters for the _pv field
+    @pv.setter
+    def pv(self, val):
+        """Sets the full value (all bits) in the PID-Ver field.
+        """
+        self._pv = val
+
+    @pv_pid.setter
+    def pv_pid(self, val):
+        """Sets the Protocol ID value in the PID-Ver field.
+        """
+        assert val in (HeyMacFrame.PV_PID_HEYMAC, HeyMacFrame.PV_PID_HEYMAC_FLOOD)
+        self._pv = (self._pv & ~HeyMacFrame.PV_PID_MASK) | (val << HeyMacFrame.PV_PID_SHIFT)
+
+    @pv_ver.setter
+    def pv_ver(self, val):
+        """Sets the Protocol Version value in the PID-Ver field.
+        """
+        assert val <= (HeyMacFrame.PV_VER_MASK >> HeyMacFrame.PV_VER_SHIFT)
+        self._pv = (self._pv & ~HeyMacFrame.PV_VER_MASK) | (val << HeyMacFrame.PV_VER_SHIFT)
 
     # Getters for the _fctl field
     @property
@@ -145,10 +176,10 @@ class HeyMacFrame(dpkt.Packet):
         return 1 & (self._fctl >> HeyMacFrame.FCTL_L_SHIFT)
 
     @property
-    def fctl_r(self,):
-        """Gets the Resender address present flag from the Fctl field.
+    def fctl_p(self,):
+        """Gets the Pending frames flag from the Fctl field.
         """
-        return 1 & (self._fctl >> HeyMacFrame.FCTL_R_SHIFT)
+        return 1 & (self._fctl >> HeyMacFrame.FCTL_P_SHIFT)
 
     @property
     def fctl_n(self,):
@@ -185,13 +216,9 @@ class HeyMacFrame(dpkt.Packet):
     @fctl_type.setter
     def fctl_type(self, val):
         """Sets the frame type value in the Fctl field.
-        If the frame type is not MIN, sets the frame version to HEYMAC_VERSION
-        in the PVS field (if the PVS field does not yet exist).
         """
         assert val <= 3, "Invalid frame type"
         self._fctl = (self._fctl & ~HeyMacFrame.FCTL_TYPE_MASK) | (val << HeyMacFrame.FCTL_TYPE_SHIFT)
-        if val != HeyMacFrame.FCTL_TYPE_MIN and not hasattr(self, "_pvs"):
-            self._pvs = HEYMAC_VERSION << HeyMacFrame.PVS_V_SHIFT
 
     def _fctl_setter_for_bit(self, val, bit_idx):
         """Sets or clears one of the L,R,N,D,I,S bits
@@ -208,11 +235,11 @@ class HeyMacFrame(dpkt.Packet):
         """
         return self._fctl_setter_for_bit(val, HeyMacFrame.FCTL_L_SHIFT)
 
-    @fctl_r.setter
-    def fctl_r(self, val):
-        """Sets the Resender address present flag in the Fctl field.
+    @fctl_p.setter
+    def fctl_p(self, val):
+        """Sets the Pending frames flag in the Fctl field.
         """
-        return self._fctl_setter_for_bit(val, HeyMacFrame.FCTL_R_SHIFT)
+        return self._fctl_setter_for_bit(val, HeyMacFrame.FCTL_P_SHIFT)
 
     @fctl_n.setter
     def fctl_n(self, val):
@@ -239,60 +266,6 @@ class HeyMacFrame(dpkt.Packet):
         return self._fctl_setter_for_bit(val, HeyMacFrame.FCTL_S_SHIFT)
 
 
-    # Getters for the _pvs field
-    @property
-    def pend(self,):
-        """Gets the Pending value from the PVS field.
-        """
-        if self._pvs:
-            return (self._pvs[0] & HeyMacFrame.PVS_P_MASK) >> HeyMacFrame.PVS_P_SHIFT
-        else:
-            return b""
-
-    @property
-    def ver(self,):
-        """Gets the Version value from the PVS field.
-        """
-        if self._pvs:
-            return (self._pvs[0] & HeyMacFrame.PVS_V_MASK) >> HeyMacFrame.PVS_V_SHIFT
-        else:
-            return b""
-
-    @property
-    def seq(self,):
-        """Gets the Sequence value from the PVS field.
-        """
-        if self._pvs:
-            return (self._pvs[0] & HeyMacFrame.PVS_S_MASK) >> HeyMacFrame.PVS_S_SHIFT
-        else:
-            return b""
-
-
-    # Setters for the _pvs field
-    @pend.setter
-    def pend(self, p):
-        """Sets the Pending value in the PVS field.
-        """
-        pvs = 0
-        if self._pvs:
-            pvs = self._pvs[0] & ~HeyMacFrame.PVS_P_MASK
-        if p:
-            pvs |= HeyMacFrame.PVS_P_MASK
-        self._pvs = pvs.to_bytes(1, "big")
-
-    @seq.setter
-    def seq(self, s):
-        """Sets the sequence value in the PVS field.
-        Also sets the version to HEYMAC_VERSION.
-        """
-        pvs = 0
-        if self._pvs:
-            pvs = self._pvs[0] & ~HeyMacFrame.PVS_S_MASK
-        pvs |= ((HEYMAC_VERSION << HeyMacFrame.PVS_V_SHIFT) |
-                ((s << HeyMacFrame.PVS_S_SHIFT) & HeyMacFrame.PVS_S_MASK))
-        self._pvs = pvs.to_bytes(1, "big")
-
-
     def unpack(self, buf):
         """Unpacks a bytes object into component attributes.
         This function is called when an instance of this class is created
@@ -300,18 +273,17 @@ class HeyMacFrame(dpkt.Packet):
         """
         super().unpack(buf)
 
-        if self._has_raddr_field():
-            sz = self._sizeof_raddr_field()
-            if len(self.data) < sz:
-                raise dpkt.NeedData("for raddr")
-            self.raddr = self.data[0:sz]
-            self.data = self.data[sz:]
+        # validate the PID-Ver
+        if self.pv_pid not in (HeyMacFrame.PV_PID_HEYMAC, HeyMacFrame.PV_PID_HEYMAC_FLOOD):
+            raise dpkt.UnpackError()
+        if self.pv_ver != HeyMacFrame.PV_VER_HEYMAC2:
+            raise dpkt.UnpackError()
 
-        if self._has_pvs_field():
-            if len(self.data) < 1:
-                raise dpkt.NeedData("for pvs")
-            self._pvs = self.data[0:1]
-            self.data = self.data[1:]
+        # the Fctl field can be every bit-combination
+        # so there's no illegal value; no way to validate
+
+        # all fields after Fctl are optional (defined as '0s')
+        # so we conditionally pull them from the .data bytearray
 
         if self._has_exttype_field():
             if len(self.data) < 1:
@@ -357,7 +329,7 @@ class HeyMacFrame(dpkt.Packet):
                 elif self.data[0] == HeyMacCmdId.TXT.value:
                     self.data = HeyMacCmdTxt(self.data)
                 else:
-                    logging.info("unsupp MAC cmd %f", self.data[0])
+                    logging.info("unsupported MAC cmd %f", self.data[0])
             # else:
             #     raise dpkt.NeedData("for MAC payld")
         elif self.fctl_type == HeyMacFrame.FCTL_TYPE_NET:
@@ -374,37 +346,8 @@ class HeyMacFrame(dpkt.Packet):
         """
         d = bytearray()
 
-        # Skip Fctl field for now, insert it at the end of this function
-
-        if self.raddr:
-            if type(self.raddr) is int:
-                self.raddr = struct.pack("!H", self.raddr)
-            len_raddr = len(self.raddr)
-            if len_raddr == 8:
-                self.fctl_l = 1
-                self.fctl_r = 1
-            elif len_raddr == 2:
-                self.fctl_r = 1
-            d.extend(self.raddr)
-
-        # If Fctl indicates PVS should be present
-        # and PVS was not set by the caller,
-        # set the sequence to zero
-        # (which also implicitly sets the version)
-        if self._has_pvs_field() and not self._pvs:
-            self.seq = 0
-
-        # If PVS was set by caller
-        if self._pvs:
-            # If Fctl type is MIN, error
-            if self.fctl_type == HeyMacFrame.FCTL_TYPE_MIN:
-                raise dpkt.PackError("PVS set but Fctl type is MIN")
-            if type(self._pvs) is bytes:
-                v = self._pvs[0]
-            else:
-                v = self._pvs
-                self._pvs = struct.pack("B", v)
-            d.append(v)
+        # Skip PID-Ver and Fctl fields for now,
+        # insert them at the end of this function
 
         if self._has_exttype_field() and not self.exttype:
             self.exttype = b'\x00'
@@ -448,4 +391,26 @@ class HeyMacFrame(dpkt.Packet):
                 self.fctl_s = 1
             d.extend(self.saddr)
 
+        # Inserts PID-Ver and Fctl,
+        # returns the combined bytes object
         return super().pack_hdr() + bytes(d)
+
+
+class HeyMacFloodFrame(HeyMacFrame):
+    __hdr__ = (
+        # The underscore prefix means do not access that field directly.
+        # Access properties .pv_pid, .pv_ver instead.
+        ('_pv', 'B',
+            HeyMacFrame.PV_PID_HEYMAC_FLOOD << HeyMacFrame.PV_PID_SHIFT |
+            HeyMacFrame.PV_VER_HEYMAC2 << HeyMacFrame.PV_VER_SHIFT),
+        # Access properties .fctl, .fctl_type, .fctl_l, etc. instead.
+        ('_fctl', 'B', HeyMacFrame.FCTL_TYPE_MAC << HeyMacFrame.FCTL_TYPE_SHIFT),
+        # The fields above are guaranteed to be present.
+        # Below this are optional fields as indicated by '0s'.
+        ('exttype', '0s', b''),
+        ('netid', '0s', b''),
+        ('daddr', '0s', b''),
+        ('hie', '0s', b''),
+        ('bie', '0s', b''),
+        ('saddr', '0s', b''),
+    )
