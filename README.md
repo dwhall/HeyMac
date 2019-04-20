@@ -1,6 +1,7 @@
 # HeyMac
 
-HeyMac is a flexible frame definition and communication protocol
+HeyMac is a flexible
+[frame definition and communication protocol](docs/HeyMacProtocol.md)
 designed to carry Data Link (Layer 2) and Network (Layer 3) frames
 between modest data rate, small payload radio modems such as the Semtech SX127x.
 HeyMac is distilled from and incompatible with IEEE 802.15.4.
