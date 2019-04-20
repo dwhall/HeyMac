@@ -30,7 +30,7 @@ The topmost field in the diagram is transmitted first.
 
 ```
     +----+----+----+----+----+----+----+----+---+---+
-    |  Protocol ID                (1 octet) |   |   |
+    |  Protocol ID, Version       (1 octet) |   |   |
     +----+----+----+----+----+----+----+----+ C +   +
     |  Frame Control              (1 octet) | l | A |
     +----+----+----+----+----+----+----+----+ e + u +
@@ -55,21 +55,26 @@ The topmost field in the diagram is transmitted first.
 The following sections explain each field in detail.
 
 
-### Protocol ID
+### Protocol ID, Version
 
-The Protocol ID (PID) field is the very first octet in the frame.
-It is used to distinguish HeyMac from other frame types.
-A few bits of the PID field are set so as to avoid conflicts
-with other prominent protocols.
+The Protocol ID and Version (PID_Ver) field is the very first octet in the frame.
+It is used to distinguish HeyMac frames from other frame types.
+The most significant bits of the PID field are set in order to
+avoid conflicts with other prominent protocols.
 Specifically, ensuring the three most significant bits are set
 will avoid trouble with the LoRaWAN MHDR and the 802.15.4-2015 MHR.
 LoRaWAN MHDR Type 3b111 is for Proprietary message types and
 802.15.4 MHR type 3b111 is for Extended frame types.
 
 The range of values for PID is 0b111xxxxx or (224-255 decimal).
-HeyMac choses the value 0xEA (234 decimal) for its PID.
+HeyMac uses the value 4b1110 for its PID and
+HeyMacFlood protocol uses the value 4b1111 for its PID.
+Currently, the lower 4 bits of PID_Ver are used for the protocol version.
+However, only the lower two or three of those bits are necessary.
+If we ever need to represent more protocol IDs, we can consume
+one or two bits from the Version subfield.
 
-The PID field is new in HeyMac version 2 and was not present
+The PID_Ver field is new in HeyMac version 2 and was not present
 in version 1.  Use of HeyMac version 1 SHALL cease immediately
 to avoid miscommunication.
 
@@ -100,10 +105,10 @@ Details:
   <dt><strong>Type</strong></dt>
   <dd>Frame Type:
     <ul>
-    <li>2b00: Minimum frame</li>
-    <li>2b01: HeyMac Command frame</li>
-    <li>2b10: HeyMac + APv6 (Network Layer 3) frame</li>
-    <li>2b11: Extended frame</li>
+    <li>2b00: MIN: Minimum frame</li>
+    <li>2b01: MAC: HeyMac Command frame</li>
+    <li>2b10: NET: HeyMac + APv6 (Network Layer 3) frame</li>
+    <li>2b11: EXT: Extended frame</li>
     </ul>
     If Frame Type is Minimum (2b00), then the PVS field is absent;
     otherwise PVS is present.
@@ -174,7 +179,7 @@ Extended Frame structure:
 
 ```
     +----+----+----+----+----+----+----+----+
-    |  Protocol ID                (1 octet) |
+    |  Protocol ID, Version       (1 octet) |
     +----+----+----+----+----+----+----+----+
     |  Frame Control              (1 octet) |
     +----+----+----+----+----+----+----+----+
