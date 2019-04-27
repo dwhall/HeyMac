@@ -44,22 +44,11 @@ class TestAPv6Frame(unittest.TestCase):
         self.assertEqual(f.dst, b"")
 
     def test_nhc_uncompressed(self,):
-        # Pack
-        f = heymac.APv6Frame(iphc_nhc=0)
-        b = bytes(f)
         # Only compressed next-headers are supported at this time
-        self.assertEqual(b, b"\xD7")
-        # Unpack
-        f = heymac.APv6Frame(b)
-        self.assertEqual(f.iphc_prefix, 6)
-        # Only compressed next-headers are supported at this time
-        self.assertEqual(f.iphc_nhc, 1)
-        self.assertEqual(f.iphc_hlim, 1)
-        self.assertEqual(f.iphc_sam, 1)
-        self.assertEqual(f.iphc_dam, 1)
-        self.assertEqual(f.hops, 0x01)
-        self.assertEqual(f.src, b"")
-        self.assertEqual(f.dst, b"")
+        # Uncompressed headers should raise an AssertionError
+        with self.assertRaises(AssertionError):
+            f = heymac.APv6Frame(iphc_nhc=0)
+
 
     def test_nhc_extreme_value(self,):
         # Pack

@@ -127,35 +127,37 @@ class APv6Frame(dpkt.Packet):
         """Sets the whole value of the IPHC field.
         """
         assert ((val & APv6Frame.IPHC_PREFIX_MASK) >> APv6Frame.IPHC_PREFIX_SHIFT) == IPHC_PREFIX, "Invalid APv6 prefix"
-        assert val < 256
+        assert 0 <= val < 256
         self._iphc = val
 
     @iphc_nhc.setter
     def iphc_nhc(self, val):
         """Sets the Next Header Compressed bit in the IPHC field to the given value
         """
-        assert val < 2
+        assert 0 <= val <= 1
+        assert val == APv6Frame.DEFAULT_NHC, "only compressed headers are supported at this time"
+
         self._iphc = (self._iphc & ~APv6Frame.IPHC_NHC_MASK) | ((val & 1) << APv6Frame.IPHC_NHC_SHIFT)
 
     @iphc_hlim.setter
     def iphc_hlim(self, val):
         """Sets the Next Header bit in the IPHC field to the given value
         """
-        assert val < 4
+        assert 0 <= val < 4
         self._iphc = (self._iphc & ~APv6Frame.IPHC_HLIM_MASK) | ((val & 0b11) << APv6Frame.IPHC_HLIM_SHIFT)
 
     @iphc_sam.setter
     def iphc_sam(self, val):
         """Sets the Source Address Mode bit in the IPHC field to the given value
         """
-        assert val < 2
+        assert 0 <= val < 2
         self._iphc = (self._iphc & ~APv6Frame.IPHC_SAM_MASK) | ((val & 1) << APv6Frame.IPHC_SAM_SHIFT)
 
     @iphc_dam.setter
     def iphc_dam(self, val):
         """Sets the Destination Address Mode bit in the IPHC field to the given value
         """
-        assert val < 2
+        assert 0 <= val < 2
         self._iphc = (self._iphc & ~APv6Frame.IPHC_DAM_MASK) | ((val & 1) << APv6Frame.IPHC_DAM_SHIFT)
 
 
