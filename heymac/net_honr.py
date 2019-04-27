@@ -154,6 +154,8 @@ def to_external_addr(addri):
     """Returns a bytes object half the length of the given address
     to be used outside this module
     """
+    if addri is None:
+        return None
     assert type(addri) is bytearray
     left = addri[0::2]
     right = addri[1::2]
