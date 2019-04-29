@@ -2,7 +2,7 @@
 
 HeyMac is a flexible frame definition and communication protocol
 designed to carry Data Link (Layer 2) and Network (Layer 3) frames
-between modest data rate, small payload radio modems such as the Semtech SX127x.
+between small payload radio modems such as the Semtech SX127x.
 HeyMac is distilled from and incompatible with IEEE 802.15.4.
 
 HeyMac offers 16- and 64-bit addressing, multi-network and multi-hop capabilities.
@@ -58,7 +58,7 @@ The following sections explain each field in detail.
 ### Protocol ID, Version
 
 The Protocol ID and Version (PID_Ver) field is the very first octet in the frame.
-It is used to distinguish HeyMac frames from other frame types.
+It is used to distinguish HeyMac frames from other protocols.
 The most significant bits of the PID field are set in order to
 avoid conflicts with other prominent protocols.
 Specifically, ensuring the three most significant bits are set
@@ -66,13 +66,19 @@ will avoid trouble with the LoRaWAN MHDR and the 802.15.4-2015 MHR.
 LoRaWAN MHDR Type 3b111 is for Proprietary message types and
 802.15.4 MHR type 3b111 is for Extended frame types.
 
-The range of values for PID is 0b111xxxxx or (224-255 decimal).
-HeyMac uses the value 4b1110 for its PID and
-HeyMacFlood protocol uses the value 4b1111 for its PID.
+The range of values for PID is 8b111XXXXX or (224-255 decimal).
+HeyMac uses the value 4b1110 (0xEX) for its PID and
+HeyMacFlood protocol uses the value 4b1111 (0xFX) for its PID.
 Currently, the lower 4 bits of PID_Ver are used for the protocol version.
 However, only the lower two or three of those bits are necessary.
 If we ever need to represent more protocol IDs, we can consume
 one or two bits from the Version subfield.
+
+```
+    +----+----+----+----+----+----+----+----+
+    |    Protocol ID    |  ? |  ? |   Ver   |
+    +----+----+----+----+----+----+----+----+
+```
 
 The PID_Ver field is new in HeyMac version 2 and was not present
 in version 1.  Use of HeyMac version 1 SHALL cease immediately
@@ -90,9 +96,9 @@ Furthermore, the Pending flag is an indication of more frames to follow.
     |  Type | L | P | N | D | I | S |
     +-------+---+---+-------+-------+
 
-    Type := Frame Type (Min, MAC, NET, Extended)
+    Type := Frame Type (RFU, MAC, NET, EXT)
     L := Long addressing
-    P := Pending frame follows
+    P := Pending frame to follow
     N := Net ID present
     D := Dst addr present
     I := IE(s) present
@@ -105,13 +111,11 @@ Details:
   <dt><strong>Type</strong></dt>
   <dd>Frame Type:
     <ul>
-    <li>2b00: MIN: Minimum frame</li>
+    <li>2b00: RFU: Reserved for Future Use</li>
     <li>2b01: MAC: HeyMac Command frame</li>
     <li>2b10: NET: HeyMac + APv6 (Network Layer 3) frame</li>
     <li>2b11: EXT: Extended frame</li>
     </ul>
-    If Frame Type is Minimum (2b00), then the PVS field is absent;
-    otherwise PVS is present.
     If Frame Type is Extended (2b11), then the Extended frame type field is present;
     otherwise it is absent.
   </dd>
@@ -245,8 +249,8 @@ However, an intermediate node may disturb an encrypted frame
 if it is not also authenticated.
 If both encryption and authentication are enabled, encryption is performed first
 and authentication is performed afterward.
-Authentication is performed starting at the PVS field and continuing to the end of the payload
-(which may be encrypted).
+Authentication is performed starting at the PID_Ver field
+and continuing to the end of the payload (which may be encrypted).
 
 ### HeyMac Encryption
 
