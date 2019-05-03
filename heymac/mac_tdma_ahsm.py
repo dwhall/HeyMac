@@ -59,7 +59,6 @@ class HeyMacAhsm(farc.Ahsm):
         me.asn = 0
         me.sf_order = mac_tdma_cfg.FRAME_SPEC_SF_ORDER
         me.eb_order = mac_tdma_cfg.FRAME_SPEC_EB_ORDER
-        me.mac_seq = 0
         me.time_of_last_rxd_bcn = None
         me.dscpln = mac_tdma_discipline.HeyMacDiscipline()
 
@@ -270,12 +269,11 @@ class HeyMacAhsm(farc.Ahsm):
 
 
     @staticmethod
-    def build_mac_frame(self, seq=0):
-        """Returns a generic HeyMac V1 frame with the given sequence number
+    def build_mac_frame(self,):
+        """Returns a generic HeyMac frame
         """
         frame = mac_frame.HeyMacFrame()
         frame.fctl_type = mac_frame.HeyMacFrame.FCTL_TYPE_MAC
-        frame.seq = seq
         return frame
 
 
@@ -361,7 +359,7 @@ class HeyMacAhsm(farc.Ahsm):
         """
         my_bcn_slotmap = bytearray((2 ** self.sf_order) // 8)
         my_bcn_slotmap[ self.bcn_slot // 8 ] |= (1 << (self.bcn_slot % 8))
-        frame = self.build_mac_frame(self, self.mac_seq)
+        frame = self.build_mac_frame(self)
         frame.data = mac_cmds.HeyMacCmdSbcn(
             sf_order=self.sf_order,
             eb_order=self.eb_order,
@@ -374,7 +372,6 @@ class HeyMacAhsm(farc.Ahsm):
             )
         tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data
         farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
-        self.mac_seq += 1
 
 
     @staticmethod
@@ -383,7 +380,7 @@ class HeyMacAhsm(farc.Ahsm):
         """
         my_bcn_slotmap = bytearray((2 ** self.sf_order) // 8)
         my_bcn_slotmap[ self.bcn_slot // 8 ] |= (1 << (self.bcn_slot % 8))
-        frame = self.build_mac_frame(self, self.mac_seq)
+        frame = self.build_mac_frame(self)
         frame.data = mac_cmds.HeyMacCmdEbcn(
             sf_order=self.sf_order,
             eb_order=self.eb_order,
@@ -399,7 +396,6 @@ class HeyMacAhsm(farc.Ahsm):
             )
         tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data
         farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
-        self.mac_seq += 1
 
 
     @staticmethod
@@ -408,8 +404,7 @@ class HeyMacAhsm(farc.Ahsm):
         and dispatches the frame to the PHY for transmission.
         Assumes caller checked that the queue is not empty.
         """
-        frame = self.build_mac_frame(self, self.mac_seq)
-        self.mac_seq += 1
+        frame = self.build_mac_frame(self)
         frame.data = self.mac_cmd_txq.pop()
         tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data
         farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")

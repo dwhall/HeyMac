@@ -120,7 +120,6 @@ class TestAll(unittest.TestCase):
         fmac = heymac.HeyMacFrame(
             fctl_type=heymac.HeyMacFrame.FCTL_TYPE_NET,
             pend=0,
-            seq=2,
             saddr=b"\x35\x16"
             )
         fnet = heymac.APv6Frame()
@@ -177,7 +176,6 @@ class TestAll(unittest.TestCase):
         fmac = heymac.HeyMacFrame(
             fctl_type=heymac.HeyMacFrame.FCTL_TYPE_NET,
             pend=0,
-            seq=4,
             saddr=b"\x35\x16",
             daddr=b"\x83\x11"
             )
@@ -235,7 +233,6 @@ class TestAll(unittest.TestCase):
         fmac = heymac.HeyMacFrame(
             fctl_type=heymac.HeyMacFrame.FCTL_TYPE_NET,
             pend=0,
-            seq=8,
             saddr=b"\x35\x16",
             )
         google_ipv6_addr = b"\x20\x01\x48\x60\x48\x60\x00\x00\x00\x00\x00\x00\x00\x00\x88\x88"
