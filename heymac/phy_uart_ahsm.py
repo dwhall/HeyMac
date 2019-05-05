@@ -29,8 +29,8 @@ SER_FIFO_MAX = 2 * round(phy_cfg.uart_baud * GPS_NMEA_PERIOD)
 class UartAhsm(farc.Ahsm):
 
     @farc.Hsm.state
-    def initial(me, event):
-        """Pseudostate: UartAhsm:initial
+    def _initial(me, event):
+        """Pseudostate: UartAhsm:_initial
         """
         # Outgoing signals
         farc.Signal.register("PHY_GPS_NMEA") # Value is one NMEA sentence [bytes]
@@ -38,12 +38,12 @@ class UartAhsm(farc.Ahsm):
         # Initialize a timer event used to schedule the NMEA handler
         me.tm_evt = farc.TimeEvent("_PHY_UART_TM_EVT")
 
-        return me.tran(me, UartAhsm.running)
+        return me.tran(me, UartAhsm._running)
 
 
     @farc.Hsm.state
-    def running(me, event):
-        """State: UartAhsm:Running
+    def _running(me, event):
+        """State: UartAhsm:_running
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
@@ -79,7 +79,7 @@ class UartAhsm(farc.Ahsm):
             return me.handled(me, event)
 
         elif sig == farc.Signal.SIGTERM:
-            return me.tran(me, me.exiting)
+            return me.tran(me, me._exiting)
 
         elif sig == farc.Signal.EXIT:
             me.tm_evt.disarm()
@@ -90,8 +90,8 @@ class UartAhsm(farc.Ahsm):
 
 
     @farc.Hsm.state
-    def exiting(me, event):
-        """State UartAhsm:exiting
+    def _exiting(me, event):
+        """State UartAhsm:_exiting
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:

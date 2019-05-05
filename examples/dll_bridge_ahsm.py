@@ -29,7 +29,7 @@ class UdpServer:
 class UdpBridgeAhsm(farc.Ahsm):
 
     @farc.Hsm.state
-    def initial(me, event):
+    def _initial(me, event):
         farc.Framework.subscribe("DLL_BRIDGE_ERR", me)
         farc.Framework.subscribe("DLL_BRIDGE_IN", me)
         farc.Signal.register("DLL_BRIDGE_OUT")
@@ -37,11 +37,11 @@ class UdpBridgeAhsm(farc.Ahsm):
         loop = asyncio.get_event_loop()
         server = loop.create_datagram_endpoint(UdpServer, local_addr=("localhost", UDP_PORT))
         me.transport, me.protocol = loop.run_until_complete(server)
-        return me.tran(me, UdpBridgeAhsm.bridging)
+        return me.tran(me, UdpBridgeAhsm._bridging)
 
 
     @farc.Hsm.state
-    def bridging(me, event):
+    def _bridging(me, event):
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             return me.handled(me, event)
@@ -64,13 +64,13 @@ class UdpBridgeAhsm(farc.Ahsm):
             return me.handled(me, event)
 
         elif sig == farc.Signal.SIGTERM:
-            return me.tran(me, UdpBridgeAhsm.exiting)
+            return me.tran(me, UdpBridgeAhsm._exiting)
 
         return me.super(me, me.top)
 
 
     @farc.Hsm.state
-    def exiting(me, event):
+    def _exiting(me, event):
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             me.transport.close()
@@ -91,7 +91,7 @@ class UdpBridgeAhsm(farc.Ahsm):
 
 
 if __name__ == "__main__":
-    relay = UdpBridgeAhsm(UdpBridgeAhsm.initial)
+    relay = UdpBridgeAhsm(UdpBridgeAhsm._initial)
     relay.start(0)
 
     loop = asyncio.get_event_loop()

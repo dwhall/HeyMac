@@ -36,8 +36,8 @@ mac_identity['pub_key'] = bytearray.fromhex(mac_identity['pub_key'])
 class HeyMacAhsm(farc.Ahsm):
 
     @farc.Hsm.state
-    def initial(me, event):
-        """Pseudostate: HeyMacAhsm:initial
+    def _initial(me, event):
+        """Pseudostate: HeyMacAhsm:_initial
         """
         # Incoming signals
         farc.Signal.register("MAC_TX_REQ")
@@ -75,12 +75,12 @@ class HeyMacAhsm(farc.Ahsm):
         # Transmit queue
         me.mac_cmd_txq = []
 
-        return me.tran(me, HeyMacAhsm.initializing)
+        return me.tran(me, HeyMacAhsm._initializing)
 
 
     @farc.Hsm.state
-    def initializing(me, event):
-        """State: HeyMacAhsm:initializing
+    def _initializing(me, event):
+        """State: HeyMacAhsm:_initializing
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
@@ -88,7 +88,7 @@ class HeyMacAhsm(farc.Ahsm):
             return me.handled(me, event)
 
         elif sig == farc.Signal._ALWAYS:
-            return me.tran(me, HeyMacAhsm.listening)
+            return me.tran(me, HeyMacAhsm._listening)
 
         elif sig == farc.Signal.EXIT:
             return me.handled(me, event)
@@ -97,9 +97,9 @@ class HeyMacAhsm(farc.Ahsm):
 
 
     @farc.Hsm.state
-    def running(me, event):
-        """State: HeyMacAhsm:running
-        The running state:
+    def _running(me, event):
+        """State: HeyMacAhsm:_running
+        The _running state:
         - uses PPS events from the GPIO to establish timing discipline
         - receives continuously (hearing a ngbr will lead to state change)
         - uses GPS NMEA events to get position information
@@ -130,7 +130,7 @@ class HeyMacAhsm(farc.Ahsm):
             return me.handled(me, event)
 
         elif sig == farc.Signal.SIGTERM:
-            return me.tran(me, me.exiting)
+            return me.tran(me, me._exiting)
 
         elif sig == farc.Signal.EXIT:
             return me.handled(me, event)
@@ -139,8 +139,8 @@ class HeyMacAhsm(farc.Ahsm):
 
 
     @farc.Hsm.state
-    def listening(me, event):
-        """State: HeyMacAhsm:running:listening
+    def _listening(me, event):
+        """State: HeyMacAhsm:_running:_listening
         Listens to radio and GPS for timing discipline sources.
         Transitions to Scheduling after listening for N superframes.
         """
@@ -155,21 +155,21 @@ class HeyMacAhsm(farc.Ahsm):
             return me.handled(me, event)
 
         elif sig == farc.Signal._MAC_TDMA_TM_EVT_TMOUT:
-            # listening timer has expired, transition to beaconing
-            return me.tran(me, me.beaconing)
+            # listening timer has expired, transition to _beaconing
+            return me.tran(me, me._beaconing)
 
         # NOTE: This handler is for logging print and may be removed
         elif sig == farc.Signal.PHY_GPS_PPS: # GPS pulse per second pin event
             logging.info("pps            %f", event.value)
-            # process PPS in the running state, too
-            return me.super(me, me.running)
+            # process PPS in the _running state, too
+            return me.super(me, me._running)
 
-        return me.super(me, me.running)
+        return me.super(me, me._running)
 
 
     @farc.Hsm.state
-    def beaconing(me, event):
-        """State: HeyMacAhsm:running:beaconing
+    def _beaconing(me, event):
+        """State: HeyMacAhsm:_running:_beaconing
         Uses timing discipline to tx beacons.
         """
         sig = event.signal
@@ -188,7 +188,7 @@ class HeyMacAhsm(farc.Ahsm):
         elif sig == farc.Signal._MAC_TDMA_TM_EVT_TMOUT:
             me.beaconing_and_next_tslot(me)
             if me.ngbr_hears_me(me):
-                return me.tran(me, HeyMacAhsm.networking)
+                return me.tran(me, HeyMacAhsm._networking)
             else:
                 return me.handled(me, event)
 
@@ -196,12 +196,12 @@ class HeyMacAhsm(farc.Ahsm):
             me.tm_evt.disarm()
             return me.handled(me, event)
 
-        return me.super(me, me.running)
+        return me.super(me, me._running)
 
 
     @farc.Hsm.state
-    def networking(me, event):
-        """State: HeyMacAhsm:running:beaconing:networking
+    def _networking(me, event):
+        """State: HeyMacAhsm:_running:_beaconing:_networking
         Uses timing discipline to schedule packet tx and rx actions.
         """
         sig = event.signal
@@ -213,12 +213,12 @@ class HeyMacAhsm(farc.Ahsm):
             me.on_rxd_frame(me, rx_time, payld, rssi, snr)
             return me.handled(me, event)
 
-        return me.super(me, me.running)
+        return me.super(me, me._running)
 
 
     @farc.Hsm.state
-    def exiting(me, event):
-        """State HeyMacAhsm:exiting
+    def _exiting(me, event):
+        """State HeyMacAhsm:_exiting
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:

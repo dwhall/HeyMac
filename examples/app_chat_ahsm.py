@@ -21,8 +21,8 @@ import heymac
 class ChatAhsm(farc.Ahsm):
 
     @farc.Hsm.state
-    def initial(me, event):
-        """Pseudostate: ChatAhsm:initial
+    def _initial(me, event):
+        """Pseudostate: ChatAhsm:_initial
         """
         # Incoming signals
         farc.Framework.subscribe("PHY_RXD_DATA", me)
@@ -55,12 +55,12 @@ class ChatAhsm(farc.Ahsm):
         me.inwin.refresh()
         me.inmsg = bytearray()
 
-        return me.tran(me, ChatAhsm.running)
+        return me.tran(me, ChatAhsm._running)
 
 
     @farc.Hsm.state
-    def running(me, event):
-        """State: ChatAhsm:running
+    def _running(me, event):
+        """State: ChatAhsm:_running
         """
 
         sig = event.signal
@@ -140,7 +140,7 @@ class ChatAhsm(farc.Ahsm):
             return me.handled(me, event)
 
         elif sig == farc.Signal.SIGTERM:
-            return me.tran(me, ChatAhsm.exiting)
+            return me.tran(me, ChatAhsm._exiting)
 
         elif sig == farc.Signal.EXIT:
             me.tm_evt.disarm()
@@ -150,8 +150,8 @@ class ChatAhsm(farc.Ahsm):
 
 
     @farc.Hsm.state
-    def exiting(me, event):
-        """State: ChatAhsm:exiting
+    def _exiting(me, event):
+        """State: ChatAhsm:_exiting
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:

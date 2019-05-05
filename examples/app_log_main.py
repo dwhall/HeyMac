@@ -19,10 +19,10 @@ import prj_cfg
 
 def main():
     # Instantiate state machines
-    gpioAhsm = heymac.GpioAhsm(heymac.GpioAhsm.initial)
-    spiAhsm = heymac.SX127xSpiAhsm(heymac.SX127xSpiAhsm.initial)
-    uartAhsm = heymac.UartAhsm(heymac.UartAhsm.initial)
-    macAhsm = heymac.HeyMacAhsm(heymac.HeyMacAhsm.initial)
+    gpioAhsm = heymac.GpioAhsm(heymac.GpioAhsm._initial)
+    spiAhsm = heymac.SX127xSpiAhsm(heymac.SX127xSpiAhsm._initial)
+    uartAhsm = heymac.UartAhsm(heymac.UartAhsm._initial)
+    macAhsm = heymac.HeyMacAhsm(heymac.HeyMacAhsm._initial)
 
     # Register GPIO inputs to emit signals
     for pin_nmbr, pin_edge, sig_name in prj_cfg.gpio_ins:
