@@ -48,7 +48,7 @@ The topmost field in the diagram is transmitted first.
     +----+----+----+----+----+----+----+----+ p +   +
     |  Payload                   (variable) | t |   |
     +----+----+----+----+----+----+----+----+---+---+
-    |  Msg Integrity Check  (0 or N octets) |
+    |  Msg Integrity Code   (0 or N octets) |
     +----+----+----+----+----+----+----+----+
 ```
 
