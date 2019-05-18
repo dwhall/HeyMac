@@ -299,7 +299,7 @@ class HeyMacAhsm(farc.Ahsm):
     @staticmethod
     def on_rxd_mac_frame(self, rx_time, frame, rssi, snr):
         # Filter by protocol version
-        if frame.ver > mac_frame.HEYMAC_VERSION:
+        if frame.pv_ver > mac_frame.HEYMAC_VERSION:
             logging.warning("rxd pkt has unsupported/invalid HEYMAC_VERSION")
         else:
             logging.info(
@@ -343,7 +343,8 @@ class HeyMacAhsm(farc.Ahsm):
         if bcn.asn > self.asn:
             self.asn = bcn.asn
 
-        self.dll_data.update_bcn(bcn, frame.raddr)
+        # TODO: refactor this since .raddr is gone
+        # self.dll_data.update_bcn(bcn, frame.raddr)
 
 
     @staticmethod
