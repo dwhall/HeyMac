@@ -26,13 +26,14 @@ class DllData(object):
         self.ebcns = d
 
 
-    def update_bcn(self, bcn, ngbr_addr):
+    def process_heymac_frame(self, f):
         """Stores the given beacon and updates its timestamp.
         """
-        if type(bcn) is mac_cmds.HeyMacCmdSbcn:
-            self.bcns[ngbr_addr] = bcn
-        elif type(bcn) is mac_cmds.HeyMacCmdEbcn:
-            self.ebcns[ngbr_addr] = bcn
+        if f.is_heymac_version_compatible():
+            if f.is_sbcn():
+                self.bcns[f.saddr] = f.data
+            elif f.is_ebcn():
+                self.ebcns[f.saddr] = f.data
 
 
     def get_ebcns(self,):

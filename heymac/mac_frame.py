@@ -23,6 +23,10 @@ from .mac_cmds import *
 from .net_frame import APv6Frame
 
 
+# HeyMac protocol ID
+HEYMAC_PID = 0xE
+HEYMAC_FLOOD_PID = 0xF
+
 # HeyMac protocol version
 HEYMAC_VERSION = 2
 
@@ -31,8 +35,8 @@ class HeyMacFrame(dpkt.Packet):
     """HeyMac frame definition
     """
     # HeyMac Protocol IDs
-    PV_PID_HEYMAC = 0b1110
-    PV_PID_HEYMAC_FLOOD = 0b1111
+    PV_PID_HEYMAC = HEYMAC_PID
+    PV_PID_HEYMAC_FLOOD = HEYMAC_FLOOD_PID
     PV_PID_MASK = 0b11110000
     PV_PID_SHIFT = 4
     PV_VER_HEYMAC2 = HEYMAC_VERSION
@@ -394,6 +398,21 @@ class HeyMacFrame(dpkt.Packet):
         # Inserts PID-Ver and Fctl,
         # returns the combined bytes object
         return super().pack_hdr() + bytes(d)
+
+    # API
+    def is_heymac(self,):
+        return self.pv_pid == HEYMAC_PID
+
+    def is_heymac_version_compatible(self,):
+        return(self.pv_pid == HEYMAC_PID
+            and self.pv_ver == HEYMAC_VERSION)
+
+    def is_bcn(self,):
+        return self.is_sbcn() or self.is_ebcn()
+    def is_ebcn(self,):
+        return isinstance(self.data, HeyMacCmdEbcn)
+    def is_sbcn(self,):
+        return isinstance(self.data, HeyMacCmdSbcn)
 
 
 class HeyMacFloodFrame(HeyMacFrame):

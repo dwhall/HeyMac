@@ -59,7 +59,6 @@ class HeyMacAhsm(farc.Ahsm):
         me.asn = 0
         me.sf_order = mac_tdma_cfg.FRAME_SPEC_SF_ORDER
         me.eb_order = mac_tdma_cfg.FRAME_SPEC_EB_ORDER
-        me.time_of_last_rxd_bcn = None
         me.dscpln = mac_tdma_discipline.HeyMacDiscipline()
 
         # Data Link Layer data
@@ -288,37 +287,22 @@ class HeyMacAhsm(farc.Ahsm):
             logging.warning("rxd pkt failed unpacking")
             return
 
-        if f.fctl_type == mac_frame.HeyMacFrame.FCTL_TYPE_MAC:
-            self.on_rxd_mac_frame(self, rx_time, f, rssi, snr)
-        elif f.fctl_type == mac_frame.HeyMacFrame.FCTL_TYPE_NET:
-            self.on_rxd_net_frame(self, rx_time, f, rssi, snr)
-        else:
-            logging.warning("rxd unhandled frame type: MIN/EXT")
-
-
-    @staticmethod
-    def on_rxd_mac_frame(self, rx_time, frame, rssi, snr):
-        # Filter by protocol version
-        if frame.pv_ver > mac_frame.HEYMAC_VERSION:
-            logging.warning("rxd pkt has unsupported/invalid HEYMAC_VERSION")
-        else:
+        if f.is_heymac_version_compatible():
             logging.info(
                 "rx_time        %f\tRXD %d bytes, rssi=%d dBm, snr=%.3f dB\t%s",
-                rx_time, len(frame), rssi, snr, repr(frame))
+                rx_time, len(payld), rssi, snr, repr(f))
 
-            # Handle reception of a beacon
-            if isinstance(frame.data, mac_cmds.HeyMacCmdSbcn) or isinstance(frame.data, mac_cmds.HeyMacCmdEbcn):
-                self.on_rxd_mac_bcn(self, rx_time, frame, rssi, snr)
+            self.dll_data.process_heymac_frame(f)
 
-            # TEMPORARY: give warning of unknown packets
-            elif isinstance(frame.data, mac_cmds.HeyMacCmdTxt):
-                pass
-            else:
-                logging.warning("rxd pkt has an unknown MAC cmd")
+            if f.is_bcn():
+                self._on_rxd_mac_bcn(self, rx_time, f, rssi, snr)
+
+        else:
+            logging.warning("rxd pkt has unsupported/invalid PID/VER")
 
 
     @staticmethod
-    def on_rxd_mac_bcn(self, rx_time, frame, rssi, snr):
+    def _on_rxd_mac_bcn(self, rx_time, frame, rssi, snr):
         """Handles reception of a beacon frame.
         Assumes caller has checked that frame is a beacon
         """
@@ -335,16 +319,13 @@ class HeyMacAhsm(farc.Ahsm):
 
         # If the beacon has good discipline, measure it
         if bcn.dscpln >= mac_tdma_discipline.HeyMacDscplnEnum.PPS.value:
+            logging.info("Adopting ngbr's timing discipline" % (bcn.asn))
             self.dscpln.update_bcn(rx_time)
-            self.time_of_last_rxd_bcn = rx_time
-            self.tslots_since_last_bcn = 0
 
         # Adopt the greater ASN
         if bcn.asn > self.asn:
+            logging.info("Adopting ngbr's ASN: %d (was: %d)" % (bcn.asn, self.asn))
             self.asn = bcn.asn
-
-        # TODO: refactor this since .raddr is gone
-        # self.dll_data.update_bcn(bcn, frame.raddr)
 
 
     @staticmethod
