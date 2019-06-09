@@ -319,7 +319,7 @@ class HeyMacAhsm(farc.Ahsm):
 
         # If the beacon has good discipline, measure it
         if bcn.dscpln >= mac_tdma_discipline.HeyMacDscplnEnum.PPS.value:
-            logging.info("Adopting ngbr's timing discipline" % (bcn.asn))
+            logging.info("Adopting ngbr's timing discipline")
             self.dscpln.update_bcn(rx_time)
 
         # Adopt the greater ASN

@@ -108,9 +108,10 @@ class HeyMacDiscipline:
             self._dscpln = HeyMacDscplnEnum.NONE
 
             # If PPS discipline was ever achieved and is more recent, use its time
-            if self.time_of_last_pps and self.time_of_last_pps > self.time_of_last_rxd_bcn:
+            if(self.time_of_last_pps and self.time_of_last_rxd_bcn
+                    and self.time_of_last_pps > self.time_of_last_rxd_bcn):
                 tslots_since_last_pps = round((time_now - self.time_of_last_pps) * mac_tdma_cfg.TSLOTS_PER_SEC)
-                cpu_time_per_tslot = (1.0 - self.pps_err) / mac_tdma_cfg.TSLOTS_PER_SEC
+                cpu_time_per_tslot = (1.0 - sel f.pps_err) / mac_tdma_cfg.TSLOTS_PER_SEC
                 tm = self.time_of_last_pps + (1 + tslots_since_last_pps) * cpu_time_per_tslot
 
             # otherwise, if beacon discipline was ever achieved and is more recent, use its time
