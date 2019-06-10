@@ -72,7 +72,7 @@ class HeyMacAhsm(farc.Ahsm):
         me.dll_data = dll_data.DllData(bcn_expiration, ebcn_expiration)
 
         # Transmit queue
-        me.mac_cmd_txq = []
+        me.mac_txq = []
 
         return me.tran(me, HeyMacAhsm._initializing)
 
@@ -121,7 +121,7 @@ class HeyMacAhsm(farc.Ahsm):
             return me.handled(me, event)
 
         elif sig == farc.Signal.MAC_TX_REQ:
-            me.mac_cmd_txq.insert(0, event.value)
+            me.mac_txq.insert(0, event.value)
             return me.handled(me, event)
 
         elif sig == farc.Signal.PHY_GPS_NMEA:
@@ -254,8 +254,8 @@ class HeyMacAhsm(farc.Ahsm):
             farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_RECEIVE, rx_args), "SX127xSpiAhsm")
 
         # Send the top pkt in the tx queue
-        elif self.mac_cmd_txq:
-            self.tx_from_cmd_queue(self, self.next_tslot)
+        elif self.mac_txq:
+            self.tx_from_txq(self, self.next_tslot)
 
         # Count this Tslot and set the TimeEvent to expire at the next Prep Time.
         # Sets the TimeEvent to expire at the next Prep Time.
@@ -381,13 +381,13 @@ class HeyMacAhsm(farc.Ahsm):
 
 
     @staticmethod
-    def tx_from_cmd_queue(self, abs_time):
+    def tx_from_txq(self, abs_time):
         """Creates a frame, inserts the payload that is next in the queue
         and dispatches the frame to the PHY for transmission.
         Assumes caller checked that the queue is not empty.
         """
         frame = self.build_mac_frame(self)
-        frame.data = self.mac_cmd_txq.pop()
+        frame.data = self.mac_txq.pop()
         tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data
         farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
 
