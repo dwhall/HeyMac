@@ -25,7 +25,7 @@
      <tran trig="PHY_GPS_PPS">
       <action brief="update_pps()">Update estimate of PPS vs host computer clock</action>
       <tran_glyph conn="20,24,3,-1,22">
-       <action box="0,-2,21,2"/>
+       <action box="0,-2,25,2"/>
       </tran_glyph>
      </tran>
      <tran trig="PHY_RXD_DATA">
