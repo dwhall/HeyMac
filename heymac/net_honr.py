@@ -13,14 +13,14 @@ HeyMac and APv6 can adapt ideas from the IETF ROLL_ and 6LoWPAN working groups
 to solve the problems of ad-hoc node addressing and multi-hop message routing.
 
 HONR is a method of hierarchical addressing similar to HiLow_.
-Using HONR, each node may have up to fifteen children.
+Using HONR, each node may have up to fourteen children.
 HONR's numbering method differs from HiLow slightly
 to ease algorithm implementations for numbering and routing
 as well as to increase the human readability of the addresses.
 
 HONR is a network layer addressing method that expects participating nodes
 to organize into a DAG (Directed Acyclic Graph).
-The hierarchically formed addresses according to position in the DAG.
+The addresses are formed according to their position in the DAG.
 Nodes route messages up and down along the DAG.
 All addresses in the DAG are either two octets or eight octets.
 Nodes join and leave the network at any time and the network
