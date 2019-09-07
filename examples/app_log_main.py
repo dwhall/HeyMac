@@ -8,7 +8,6 @@ Launches all the state machines to run the HeyMac network
 
 import asyncio
 import logging
-import socket
 import sys
 
 import farc
@@ -43,19 +42,10 @@ def main():
 
 
 if __name__ == "__main__":
-    farc.Spy.enable_spy(farc.VcdSpy)
-
-    # log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     log_fmt = "%(asctime)s %(message)s"
     logging.basicConfig(
-        filename = __file__ + "." + socket.gethostname() + ".log",
+        stream = sys.stdout,
         format = log_fmt,
         level = logging.INFO)
-
-    # Also log to stdout
-    ch = logging.StreamHandler(sys.stdout)
-    ch.setLevel(logging.INFO)
-    ch.setFormatter(logging.Formatter(log_fmt))
-    logging.getLogger().addHandler(ch)
 
     main()
