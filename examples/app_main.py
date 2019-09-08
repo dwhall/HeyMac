@@ -6,7 +6,6 @@ Copyright 2019 Dean Hall.  See LICENSE for details.
 Launches all the state machines to run the HeyMac network
 """
 
-import socket
 import sys
 
 import farc
