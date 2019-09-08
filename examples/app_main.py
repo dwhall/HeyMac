@@ -6,7 +6,6 @@ Copyright 2019 Dean Hall.  See LICENSE for details.
 Launches all the state machines to run the HeyMac network
 """
 
-import asyncio
 import socket
 import sys
 
@@ -26,8 +25,8 @@ def main():
     # Register GPIO inputs to emit signals
     for pin_nmbr, pin_edge, sig_name in prj_cfg.gpio_ins:
         gpioAhsm.register_pin_in(pin_nmbr, pin_edge, sig_name)
-#    for pin_nmbr, pin_initial in prj_cfg.gpio_outs:
-#        gpioAhsm.register_pin_out(pin_nmbr, pin_initial)
+    for pin_nmbr, pin_initial in prj_cfg.gpio_outs:
+        gpioAhsm.register_pin_out(pin_nmbr, pin_initial)
 
     # Start state machines
     spiAhsm.start(10)
@@ -35,10 +34,7 @@ def main():
     uartAhsm.start(30)
     macAhsm.start(50)
 
-    # Start event loop
-    loop = asyncio.get_event_loop()
-    loop.run_forever()
-    loop.close()
+    farc.run_forever()
 
 
 if __name__ == "__main__":
