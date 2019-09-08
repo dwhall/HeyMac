@@ -16,10 +16,13 @@ import prj_cfg
 
 
 def main():
+    # Register signal for app-specific UART callback
+    farc.Signal.register("PHY_GPS_NMEA")
+
     # Instantiate state machines
     gpioAhsm = heymac.GpioAhsm()
     spiAhsm = heymac.SX127xSpiAhsm()
-    uartAhsm = heymac.UartAhsm()
+    uartAhsm = heymac.UartAhsm(heymac.parse_nmea)
     macAhsm = heymac.HeyMacAhsm()
 
     # Register GPIO inputs to emit signals
@@ -33,6 +36,14 @@ def main():
     gpioAhsm.start(20)
     uartAhsm.start(30)
     macAhsm.start(50)
+
+    # Open the UART to process NMEA
+    uart_stngs = {
+        "port": "/dev/serial0",
+        "baudrate": 9600,
+        "timeout": 0,
+    }
+    uartAhsm.postFIFO(farc.Event(farc.Signal.PHY_UART_OPEN, uart_stngs))
 
     farc.run_forever()
 

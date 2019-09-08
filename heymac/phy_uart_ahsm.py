@@ -3,42 +3,61 @@
 Copyright 2017 Dean Hall.  See LICENSE for details.
 
 Physical Layer State Machine for UART operations on the RasPi
-- reads a UART, parses NMEA sentences and posts them as PHY_GPS_NMEA events
+- reads a UART, calls a callback to process data
+
+NOTE: This AHSM does not TX data at this time.
 """
 
 
-import sys
-
 import farc
 
-if sys.platform == "linux":
+try:
     import serial
-else:
+except:
     from . import mock_serial as serial
 
-from . import phy_cfg
 
-
-# Time period to check UART for NMEA data
-GPS_NMEA_PERIOD = 0.100 # [secs]
-
-# UART buffer size depends on baud rate (2X for margin)
-SER_FIFO_MAX = 2 * round(phy_cfg.uart_baud * GPS_NMEA_PERIOD)
+# Time period to check UART for data
+UART_POLL_PERIOD = 0.100 # [secs]
 
 
 class UartAhsm(farc.Ahsm):
+    def __init__(self, rx_callback=None):
+        super().__init__()
+        self.rx_callback = rx_callback
+
 
     @farc.Hsm.state
     def _initial(me, event):
         """Pseudostate: UartAhsm:_initial
         """
-        # Outgoing signals
-        farc.Signal.register("PHY_GPS_NMEA") # Value is one NMEA sentence [bytes]
+        # Incoming signals
+        farc.Signal.register("PHY_UART_OPEN") # Value is serial.Serial() parameters
+        farc.Signal.register("PHY_UART_CLOSE") # No value
 
-        # Initialize a timer event used to schedule the NMEA handler
+        # Initialize a timer to perform polling
         me.tm_evt = farc.TimeEvent("_PHY_UART_TM_EVT")
 
-        return me.tran(me, UartAhsm._running)
+        return me.tran(me, UartAhsm._ready)
+
+
+    @farc.Hsm.state
+    def _ready(me, event):
+        """State: UartAhsm:_ready
+        """
+        sig = event.signal
+        if sig == farc.Signal.ENTRY:
+            return me.handled(me, event)
+
+        elif sig == farc.Signal.PHY_UART_OPEN:
+            # TODO: if value is None: use default uart params
+            me.uart_stngs = event.value
+            return me.tran(me, UartAhsm._running)
+
+        elif sig == farc.Signal.SIGTERM:
+            return me.tran(me, me._exiting)
+
+        return me.super(me, me.top)
 
 
     @farc.Hsm.state
@@ -48,35 +67,33 @@ class UartAhsm(farc.Ahsm):
         sig = event.signal
         if sig == farc.Signal.ENTRY:
 
-            # Init the NMEA data buffer
-            me.nmea_data = bytearray()
+            # Init the data buffer
+            me.uart_data = bytearray()
 
-            # Open the port where NMEA input is expected
-            me.ser = serial.Serial(port=phy_cfg.uart_port, baudrate=phy_cfg.uart_baud, timeout=0)
+            # Open the port with the given argument.
+            # expecting a dict like this:
+            #   {"port":<uart port string>, "baudrate":<baud rate int>, "timeout"=0}
+            me.ser = serial.Serial(**me.uart_stngs)
 
-            # Start the repeating timer event
-            me.tm_evt.postEvery(me, GPS_NMEA_PERIOD)
+            # Start the polling timer
+            me.tm_evt.postEvery(me, UART_POLL_PERIOD)
             return me.handled(me, event)
 
         elif sig == farc.Signal._PHY_UART_TM_EVT:
+            # UART buffer size depends on baud rate (2X for margin)
+            ser_fifo_max = 2 * round(me.ser.baudrate * UART_POLL_PERIOD)
+
             # Read the available data from the serial port
-            me.nmea_data.extend(me.ser.read(SER_FIFO_MAX))
+            me.uart_data.extend(me.ser.read(ser_fifo_max))
 
-            # If a newline is present, publish one or more NMEA sentences
-            n = me.nmea_data.find(b"\r\n")
-            if n >= 0:
-                while n >= 0:
-                    nmea_sentence = bytes(me.nmea_data[0:n+2])
-                    me.nmea_data = me.nmea_data[n+2:]
-                    if b"GPRMC" in nmea_sentence:
-                        farc.Framework.publish(farc.Event(farc.Signal.PHY_GPS_NMEA, nmea_sentence))
-                    n = me.nmea_data.find(b"\r\n")
-
-            # If there are no newlines and the buffer is getting big, flush the junk data
-            elif len(me.nmea_data) >= 256:
-                me.nmea_data.clear()
-
+            # Pass data to callback. uart_data is modified in-place
+            # by the callback; we must persist uart_data here
+            if me.rx_callback:
+                me.rx_callback(me.uart_data)
             return me.handled(me, event)
+
+        elif sig == farc.Signal.PHY_UART_CLOSE:
+            return me.tran(me, me._ready)
 
         elif sig == farc.Signal.SIGTERM:
             return me.tran(me, me._exiting)
