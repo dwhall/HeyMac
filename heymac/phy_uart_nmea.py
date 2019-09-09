@@ -20,25 +20,32 @@ def parse_nmea(nmea_ba):
     The caller must re-use the same object each tme parse_nmea
     is called in order to persist partial data).
     """
+    orig_nmea_ba = nmea_ba
+
     # Check if there is an end-of-sentence
     n = nmea_ba.find(b"\r\n")
-    while n >= 0:
+    if n >= 0:
+        while n >= 0:
 
-        # Create an immutable bytes object from the data (include delimiter)
-        nmea_sentence = bytes(nmea_ba[0:n + 2])
+            # Create an immutable bytes object from the data (include delimiter)
+            nmea_sentence = bytes(nmea_ba[:n+2])
 
-        # Keep any data from after the delimiter
-        nmea_ba = nmea_ba[n+2:]
+            # Keep any data from after the delimiter
+            nmea_ba = nmea_ba[n+2:]
 
-        # Publish a full $GPRMC sentence
-        if nmea_sentence.startswith(b"$GPRMC"):
-            farc.Framework.publish(farc.Event(farc.Signal.PHY_GPS_NMEA, nmea_sentence))
+            # Publish a full $GPRMC sentence
+            if nmea_sentence.startswith(b"$GPRMC"):
+                farc.Framework.publish(farc.Event(farc.Signal.PHY_GPS_NMEA, nmea_sentence))
 
-        # Check for another sentence
-        n = nmea_ba.find(b"\r\n")
+            # Check for another sentence
+            n = nmea_ba.find(b"\r\n")
+
+        # [issue #2] we must modify the original object reference (not just the slice obj)
+        orig_nmea_ba.clear()
+        orig_nmea_ba.extend(nmea_ba)
 
     # If there are no newlines and the buffer is getting big, flush the junk data.
     # This protects against accumulating data that isn't NMEA or
     # is junk due to a UART data rate mismatch
-    if n<0 and len(nmea_ba) >= 256:
+    elif len(nmea_ba) >= 256:
         nmea_ba.clear()

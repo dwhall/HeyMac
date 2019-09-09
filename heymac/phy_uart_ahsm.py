@@ -84,12 +84,14 @@ class UartAhsm(farc.Ahsm):
             ser_fifo_max = 2 * round(me.ser.baudrate * UART_POLL_PERIOD)
 
             # Read the available data from the serial port
-            me.uart_data.extend(me.ser.read(ser_fifo_max))
+            new_bytes = me.ser.read(ser_fifo_max)
+            if len(new_bytes):
+                me.uart_data.extend(new_bytes)
 
-            # Pass data to callback. uart_data is modified in-place
-            # by the callback; we must persist uart_data here
-            if me.rx_callback:
-                me.rx_callback(me.uart_data)
+                # Pass data to callback. uart_data is modified in-place
+                # by the callback; we must persist uart_data here
+                if me.rx_callback:
+                    me.rx_callback(me.uart_data)
             return me.handled(me, event)
 
         elif sig == farc.Signal.PHY_UART_CLOSE:
