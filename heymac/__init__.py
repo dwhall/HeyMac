@@ -12,6 +12,7 @@ from sx127x_ahsm import GpioAhsm
 from sx127x_ahsm import SX127xSpiAhsm
 from .phy_uart_ahsm import UartAhsm
 from .phy_uart_nmea import *
-from .mac_tdma_ahsm import HeyMacAhsm
+#from .mac_tdma_ahsm import HeyMacAhsm
+from .mac_csma_ahsm import HeyMacCsmaAhsm
 
 from sx127x_ahsm import mock_gpio

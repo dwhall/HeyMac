@@ -22,6 +22,7 @@ class HeyMacCmdId(enum.IntEnum):
     SBCN = 1
     EBCN = 2
     TXT = 3
+    CBCN = 4
 
 
 class HeyMacCmd(dpkt.Packet):
@@ -344,3 +345,19 @@ class HeyMacCmdTxt(HeyMacCmd):
         self.msg = buf[self.__hdr_len__:]
         self.data = bytes()
 
+
+class HeyMacCmdCbcn(HeyMacCmd):
+    """HeyMac Csma Beacon command packet
+    """
+
+    __byte_order__ = '!' # Network order
+    __hdr__ = (
+        ('cmd', 'B', HeyMacCmdId.CBCN),
+        # The underscore prefix means do not access that field directly.
+        # Access properties: .bcn_en, .sf_order and .eb_order, instead.
+#        ('_frame_spec', 'B', 0),
+        ('caps', 'B', 0),
+        ('status', 'B', 0),
+        # variable-length fields:
+#        ('ngbrs', '0s', b''),
+    )
