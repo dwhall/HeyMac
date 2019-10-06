@@ -16,6 +16,7 @@ import heymac
 from heymac import utl
 
 import prj_cfg
+import prj_stngs
 
 
 def main():
@@ -38,7 +39,7 @@ def main():
 
     # Instantiate state machines
     gpioAhsm = heymac.GpioAhsm()
-    spiAhsm = heymac.SX127xSpiAhsm()
+    spiAhsm = heymac.SX127xSpiAhsm(prj_stngs.spi_stngs, prj_stngs.lora_stngs)
     uartAhsm = heymac.UartAhsm(heymac.parse_nmea)
     macAhsm = heymac.HeyMacCsmaAhsm(saddr, station_id)
 
