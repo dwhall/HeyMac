@@ -89,7 +89,7 @@ class HeyMacCsmaAhsm(farc.Ahsm):
 
         elif sig == farc.Signal.PHY_RXD_DATA:
             rx_time, payld, rssi, snr = event.value
-            me._on_rxd_frame(me, rx_time, payld, rssi, snr)
+            me._on_rxd_frame(rx_time, payld, rssi, snr)
             # immediate rx continuous
             rx_args = (-1, phy_cfg.rx_freq)
             farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_RECEIVE, rx_args), "SX127xSpiAhsm")
@@ -158,7 +158,7 @@ class HeyMacCsmaAhsm(farc.Ahsm):
         elif sig == farc.Signal.PHY_RXD_DATA:
             # Process the received frame just like in _running state
             rx_time, payld, rssi, snr = event.value
-            me._on_rxd_frame(me, rx_time, payld, rssi, snr)
+            me._on_rxd_frame(rx_time, payld, rssi, snr)
             # immediate rx continuous
             rx_args = (-1, phy_cfg.rx_freq)
             farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_RECEIVE, rx_args), "SX127xSpiAhsm")
