@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<model version="4.1.0" links="0">
+<model version="4.5.1" links="0">
  <framework name="qpc"/>
  <package name="AOs" stereotype="0x02">
   <class name="HeyMacAhsm" superclass="qpc::QActive">
    <attribute name="tmEvnt" type="QTimeEvt" visibility="0x02" properties="0x00"/>
-   <statechart>
+   <statechart properties="0x01">
     <initial target="../1">
-     <initial_glyph conn="20,10,5,3,4">
+     <initial_glyph conn="18,10,5,3,6">
       <action box="0,-2,10,2"/>
      </initial_glyph>
     </initial>
