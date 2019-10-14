@@ -11,11 +11,10 @@ State Machine for Carrier-Sense Multiple Access (CSMA):
 
 
 import logging
-import math
 
 import farc
 
-from . import dll_data
+from . import mac_data
 from . import mac_csma_cfg
 from . import mac_cmds
 from . import mac_frame
@@ -57,7 +56,7 @@ class HeyMacCsmaAhsm(farc.Ahsm):
             logging.info("INITIALIZING")
 
             # Data Link Layer data
-            me.dll_data = dll_data.DllData()
+            me.mac_data = mac_data.MacData()
 
             # Transmit queue
             me.mac_txq = []
@@ -237,7 +236,7 @@ class HeyMacCsmaAhsm(farc.Ahsm):
             "rx_time        %f\tRXD %d bytes, rssi=%d dBm, snr=%.3f dB\t%s",
             rx_time, len(payld), rssi, snr, repr(f))
 
-        self.dll_data.process_heymac_frame(f)
+        self.mac_data.process_heymac_frame(f)
 
 
     def _tx_bcn(self,):
@@ -275,7 +274,7 @@ class HeyMacCsmaAhsm(farc.Ahsm):
         """Returns True if at least one neighbor lists this node
         in its neighbor list; proving two-way transmission has taken place.
         """
-        ngbr_cbcns = self.dll_data.get_cbcns()
+        ngbr_cbcns = self.mac_data.get_cbcns()
         for ngbr, cbcn in ngbr_cbcns.items():
             if cbcn.valid:
                 for n in cbcn.value.ngbrs:

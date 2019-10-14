@@ -9,8 +9,8 @@ from . import mac_tdma_cfg
 from . import vdict
 
 
-class DllData(object):
-    """Data Link Layer (layer 2) data store.
+class MacData(object):
+    """MAC Layer data store.
     Uses dicts that keep timestamps to track dynamic data and its validity.
     """
 
@@ -26,17 +26,17 @@ class DllData(object):
         ebcn_period = (2 ** mac_tdma_cfg.FRAME_SPEC_EB_ORDER) * sbcn_period
 
         d = vdict.ValidatedDict()
-        exp = DllData.N_EXPIRATION * sbcn_period
+        exp = MacData.N_EXPIRATION * sbcn_period
         d.set_default_expiration(exp)
         self.sbcns = d
 
         d = vdict.ValidatedDict()
-        exp = DllData.N_EXPIRATION * ebcn_period
+        exp = MacData.N_EXPIRATION * ebcn_period
         d.set_default_expiration(exp)
         self.ebcns = d
 
         d = vdict.ValidatedDict()
-        exp = DllData.N_EXPIRATION * cbcn_period
+        exp = MacData.N_EXPIRATION * cbcn_period
         d.set_default_expiration(exp)
         self.cbcns = d
 
@@ -51,6 +51,12 @@ class DllData(object):
                 self.ebcns[f.saddr] = f.data
             elif f.is_cbcn():
                 self.cbcns[f.saddr] = f.data
+
+
+    def get_cbcns(self,):
+        """Returns dict of received CSMA beacons
+        """
+        return self.cbcns
 
 
     def get_ebcns(self,):
