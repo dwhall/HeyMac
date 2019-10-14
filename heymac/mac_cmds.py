@@ -23,6 +23,7 @@ class HeyMacCmdId(enum.IntEnum):
     EBCN = 2
     TXT = 3
     CBCN = 4
+    PROTO = 5
 
 
 class HeyMacCmd(dpkt.Packet):
@@ -31,9 +32,6 @@ class HeyMacCmd(dpkt.Packet):
     and can serve as a constructor for all command packets
     """
     pass
-#    def __init__(self, cmd_id):
-#        super().__init__()
-# TODO: create instance of class using cmd_id or data
 
 
 class HeyMacCmdInvalid(HeyMacCmd):
@@ -47,8 +45,8 @@ class HeyMacCmdInvalid(HeyMacCmd):
 
 class HeyMacCmdSbcn(HeyMacCmd):
     """HeyMac Standard Beacon command packet
+    { 1, _frame_spec, dscpln, caps, status, asn, tx_slots, ngbr_tx_slots }
     """
-
     FRAME_SPEC_BCN_EN_MASK = 0b10000000
     FRAME_SPEC_BCN_EN_SHIFT = 7
     FRAME_SPEC_EB_ORDER_MASK = 0b01110000
@@ -187,6 +185,7 @@ class HeyMacCmdSbcn(HeyMacCmd):
 
 class HeyMacCmdEbcn(HeyMacCmdSbcn):
     """HeyMac Extended Beacon command packet.
+    { 2, ...many fields... }
     Inherits from HeyMacCmdSbcn in order to re-use the property setters/getters
     because Ebcn shares many fields with Sbcn.
     """
@@ -323,6 +322,9 @@ class HeyMacCmdEbcn(HeyMacCmdSbcn):
 
 
 class HeyMacCmdTxt(HeyMacCmd):
+    """HeyMac Text message command packet
+    { 3, msg }
+    """
     __byte_order__ = '!' # Network order
     __hdr__ = (
         ('cmd', 'B', HeyMacCmdId.TXT),
@@ -348,8 +350,8 @@ class HeyMacCmdTxt(HeyMacCmd):
 
 class HeyMacCmdCbcn(HeyMacCmd):
     """HeyMac Csma Beacon command packet
+    { 4, TBD }
     """
-
     __byte_order__ = '!' # Network order
     __hdr__ = (
         ('cmd', 'B', HeyMacCmdId.CBCN),
@@ -361,3 +363,45 @@ class HeyMacCmdCbcn(HeyMacCmd):
         # variable-length fields:
 #        ('ngbrs', '0s', b''),
     )
+
+
+class HeyMacCmdProtocol(HeyMacCmd):
+    """HeyMac Protocol command packet
+    { 5, pid, mid }
+    """
+    PID_INVAL = 0
+    PID_NET_JOIN = 1
+    PID_NET_LEAVE = 2
+
+    MID_NAK = 0
+    MID_NET_JOIN_RQST = 1
+    MID_NET_JOIN_ACCPT = 2
+    MID_NET_JOIN_NTFY = 3
+    MID_NET_JOIN_RJCT = 4
+
+    __byte_order__ = '!' # Network order
+    __hdr__ = (
+        ('cmd', 'B', HeyMacCmdId.PROTO),
+        ('pid', 'B', 0), # Protocol ID
+        ('mid', 'B', 0), # Message ID
+    )
+
+
+# EVERYTHING BELOW THIS MUST BE AT THE BOTTOM OF THE FILE
+
+# The order of this LUT must match HeyMacCmdId
+CMD_CLASS_LUT = (
+    HeyMacCmdInvalid,   # INVALID = 0
+    HeyMacCmdSbcn,
+    HeyMacCmdEbcn,
+    HeyMacCmdTxt,
+    HeyMacCmdCbcn,
+    HeyMacCmdProtocol,  # PROTO = 5
+)
+
+
+def HeyMacCmdInstance(cmd):
+    """Returns an instance of one of the HeyMacCmd classes
+    based on the command id (first byte of cmd).
+    """
+    return CMD_CLASS_LUT[cmd[0]](cmd)

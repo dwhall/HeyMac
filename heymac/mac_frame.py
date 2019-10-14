@@ -325,22 +325,15 @@ class HeyMacFrame(dpkt.Packet):
 
         # Unpack the payload for known frame types
         if self.fctl_type == HeyMacFrame.FCTL_TYPE_MAC:
-            if self.data:
-                if self.data[0] == HeyMacCmdId.SBCN.value:
-                    self.data = HeyMacCmdSbcn(self.data)
-                elif self.data[0] == HeyMacCmdId.EBCN.value:
-                    self.data = HeyMacCmdEbcn(self.data)
-                elif self.data[0] == HeyMacCmdId.TXT.value:
-                    self.data = HeyMacCmdTxt(self.data)
-                else:
-                    logging.info("unsupported MAC cmd %f", self.data[0])
-            # else:
-            #     raise dpkt.NeedData("for MAC payld")
+            try:
+                self.data = HeyMacCmdInstance(self.data)
+            except:
+                logging.info("invalid MAC cmd %d", self.data[0])
         elif self.fctl_type == HeyMacFrame.FCTL_TYPE_NET:
-            if self.data:
+            try:
                 self.data = APv6Frame(self.data)
-            # else:
-            #     raise dpkt.NeedData("expected APv6 data")
+            except:
+                logging.info("invalid APv6 frame: %b", self.data)
 
 
     def pack_hdr(self):
