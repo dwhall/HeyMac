@@ -1,0 +1,25 @@
+RF PHY
+======
+
+HeyMac's preliminary set of modes use the LoRa Chirp Spread Spectrum protocol
+in the 70cm band with 250 KHz and 500 KHz bandwidths.
+
+The 70cm amateur band occupies 420.000 - 450.000 MHz.
+The best place in the ARRL band plan [ArrlBandPlan] for
+a 70cm digital mode with bandwidth > 100 KHz seems to be:
+
+    Freq range      Width   Use
+    432.30-432.40   100 KHz Propagation beacons
+    432.40-433.00   600 KHz Mixed-mode and weak-signal work
+
+For BW = 500 KHz, one center frequency:           432.700
+allows 50 KHz guard bands on both sides.
+
+For BW = 250 KHz, two center frequencies:   432.550     432.850
+allows 25 KHz guard bands on four sides.
+
+
+References
+----------
+
+[ArrlBandPlan] http://www.arrl.org/band-plan
