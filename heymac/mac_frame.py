@@ -7,10 +7,6 @@ and methods to get/set frame fields.
 This file requires the excellent third-party module 'dpkt'
 which may be installed via::
 
-    pip3 install dpkt
-
-or::
-
     pip install dpkt
 """
 
@@ -27,49 +23,55 @@ class HeyMacFrame(dpkt.Packet):
     """HeyMac frame definition
     [PID,Fctl,NetId,DstAddr,IEs,SrcAddr,Payld,MIC,Hops,TxAddr]
     """
-    # HeyMac Protocol IDs
+    # HeyMac Protocol ID
     # 1110 0vvv     HeyMac TDMA, (vvv)ersion
     # 1110 1vvv     HeyMac CSMA, (vvv)ersion
     # 1111 xxxx     HeyMac (RFU: Flood, Extended, etc.)
-    PID_HEYMAC   = 0b11100000
-    PID_TDMA_VER = 0b00001011
+    # Structure definitions
+    PID_HEYMAC_MASK = 0b11100000
+    PID_TYPE_MASK = 0b00011000
+    PID_VER_MASK = 0b00000111
+    # Value definitions
+    PID_HEYMAC = 0b11100000
+    PID_TDMA_TYPE = 0b00000000
+    PID_CSMA_TYPE = 0b00001000
+    PID_TDMA_VER = 0b00000011
     PID_CSMA_VER = 0b00000000
 
     # Frame Control Field (Fctl) subfield values
-    FCTL_T_SHIFT = 7 #(0:MAC, 1:NET)
-    FCTL_L_SHIFT = 6
-    FCTL_P_SHIFT = 5
-    FCTL_N_SHIFT = 4
-    FCTL_D_SHIFT = 3
-    FCTL_I_SHIFT = 2
-    FCTL_S_SHIFT = 1
-    FCTL_M_SHIFT = 0
+    FCTL_X_SHIFT = 7 # Extended frame (none of the other bits apply)
+    FCTL_L_SHIFT = 6 # Long addressing
+    FCTL_N_SHIFT = 5 # NetId present
+    FCTL_D_SHIFT = 4 # DstAddr present
+    FCTL_I_SHIFT = 3 # IEs present
+    FCTL_S_SHIFT = 2 # SrcAddr present
+    FCTL_M_SHIFT = 1 # Multihop fields present
+    FCTL_P_SHIFT = 0 # Pending frame follows
 
-    # Values for FCTL_T field
-    FCTL_TYPE_MAC = 0
-    FCTL_TYPE_NET = 1
-
-
-    __byte_order__ = '!' # Network order
+    __byte_order__ = '!'  # Network order
     __hdr__ = (
-        ('pid', 'B', PID_HEYMAC | PID_CSMA_VER),
+        ('pid', 'B', PID_HEYMAC),
         # The underscore prefix means do not access that field directly.
-        # Access properties .fctl, .fctl_t, .fctl_l, etc. instead.
+        # Access properties .fctl, .fctl_l, .fctl_n, etc. instead.
         ('_fctl', 'B', 0),
         # The fields above are guaranteed to be present.
-        # Below this are optional fields as indicated by '0s'.
+        # Below this are optional fields.
+        # The type spec '0s' lets us consume a variable number of bytes
+        # for the field.
         ('netid', '0s', b''),
         ('daddr', '0s', b''),
-        ('hie', '0s', b''),
-        ('bie', '0s', b''),
+        ('hie', '0s', b''), # header IEs appear in cleartext
+        ('bie', '0s', b''), # body IEs may be enciphered
         ('saddr', '0s', b''),
 #        ('_', '0s', b''), # use .data to access payload
         ('mic', '0s', b''),
         ('hops', '0s', b''),
-        ('txaddr', '0x', b''),
+        ('txaddr', '0s', b''),
     )
 
     # Functions to help determine which fields are present
+    def _is_extended_frame(self,):
+        return self.fctl_x != 0
     def _has_netid_field(self,):
         return self.fctl_n != 0
     def _has_daddr_field(self,):
@@ -78,9 +80,7 @@ class HeyMacFrame(dpkt.Packet):
         return self.fctl_i != 0
     def _has_saddr_field(self,):
         return self.fctl_s != 0
-    def _has_hops_field(self,):
-        return self.fctl_m != 0
-    def _has_txaddr_field(self,):
+    def _has_multihop_fields(self,):
         return self.fctl_m != 0
 
     # Functions to determine size of variable-size fields
@@ -112,10 +112,10 @@ class HeyMacFrame(dpkt.Packet):
         return self._fctl
 
     @property
-    def fctl_t(self,):
-        """Gets the payload type flag from the Fctl field.
+    def fctl_x(self,):
+        """Gets the Extended frame flag from the Fctl field.
         """
-        return 1 & (self._fctl >> HeyMacFrame.FCTL_T_SHIFT)
+        return 1 & (self._fctl >> HeyMacFrame.FCTL_X_SHIFT)
 
     @property
     def fctl_l(self,):
@@ -168,7 +168,7 @@ class HeyMacFrame(dpkt.Packet):
         self._fctl = val
 
     def _fctl_setter_for_bit(self, val, bit_idx):
-        """Sets or clears one of the L,R,N,D,I,S bits
+        """Sets or clears one of the X,L,N,D,I,S,M,P bits
         without modifying the Type bits.
         """
         assert 0 <= val <= 1
@@ -176,11 +176,11 @@ class HeyMacFrame(dpkt.Packet):
         self._fctl &=  ~(1 << bit_idx)
         self._fctl |= (val << bit_idx)
 
-    @fctl_t.setter
-    def fctl_t(self, val):
-        """Sets the payld Type value in the Fctl field.
+    @fctl_x.setter
+    def fctl_x(self, val):
+        """Sets the Extended value in the Fctl field.
         """
-        return self._fctl_setter_for_bit(val, HeyMacFrame.FCTL_T_SHIFT)
+        return self._fctl_setter_for_bit(val, HeyMacFrame.FCTL_X_SHIFT)
 
     @fctl_l.setter
     def fctl_l(self, val):
@@ -234,7 +234,7 @@ class HeyMacFrame(dpkt.Packet):
 
         # validate the PID
         # TODO: tolerate TDMA, other versions
-        if self.pid != PID_HEYMAC | PID_CSMA_VER:
+        if self.pid != HeyMacFrame.PID_HEYMAC | HeyMacFrame.PID_CSMA_VER:
             raise dpkt.UnpackError()
 
         # The Fctl field can be every bit-combination
@@ -270,37 +270,31 @@ class HeyMacFrame(dpkt.Packet):
             self.saddr = self.data[0:sz]
             self.data = self.data[sz:]
 
-        # The payload comes after SrcAddr.
-        # So from here on, we parse the tail of the packet
-
-        if self._has_txaddr_field():
-            sz = self._sizeof_addr_field()
+        # The payload comes after SrcAddr, but its size is unknown.
+        # So we parse any multihop data from the tail of the packet, backward.
+        if self._has_multihop_fields():
+            sz = 1 + self._sizeof_addr_field()
             if len(self.data) < sz:
-                raise dpkt.NeedData("for txaddr")
+                raise dpkt.NeedData("for hops/txaddr")
             self.txaddr = self.data[-sz:]
-            self.data = self.data[: -sz]
-
-        if self._has_hops_field():
-            if len(self.data) < 1:
-                raise dpkt.NeedData("for txaddr")
+            self.data = self.data[:-sz]
             self.hops = self.data[-1:]
             self.data = self.data[:-1]
 
-        # TODO: parse IEs to get MIC
-
-        # At this point self.data should contain the payload
-
-        # Unpack the payload for known frame types
-        if self.fctl_t == HeyMacFrame.FCTL_TYPE_MAC:
-            try:
-                self.payld = HeyMacCmdInstance(self.data)
-            except:
-                logging.info("invalid MAC cmd %d", self.data[0])
-        elif self.fctl_type == HeyMacFrame.FCTL_TYPE_NET:
-            try:
-                self.payld = APv6Frame(self.data)
-            except:
-                logging.info("invalid APv6 frame: %b", self.data)
+        # At this point self.data contains the payload, which may be empty.
+        # The first byte of the payload denotes its type.
+        if self.data:
+            payld_type = self.data[0]
+            if payld_type & APv6Frame.IPHC_PREFIX_MASK == APv6Frame.APV6_PREFIX:
+                try:
+                    self.payld = APv6Frame(self.data)
+                except:
+                    logging.info("invalid APv6 frame: %b", self.data)
+            else:
+                try:
+                    self.payld = HeyMacCmdInstance(self.data)
+                except:
+                    logging.info("invalid MAC cmd %d", self.data[0])
 
 
     def pack_hdr(self):
@@ -348,11 +342,13 @@ class HeyMacFrame(dpkt.Packet):
             d.extend(self.data)
 
         if self.hops:
+            assert bool(self.txaddr)
             if type(hops) is int:
                 self.hops = struct.pack("B", self.hops)
             d.append(self.hops)
 
         if self.txaddr:
+            assert bool(self.hops)
             if type(self.txaddr) is int:
                 self.txaddr = struct.pack("!H", self.txaddr)
             len_txaddr = len(self.txaddr)
@@ -365,15 +361,12 @@ class HeyMacFrame(dpkt.Packet):
 
         # Inserts PID and Fctl,
         # returns the combined bytes object
-#        return super().pack_hdr() + bytes(d)
-# DEBUG:
-        a = super().pack_hdr()
-        return a + bytes(d)
+        return super().pack_hdr() + bytes(d)
 
     # API
     def is_heymac(self,):
-        return self.pid == PID_HEYMAC
+        return self.pid == HeyMacFrame.PID_HEYMAC
 
     def is_heymac_version_compatible(self,):
         # TODO: make this more robust
-        return self.pid == PID_HEYMAC
+        return self.pid == HeyMacFrame.PID_HEYMAC

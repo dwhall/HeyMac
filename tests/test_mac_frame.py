@@ -14,12 +14,16 @@ class TestHeyMacFrame(unittest.TestCase):
     def test_mac(self,):
         # Pack
         f = heymac.HeyMacFrame()
-        f.fctl_t = heymac.HeyMacFrame.FCTL_TYPE_MAC
+#        f.pid = heymac.HeyMacFrame.PID_HEYMAC \
+#            | heymac.HeyMacFrame.PID_CSMA_TYPE \
+#            | heymac.HeyMacFrame.PID_CSMA_VER
         b = bytes(f)
         self.assertEqual(b, b"\xE0\x00")
         # Unpack
         f = heymac.HeyMacFrame(b)
-        self.assertEqual(f.fctl_t, heymac.HeyMacFrame.FCTL_TYPE_MAC)
+        self.assertTrue(f.is_heymac())
+        self.assertTrue(f.is_heymac_version_compatible())
+        self.assertEqual(f.fctl_x, 0)
         self.assertEqual(f.fctl_l, 0)
         self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
@@ -31,7 +35,7 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(f.daddr, b"")
         self.assertEqual(f.saddr, b"")
         self.assertEqual(f.data, b"")
-        self.assertEqual(f.hops, 0)
+        self.assertEqual(f.hops, b"") # FIXME
         self.assertEqual(f.txaddr, b"")
 
 
