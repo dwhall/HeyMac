@@ -14,9 +14,6 @@ class TestHeyMacFrame(unittest.TestCase):
     def test_mac(self,):
         # Pack
         f = heymac.HeyMacFrame()
-#        f.pid = heymac.HeyMacFrame.PID_HEYMAC \
-#            | heymac.HeyMacFrame.PID_CSMA_TYPE \
-#            | heymac.HeyMacFrame.PID_CSMA_VER
         b = bytes(f)
         self.assertEqual(b, b"\xE0\x00")
         # Unpack
@@ -25,12 +22,12 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertTrue(f.is_heymac_version_compatible())
         self.assertEqual(f.fctl_x, 0)
         self.assertEqual(f.fctl_l, 0)
-        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 0)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 0)
         self.assertEqual(f.fctl_m, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"")
         self.assertEqual(f.saddr, b"")
@@ -39,107 +36,109 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(f.txaddr, b"")
 
 
-# silence others while trying to fix above
-_="""
-    def test_net(self,):
+    def test_csma(self,):
         # Pack
         f = heymac.HeyMacFrame()
-        f.fctl_t = heymac.HeyMacFrame.FCTL_TYPE_NET
+        f.pid = heymac.HeyMacFrame.PID_HEYMAC \
+            | heymac.HeyMacFrame.PID_CSMA_TYPE
         b = bytes(f)
-        self.assertEqual(b, b"\xE0\x80")
+        self.assertEqual(b, b"\xE8\x00")
         # Unpack
         f = heymac.HeyMacFrame(b)
-        self.assertEqual(f.fctl_t, heymac.HeyMacFrame.FCTL_TYPE_NET)
+        self.assertEqual(f.fctl_x, 0)
         self.assertEqual(f.fctl_l, 0)
-        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 0)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 0)
         self.assertEqual(f.fctl_m, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"")
         self.assertEqual(f.saddr, b"")
         self.assertEqual(f.data, b"")
-        self.assertEqual(f.hops, 0)
+        self.assertEqual(f.hops, b"")
         self.assertEqual(f.txaddr, b"")
+
 
     def test_min_payld(self,):
         # Pack
         f = heymac.HeyMacFrame()
-        f.fctl_t = heymac.HeyMacFrame.FCTL_TYPE_MIN
         f.data = b"ABCD"
         b = bytes(f)
         self.assertEqual(b, b"\xE0\x00ABCD")
         # Unpack
         f = heymac.HeyMacFrame(b)
-        self.assertEqual(f.fctl_t, heymac.HeyMacFrame.FCTL_TYPE_MIN)
+        self.assertEqual(f.fctl_x, 0)
         self.assertEqual(f.fctl_l, 0)
-        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 0)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 0)
         self.assertEqual(f.fctl_m, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"")
         self.assertEqual(f.saddr, b"")
         self.assertEqual(f.data, b"ABCD")
-        self.assertEqual(f.hops, 0)
+        self.assertEqual(f.hops, b"")
         self.assertEqual(f.txaddr, b"")
 
-    # TODO: make this test ver
-    def test_mac_ver(self,):
+
+    def test_csma_ver(self,):
         # Pack
         f = heymac.HeyMacFrame()
-        f.fctl_t = heymac.HeyMacFrame.FCTL_TYPE_MAC
+        f.pid = heymac.HeyMacFrame.PID_HEYMAC \
+            | heymac.HeyMacFrame.PID_CSMA_TYPE \
+            | heymac.HeyMacFrame.PID_CSMA_VER
         b = bytes(f)
-        self.assertEqual(b, b"\xE0\x80")
+        self.assertEqual(b, b"\xE8\x00")
         # Unpack
         f = heymac.HeyMacFrame(b)
-        self.assertEqual(f.fctl_t, heymac.HeyMacFrame.FCTL_TYPE_MAC)
+        self.assertEqual(f.pid, 0xE8)
+        self.assertEqual(f.fctl_x, 0)
         self.assertEqual(f.fctl_l, 0)
-        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 0)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 0)
         self.assertEqual(f.fctl_m, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"")
         self.assertEqual(f.saddr, b"")
         self.assertEqual(f.data, b"")
-        self.assertEqual(f.hops, 0)
+        self.assertEqual(f.hops, b"")
         self.assertEqual(f.txaddr, b"")
+
 
     def test_mac_saddr64b(self,):
         # Pack
         f = heymac.HeyMacFrame()
-        f.fctl_t = heymac.HeyMacFrame.FCTL_TYPE_MAC
         f.saddr = b"\x01\x02\x03\x04\x05\x06\x07\x08"
         b = bytes(f)
-        self.assertEqual(b, b"\xE0\x42\x01\x02\x03\x04\x05\x06\x07\x08")
+        self.assertEqual(b, b"\xE0\x44\x01\x02\x03\x04\x05\x06\x07\x08")
         # Unpack
         f = heymac.HeyMacFrame(b)
-        self.assertEqual(f.fctl_t, heymac.HeyMacFrame.FCTL_TYPE_MAC)
+        self.assertEqual(f.fctl_x, 0)
         self.assertEqual(f.fctl_l, 1)
-        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 0)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 1)
         self.assertEqual(f.fctl_m, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"")
         self.assertEqual(f.saddr, b"\x01\x02\x03\x04\x05\x06\x07\x08")
         self.assertEqual(f.data, b"")
-        self.assertEqual(f.hops, 0)
+        self.assertEqual(f.hops, b"")
         self.assertEqual(f.txaddr, b"")
+
 
     def test_mac_len_saddr16b_beacon(self,):
         # Pack
         f = heymac.HeyMacFrame()
-        f.fctl_t = heymac.HeyMacFrame.FCTL_TYPE_MAC
         f.saddr = b"\x11\x12"
         bcn = heymac.mac_cmds.HeyMacCmdSbcn(
             bcn_en=1,
@@ -152,181 +151,179 @@ _="""
         )
         f.data = bytes(bcn)
         b = bytes(f)
-        self.assertEqual(b, b"\xE0\x02\x11\x12\x01\xf5\x02\x03\x04\x00\x00\x00\x2a\x00\x00\x00\x00\x00\x00\x00\x00")
+        self.assertEqual(b, b"\xE0\x04\x11\x12\x01\xf5\x02\x03\x04\x00\x00\x00\x2a\x00\x00\x00\x00\x00\x00\x00\x00")
         # Unpack
         f = heymac.HeyMacFrame(b)
-        self.assertEqual(f.fctl_t, heymac.HeyMacFrame.FCTL_TYPE_MAC)
+        self.assertEqual(f.fctl_x, 0)
         self.assertEqual(f.fctl_l, 0)
-        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 0)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 1)
         self.assertEqual(f.fctl_m, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"")
         self.assertEqual(f.saddr, b"\x11\x12")
-        self.assertEqual(type(f.data), heymac.mac_cmds.HeyMacCmdSbcn)
-        self.assertEqual(f.data.bcn_en, 1)
-        self.assertEqual(f.data.sf_order, 5)
-        self.assertEqual(f.data.eb_order, 7)
-        self.assertEqual(f.data.dscpln, 2)
-        self.assertEqual(f.data.caps, 3)
-        self.assertEqual(f.data.status, 4)
-        self.assertEqual(f.data.asn, 42)
-        self.assertEqual(f.hops, 0)
+        self.assertEqual(type(f.payld), heymac.mac_cmds.HeyMacCmdSbcn)
+        self.assertEqual(f.payld.bcn_en, 1)
+        self.assertEqual(f.payld.sf_order, 5)
+        self.assertEqual(f.payld.eb_order, 7)
+        self.assertEqual(f.payld.dscpln, 2)
+        self.assertEqual(f.payld.caps, 3)
+        self.assertEqual(f.payld.status, 4)
+        self.assertEqual(f.payld.asn, 42)
+        self.assertEqual(f.hops, b"")
         self.assertEqual(f.txaddr, b"")
+
 
     def test_mac_len_saddr64b(self,):
         # Pack
         f = heymac.HeyMacFrame()
-        f.fctl_t = heymac.HeyMacFrame.FCTL_TYPE_MAC
         f.saddr = b"\x01\x02\x03\x04\x05\x06\x07\x08"
         b = bytes(f)
-        self.assertEqual(b, b"\xE0\x42\x01\x02\x03\x04\x05\x06\x07\x08")
+        self.assertEqual(b, b"\xE0\x44\x01\x02\x03\x04\x05\x06\x07\x08")
         # Unpack
         f = heymac.HeyMacFrame(b)
-        self.assertEqual(f.fctl_t, heymac.HeyMacFrame.FCTL_TYPE_MAC)
+        self.assertEqual(f.fctl_x, 0)
         self.assertEqual(f.fctl_l, 1)
-        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 0)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 1)
         self.assertEqual(f.fctl_m, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"")
         self.assertEqual(f.saddr, b"\x01\x02\x03\x04\x05\x06\x07\x08")
         self.assertEqual(f.data, b"")
-        self.assertEqual(f.hops, 0)
+        self.assertEqual(f.hops, b"")
         self.assertEqual(f.txaddr, b"")
+
 
     def test_mac_len_saddr64b_daddr64b(self,):
         # Pack
         f = heymac.HeyMacFrame()
-        f.fctl_t = heymac.HeyMacFrame.FCTL_TYPE_MAC
         f.daddr = b"\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8"
         f.saddr = b"\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8"
         f.data = b"hi"
         b = bytes(f)
-        self.assertEqual(b, b"\xE0\x4A\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8hi")
+        self.assertEqual(b, b"\xE0\x54\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8hi")
         # Unpack
         f = heymac.HeyMacFrame(b)
-        self.assertEqual(f.fctl_t, heymac.HeyMacFrame.FCTL_TYPE_MAC)
+        self.assertEqual(f.fctl_x, 0)
         self.assertEqual(f.fctl_l, 1)
-        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 1)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 1)
         self.assertEqual(f.fctl_m, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8")
         self.assertEqual(f.saddr, b"\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8")
         self.assertEqual(f.data, b"hi")
-        self.assertEqual(f.hops, 0)
+        self.assertEqual(f.hops, b"")
         self.assertEqual(f.txaddr, b"")
+
 
     def test_mac_len_saddr16b_daddr16b(self,):
         # Pack
         f = heymac.HeyMacFrame()
-        f.fctl_t = heymac.HeyMacFrame.FCTL_TYPE_MAC
         f.daddr = b"\xd1\xd2"
         f.saddr = b"\xc1\xc2"
         f.data = b"hello world"
         b = bytes(f)
-        self.assertEqual(b, b"\xE0\x0A\xd1\xd2\xc1\xc2hello world")
+        self.assertEqual(b, b"\xE0\x14\xd1\xd2\xc1\xc2hello world")
         # Unpack
         f = heymac.HeyMacFrame(b)
-        self.assertEqual(f.fctl_t, heymac.HeyMacFrame.FCTL_TYPE_MAC)
+        self.assertEqual(f.fctl_x, 0)
         self.assertEqual(f.fctl_l, 0)
-        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 1)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 1)
         self.assertEqual(f.fctl_m, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"\xd1\xd2")
         self.assertEqual(f.saddr, b"\xc1\xc2")
         self.assertEqual(f.data, b"hello world")
-        self.assertEqual(f.hops, 0)
+        self.assertEqual(f.hops, b"")
         self.assertEqual(f.txaddr, b"")
+
 
     def test_net_data(self,):
         # Pack
         f = heymac.HeyMacFrame()
-        f.fctl_t = heymac.HeyMacFrame.FCTL_TYPE_NET
         f.data = heymac.APv6Frame()
         b = bytes(f)
-        self.assertEqual(b, b"\xE0\x80\xD7")
+        self.assertEqual(b, b"\xE0\x00\xD7")
         # Unpack
         f = heymac.HeyMacFrame(b)
-        self.assertEqual(f.fctl_t, heymac.HeyMacFrame.FCTL_TYPE_NET)
+        self.assertEqual(f.fctl_x, 0)
         self.assertEqual(f.fctl_l, 0)
-        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 0)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 0)
         self.assertEqual(f.fctl_m, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"")
         self.assertEqual(f.saddr, b"")
-        self.assertEqual(type(f.data), heymac.APv6Frame)
+        self.assertEqual(type(f.payld), heymac.APv6Frame)
 
 
     def test_pvs(self,):
         # Pack
         f = heymac.HeyMacFrame()
-        f.fctl_t = heymac.HeyMacFrame.FCTL_TYPE_MAC
         f.data = b"6x7"
         b = bytes(f)
         self.assertEqual(b, b"\xE0\x006x7")
         # Unpack
         f = heymac.HeyMacFrame(b)
-        self.assertEqual(f.fctl_t, heymac.HeyMacFrame.FCTL_TYPE_MAC)
+        self.assertEqual(f.fctl_x, 0)
         self.assertEqual(f.fctl_l, 0)
-        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 0)
         self.assertEqual(f.fctl_d, 0)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 0)
         self.assertEqual(f.fctl_m, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.netid, b"")
         self.assertEqual(f.daddr, b"")
         self.assertEqual(f.saddr, b"")
         self.assertEqual(f.data, b"6x7")
-        self.assertEqual(f.hops, 0)
+        self.assertEqual(f.hops, b"")
         self.assertEqual(f.txaddr, b"")
 
 
     def test_netid_daddr(self,):
         # Pack
         f = heymac.HeyMacFrame()
-        f.fctl_t = heymac.HeyMacFrame.FCTL_TYPE_MAC
         f.netid = 0x80A5
         f.daddr = 0xd1d2
         f.data = b"data"
         b = bytes(f)
-        self.assertEqual(b, b"\xE0\x18\x80\xa5\xd1\xd2data")
+        self.assertEqual(b, b"\xE0\x30\x80\xa5\xd1\xd2data")
         # Unpack
         f = heymac.HeyMacFrame(b)
-        self.assertEqual(f.fctl_t, heymac.HeyMacFrame.FCTL_TYPE_MAC)
+        self.assertEqual(f.fctl_x, 0)
         self.assertEqual(f.fctl_l, 0)
-        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.fctl_n, 1)
         self.assertEqual(f.fctl_d, 1)
         self.assertEqual(f.fctl_i, 0)
         self.assertEqual(f.fctl_s, 0)
         self.assertEqual(f.fctl_m, 0)
+        self.assertEqual(f.fctl_p, 0)
         self.assertEqual(f.netid, b"\x80\xA5")
         self.assertEqual(f.daddr, b"\xd1\xd2")
         self.assertEqual(f.saddr, b"")
         self.assertEqual(f.data, b"data")
-        self.assertEqual(f.hops, 0)
+        self.assertEqual(f.hops, b"")
         self.assertEqual(f.txaddr, b"")
-"""
+
 
 if __name__ == '__main__':
     unittest.main()

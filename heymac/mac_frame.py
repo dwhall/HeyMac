@@ -233,9 +233,8 @@ class HeyMacFrame(dpkt.Packet):
         super().unpack(buf)
 
         # validate the PID
-        # TODO: tolerate TDMA, other versions
-        if self.pid != HeyMacFrame.PID_HEYMAC | HeyMacFrame.PID_CSMA_VER:
-            raise dpkt.UnpackError()
+        if not self.is_heymac():
+            raise dpkt.UnpackError("Invalid PID value")
 
         # The Fctl field can be every bit-combination
         # so there's no illegal value; no way to validate.
@@ -338,8 +337,9 @@ class HeyMacFrame(dpkt.Packet):
                 self.fctl_s = 1
             d.extend(self.saddr)
 
-        if self.data:
-            d.extend(self.data)
+# FIXME: this combined with super().pack_hdr() below causes two copies of payload.
+#        if self.data:
+#            d.extend(self.data)
 
         if self.hops:
             assert bool(self.txaddr)
@@ -365,7 +365,7 @@ class HeyMacFrame(dpkt.Packet):
 
     # API
     def is_heymac(self,):
-        return self.pid == HeyMacFrame.PID_HEYMAC
+        return (self.pid & HeyMacFrame.PID_HEYMAC_MASK) == HeyMacFrame.PID_HEYMAC
 
     def is_heymac_version_compatible(self,):
         # TODO: make this more robust
