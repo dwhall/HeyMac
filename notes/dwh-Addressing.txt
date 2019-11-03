@@ -1,0 +1,99 @@
+Addressing
+==========
+
+APv6            Amateur Protocol ver 6
+SSAMN (salmon)  Something Something Amateur Mesh Network
+6LLAWN          Low-power Lossy Amateur Wireless Network
+LLAWN           Low-power Lossy Amateur Wireless Network
+CelLoRa         Comm Eqpmt for Lossy Long Range
+6LoRham         IPv6 LoRa ham
+LoRaham         <taken>
+
+HONR            Hierarchically Ordered Numbers for Routing
+HAMR            Hierarchical Addresses for Multihop Routing
+
+
+==================  ======  =======================================
+Name                nbits   Value
+==================  ======  =======================================
+IPv6 schema                 Network Prefix_____ Interface ID_______
+                            Network Prefix SubN Interface ID_______
+------------------  ------  ---------------------------------------
+IPv6 prefixes:
+Link Local                  fe8/10
+Unique Local                fc/7
+Multicast                   ff/8
+Agg Global Unicast          2/3
+==================  ======  =======================================
+IEEE 802.15.4:      16      PAN ID
+                    16      Short Addr
+                    64      Extended Addr
+==================  ======  =======================================
+Crypto Addressing:
+prv key             ~2048   selected(prand ~2048)
+pub key             ~2048   crypto(prv key)
+pub key'            512     trunc(pub key, 512)
+Crypto Addr         128     trunc(SHA_512(SHA_512(pub key')), 128)
+------------------  ------  ---------------------------------------
+Crypto Addr         128     fc/7
+Callsign ID         fc/8    fc23 4567 89AB CDEF FEDC BA98 7654 3210
+Device ID           fd/8    fd23 4567 89AB CDEF FEDC BA98 7654 3210
+as bridge                   fd23 4567 89AB CD04                     [1][2]
+------------------  ------  ---------------------------------------
+Link Local (?)      fe8/10  fe80 0000 0000 0000 FC23 4567 89AB CDEF
+Link Local (?)      fe8/10  fe80 0000 0000 0000 FEDC BA98 7654 3210
+Unique Local        fc/7    fc23 4567 89AB CDEF FEDC BA98 7654 3210
+------------------  ------  ---------------------------------------
+HONR16 interface            .... .... .... ..NetIdXX XX00 0000 0000 [3]
+HONR56 interface            .... .... .... ..NetIdXX XXXX XXXX XXXX [3]
+------------------  ------  ---------------------------------------
+APv6 VPN Unicast    
+==================  ======  =======================================
+
+[1] There is no difference between the global & local sides of a bridge from the perspective of the overlay network.
+[2] In this example SubnetId is 04.
+[3] See NetId section (follows)
+
+
+NetId
+-----
+
+This paragraph explains the abstract NetId field provided by the HeyMac protocol.
+APv6 is a specific protocol implementation that uses the NetId field for its own purposes.
+See dwh-APv6.txt to read how APv6 uses the NetId field.
+
+NetId is similar to the 802.15.4 PAN_ID; however HeyMac defines NetId to have two subfields.
+SubnetId (8b) is the subnet identifier that remains constant for lifetime of the network.
+SubnetInstance (8b) is the subnet version number that changes with each subnet reorganization.
+Addition and subtraction of leaf nodes do not cause a subnet reorganization.
+Any subnet change requiring Interface ID renumbering triggers a subnet regoranization.
+
+
+MAC Data
+--------
+
+Beacon emits:
+    hdr:
+    {
+    addr64                      # UniqueID of beaconer
+    }
+    body:
+    {
+    ASN                         # Current Sframe#
+    TxFrames | NgbrTxFrames     # Occupied Sframes
+    }
+
+Save from other beacons:
+    pass
+
+
+MAC TDMA layer instance maintains:
+    myTimeslots
+    mySvcs: []:{NetId, Honr#, Timeslots}
+    hop1ngbrs[]: {DeviceId, svcs}
+    hop2Timeslots
+
+
+Bridge maintains:
+    devices[]:{DeviceId:Honr#} // and reverse LUT
+    users[]:{callsignId:Honr#}

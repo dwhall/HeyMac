@@ -1,0 +1,221 @@
+HeyMac
+======
+
+Introduction
+------------
+
+HeyMac is a data link layer (Layer 2) protocol
+meant to operate on top of a Semtech SX127x modem
+that offers a variety of narrow FSK modulations and
+a proprietary chirp spread spectrum modulation called LoRa.
+
+The LoRa CSS modulation offers built-in FEC with four coding rates,
+a variety of spreading factors, and
+a handful of bandwidth choices 500KHz and below.
+This modulation is intended for long-range, low data rate applications,
+but at full bandwidth is capable of over 10 Kbps.
+
+
+RuntimeData
+-----------
+
+Addr64: Trunc(Sha512(Sha512(pubKey)), 64b)  // FC/7
+Ngbrs: (addrLong, RxStats, slotMapTx, slotMapNgbrs)
+BcnSlot: int
+BcnSqncNmbr: int
+TxSlots: [] // decided on-the-fly, placed in beacon
+RxSlots: [] // Ngbrs' TxSlots
+TwoHopSlots: [] // OR of all Ngbrs' TxSlots | RxSlots
+GeoLoc: (LatLon, Alt, MaidenSqr/QTH/EM28pv)
+TimeSrc: (GpsPps, Txco, RfDisc, Xtal), Nhops
+
+
+Configuration
+-------------
+
+Credentials
+    input: (callsign, familyName, givenName, email, expiration)
+    generate:
+        select(prvKey) // such that SHA512(SHA512(pubKey)) starts with FC/7
+        cert = signed(input + pubKey)
+
+Cfg
+    Phy
+        Uart
+            path: "/dev/gpsdev"
+        Gpio
+            inputs: [(pin,sig)]
+            outputs:[(pin,sig)]
+        Radio
+            BaseFreq: 432.550e6         // see dwh-loraBands.txt
+            Mode:
+                [
+                0: (mod=LoRa, Bandwidth=250K, CodingRate=4/5, SpreadFactor=7, Preamble=6+4.25, ExplctHdr=T, CRC=T)
+                ]
+    Mac
+        Timing
+            Level: 2 // Tslot = 250ms
+            Order: 6 // 64 Tslots per Sframe
+        Preferences: (LeafOnly, CryptoSec, )
+        Capabilities: (PwrSrc, RcvOnWhenIdle, RootAble, NetAble, )
+
+
+Mode
+----
+
+Mode is an enumeration of physical layer modulations and settings.
+HeyMac version 1 runs on the ezXX platform which utilizes the Semtech SX127x device.
+Therefore, at this time, HeyMac only offers modes that are a subset of the capabilities of the SX127x device.
+In the future, new platforms and devices may be supported to extend the enumeration of modes.
+
+LoRa0 mode parameters were chosen to experiment with the LoRa protocol and as a balance between
+long-range capability, high data rate and spread spectrum regulations for radio amateurs.
+LoRa1 increases the FEC rate to increase signal recovery, at the expense of effective data rate.
+LoRa2 increases the BW to increase the data rate, at the expense of consuming bandwidth.
+LoRa3 increases the SF to improve robustness and provide orthogonal channel (compared to LoRa2), at the expense of data rate.
+
+    ======  ====================================================    ==================================
+    Mode    Parameters                                              Features
+            ----------------------------------------------------    ----------------------------------
+            (Mod    Xhdr    SF      BW      CR      Pre     CRC     Rate[bps]   Symbl[ms]   Link[db]
+    ------  ------  ------  ------  ------  ------  ------  ----    ----------  ----------  ----------
+    LoRa0   (LoRa,  T,      7,      250K,   4/5,    6+4.25, T)      10937.5     0.51        138
+    LoRa1   (LoRa,  T,      7,      250K,   4/6,    6+4.25, T)       9114.58    0.51        138
+    LoRa2   (LoRa,  T,      7,      500K,   4/6,    6+4.25, T)      18229.2     0.26        135
+    LoRa3   (LoRa,  T,      8,      500K,   4/6,    6+4.25, T)      10416.7     0.51        138
+    ======  ======  ======  ======  ======  ======  ======  ====    ==========  ==========  ==========
+
+TimeOnAir:
+
+    ==========      ==========  ==========  ==========  ==========
+    PayldLen        LoRa0       LoRa1       LoRa2       LoRa3
+    ==========      ==========  ==========  ==========  ==========
+    4                14.46       15.49        6.21       12.42
+    8                17.02       18.56        9.28       15.49
+    16               24.70       27.78       12.35       21.63
+    32               34.94       40.06       18.50       33.92
+    64               57.98       67.71       33.86       58.50
+    128             106.62      126.08       61.50      107.65
+    255             198.78      236.67      116.80      205.95
+    ==========      ==========  ==========  ==========  ==========
+
+
+
+Physical timing
+---------------
+
+This timing method conflicts with "Level" mentioned above.
+
+Assume LoRa1 := (SF=7, BW=250, CR=2 (4:6))
+
+Symbol Time                                   0.51  mS
+Tslot           60 Symbols                   30.6   mS
+Sframe          16 Tslots                   489.6   mS
+margin                                       10.4   mS
+
+FrmRep Period   Sframe * 2 ^ frOrder(5)      16.0   S
+ExtBcn Period   Sframe * 2 ^ ebOrder(10)    512.0   S
+
+
+
+Information Elements
+--------------------
+
+Method 1 (explicit length):
+
+IEEE 802.15.4 spec 7.4.2.1.
+2-octet header, followed by 0..127 octet content.
+[TIIIIIIIILLLLLLL]
+T = Type (always 0)
+I = Element ID (0..255)
+L = Length (0..127)
+
+
+Method 2a (implicit length, more bytes):
+
+T = Type (always 1)
+==========  ==========  ====================
+Tag/Len     Qty         IE Form
+----------  ----------  --------------------
+T000 0000   1           Terminator
+T000 1xxx   8           8-Byte
+T001 xxxx   16          4-Byte
+T01x xxxx   32          2-Byte
+T1xx xxxx   64          1-Byte
+==========  ==========  ====================
+
+
+Method 2b (implicit length, bits):
+
+T = Type (always 1)
+==========  ==========  ====================
+Tag/Len     Qty         IE Form
+----------  ----------  --------------------
+T000 0000   1           Terminator
+T000 01xx   4           8-Byte
+T000 1xxx   8           4-Byte
+T001 xxxx   16          2-Byte
+T01x xxxx   32          1-Byte
+T1bx xxxx   32          1-bit
+==========  ==========  ====================
+
+IE Uses
+-------
+
+Sequence Number
+MIC Type
+Encipher Type
+
+
+Commands
+--------
+
+Packet commands:
+    Bcn
+    BcnNtfy     // 2B field of new Tslot to listen for Bcn
+    Ack
+    Nack
+    NetJoin
+    NetLeave
+    Mauth1,2,3  // mutual-auth and synchronize
+
+Software commands:
+    detectEnergy()
+
+
+Beacon Notification Behavior
+----------------------------
+
+A node listens for at least one Sframe before transmitting.
+If a node hears no neighbors, a node defines the Sframe,
+picks Tslot 0 for itself and begins beaconing.
+If a node hears neighbors,
+    1) The node synchronizes and picks an open Tslot for beaconing.
+    2) After each neighbor beacons with no frame pending
+       perform CSMA-CA and tx BcnNtfy.
+The neighbor listens during the announced Tslot for N Sframes.
+If the neighbor hears the beacon, the Tslot is marked as occupied in the neighbor's slotmap.
+If ngbr fails to hear beacon over cfg-ngbr-lost-prd time, Tslot occupation is cleared.
+
+
+Choices
+-------
+
+The first Tslot after PPS are preferred for Beacons.
+Should:
+    Always beacon and follow with data pkt?
+    Omit beacon when data pkt is to be sent? (but make sure at least 1 bcn per cfg-ngbr-lost-prd)
+
+
+Codec2 over HeyMac
+------------------
+
+Assume Level 4 mode (Tslot = 250 ms == 255B of data):
+
+    ==================  ==================  ==================
+    Codec2 3200         Codec2 2400         Codec2 1300
+    ==================  ==================  ==================
+    31 * 64b frames     42 * 48b frames     36 * 52b frames
+    31 * 20 ms slices   42 * 20ms slices    36 * 40 ms slices
+    620 ms audio        840 ms audio        1440 ms audio
+    ==================  ==================  ==================

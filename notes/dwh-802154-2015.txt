@@ -1,0 +1,86 @@
+802.15.4 2015 Notes
+===================
+
+5. MAC General Description
+    Summary: Bcn mgmt, Chnl access, GTS mgmt, Frame validation, Frame Ack delivery, Assoc, Disassoc, Security
+    Lower Management
+    Lower Data
+    Higher Management (8.2.1 MLME-SAP)
+    Higher Data (MCPS-SAP)
+        Beacon & Superframe go hand-in-hand
+            Basic
+                CAP: Contention Access Period (CSMA-CA):
+                    Node wishing to send to beaconer, does CSMA-CA during CAP (after beacon)
+                CFP: Contention Free Period (Guaranteed Time Slots):
+                    App requiring GTSs schedules CFP slots
+            DSME (Deterministic Synchronous Multi-channel Extension)
+                Multi-Superframe
+                Coordinators tx Enhanced Beacons
+                Common chnl for EBs, association
+                Channel diversity = adaptation or hopping
+            TSCH (SlotFrames replace SuperFrames)
+                Slot usage can be communicated by Bcn
+                Slot usage cfg'd by higher layer as device joins netwk
+        Data Transfer
+            Dev-to-coord: device listens for Bcn; device TXs during CAP or CFP
+            Coord-to-dev: Bcn includes pending data flag.
+                Device hears Bcn, sees pending flag, issues Data Rqst cmd
+                Coord replies to Data Rqst with data
+
+6.6
+    Because this standard favors very low cost devices that, in general, will be battery powered, transactions can be instigated from the devices themselves rather than from the coordinator. In other words, either the coordinator needs to indicate in its beacon when messages are pending for devices or the devices themselves need to poll the coordinator to determine whether they have any messages pending. Such transfers are called indirect transmissions.
+
+6.7.1
+- data and bcn sqnc nmbrs
+- When a device has not yet associated to a PAN, it shall use its extended address in all communications requiring the Source Address field
+- If the Destination Address field is not present, the recipient of the frame shall be assumed to be the PAN coordinator
+
+6.7.2
+- On completion of each transceiver task, the MAC sublayer shall request that the PHY enables or disables its receiver, depending on the values...
+
+6.7.3
+- If there is an actual Data frame pending within the coordinator for the requesting device, the coordinator shall send the frame to the device using one of the mechanisms described in this subclause.
+
+7.2 MAC frame format
+7.2.1 Frame Ctl field
+7.3.1 Beacon Frame Format
+
+======  ====================    ========================================
+Octets  Field                   Bitfields
+======  ====================    ========================================
+2       Sframe spec
+                                0..3    kBcnOrder               // HeyMac: FrameSpec: ebOrder
+                                4..7    kSframeOrder            // HeyMac: FrameSpec: frOrder
+                                8..11   kFinalCapSlot
+                                12      Batt life extension
+                                13      <reserved>
+                                14      PAN Coordinator
+                                15      Association permit
+*       GTS spec,
+                                0..2    GTS descriptor count
+                                3..6    <reserved>
+                                7       GTS permit
+        GTS dir,
+                                0..6    GTS directions mask
+                                7       <reserved>
+        GTS list
+                                0..15   target device short addr
+                                16..19  GTS starting slot
+                                20..23  GTS length
+*       Pending Addr spec,
+                                0..2    number of short addrs pending
+                                3       <reserved>
+                                4..6    number of ext addrs pending
+                                7       <reserved>
+        Pending addr list
+                                [ short addrs | ext addrs ]
+*       Bcn payld
+                                optional octets from NLH
+======  ====================    ========================================
+
+7.5 MAC cmds
+7.5.5 MAC Data Rqst cmd sent by device in 3 cases:
+1) when macAutoRequest is TRUE and a Beacon frame indicating data pending for that device is rx'd.
+1) when the coordinator indicates pending data in its Beacon frame by adding the address of the recipient of the data to the Address List field.
+2) when instructed to do so by the next higher layer on reception of the MLME-POLL.request primitive
+3) a device may send this command to the coordinator macResponseWaitTime after the acknowledgment to an Association Request command.

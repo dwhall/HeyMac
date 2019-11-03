@@ -1,0 +1,34 @@
+APv6 Networks
+=============
+
+APv6 takes the HeyMac NetId and gives further meaning to each field.
+
+NetId := { SubnetId, SubnetInstance }
+SubnetId := { Svc, Ver }
+SubnetInstance := { Inst, Sqnc }
+
+Svc: Service
+Ver: Service Protocol Version
+Inst: Instance of the service (equiv of DODAG Version)
+Sqnc: Sequence number
+// Inst and Sqnc the same?
+
+
+Services
+--------
+
+Netwk oriented:
+0:  Net mgmt
+F:  Device mgmt
+
+Ham oriented:
+1:  Dig Voice       // MAC layer provides this, could improve: directed, hops, etc.
+2:  NetCtrl
+
+Data oriented:
+#:  TXT             // MAC layer provides this (for 1-hop), could improve
+#:  FileXfer
+#:  BBS/Forum
+#:  HTTP/HTML
+#:  Internet bridge
+#:  LAN bridge
