@@ -4,7 +4,7 @@ from .mac_cmds import \
     HeyMacCmdSbcn, \
     HeyMacCmdEbcn, \
     HeyMacCmdTxt
-from .mac_frame import HEYMAC_VERSION, HeyMacFrame, HeyMacFloodFrame
+from .mac_frame import HeyMacFrame
 from .net_frame import APv6Frame
 from .trn_udp import APv6Udp
 
