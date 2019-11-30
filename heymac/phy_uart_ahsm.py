@@ -115,3 +115,16 @@ class UartAhsm(farc.Ahsm):
             return me.handled(me, event)
 
         return me.super(me, me.top)
+
+    # Public interface
+    def post_open(self, stngs):
+        """Posts the OPEN event to self with the given settings
+        """
+        # TODO: validate settings
+        self.postFIFO(farc.Event(farc.Signal.PHY_UART_OPEN, stngs))
+
+
+    def post_close(self):
+        """Posts the CLOSE event to self
+        """
+        self.postFIFO(farc.Event(farc.Signal.PHY_UART_close))

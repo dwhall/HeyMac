@@ -61,7 +61,7 @@ def main():
         "baudrate": 9600,
         "timeout": 0,
     }
-    uartAhsm.postFIFO(farc.Event(farc.Signal.PHY_UART_OPEN, uart_stngs))
+    uartAhsm.post_open(uart_stngs)
 
     farc.run_forever()
 
