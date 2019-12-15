@@ -240,16 +240,12 @@ class HeyMacCsmaAhsm(farc.Ahsm):
 
 
     def _tx_bcn(self,):
-        """Builds a HeyMac V1 CsmaBeacon and passes it to the PHY for transmit.
+        """Builds a HeyMac CsmaBeacon and passes it to the PHY for transmit.
         """
         frame = mac_frame.HeyMacFrame()
-        frame.fctl_type = mac_frame.HeyMacFrame.FCTL_TYPE_MAC
         frame.data = mac_cmds.HeyMacCmdCbcn(
-#            dscpln=self.dscpln.get_dscpln_value(),
             caps=0,
             status=0,
-# TODO        ngbr_data
-# TODO        net_data
             )
         tx_args = (-1, phy_cfg.tx_freq, bytes(frame)) # immediate transmit
         farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
@@ -264,7 +260,6 @@ class HeyMacCsmaAhsm(farc.Ahsm):
         if self.mac_txq:
             logging.info("tx from q")
             frame = mac_frame.HeyMacFrame()
-            frame.fctl_type = mac_frame.HeyMacFrame.FCTL_TYPE_MAC
             frame.data = self.mac_txq.pop()
             tx_args = (-1, phy_cfg.tx_freq, bytes(frame)) # tx immediately, freq and data
             farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
