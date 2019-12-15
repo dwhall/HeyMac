@@ -89,9 +89,7 @@ class HeyMacCsmaAhsm(farc.Ahsm):
         elif sig == farc.Signal.PHY_RXD_DATA:
             rx_time, payld, rssi, snr = event.value
             me._on_rxd_frame(rx_time, payld, rssi, snr)
-            # immediate rx continuous
-            rx_args = (-1, phy_cfg.rx_freq)
-            farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_RECEIVE, rx_args), "SX127xSpiAhsm")
+            _receive_cont(phy_cfg.rx_freq)
             return me.handled(me, event)
 
         elif sig == farc.Signal.MAC_TX_REQ:
@@ -123,9 +121,7 @@ class HeyMacCsmaAhsm(farc.Ahsm):
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             logging.info("LURKING")
-            # rx continuously on the rx_freq
-            value = (-1, phy_cfg.rx_freq)
-            farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_RECEIVE, value), "SX127xSpiAhsm")
+            _receive_cont(phy_cfg.rx_freq)
             listening_period = mac_csma_cfg.BEACON_PERIOD_SEC
             me.tm_evt.postIn(me, listening_period)
             return me.handled(me, event)
@@ -159,9 +155,7 @@ class HeyMacCsmaAhsm(farc.Ahsm):
             # Process the received frame just like in _running state
             rx_time, payld, rssi, snr = event.value
             me._on_rxd_frame(rx_time, payld, rssi, snr)
-            # immediate rx continuous
-            rx_args = (-1, phy_cfg.rx_freq)
-            farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_RECEIVE, rx_args), "SX127xSpiAhsm")
+            _receive_cont(phy_cfg.rx_freq)
 
             # Transition to _networking if a bidirectional path is discovered
             if me._ngbr_hears_me(me):
@@ -173,9 +167,7 @@ class HeyMacCsmaAhsm(farc.Ahsm):
             # Transmit a std beacon during this node's beacon slot
             logging.info("bcn")
             me._tx_bcn()
-            # Resume continuous receive after beaconing
-            rx_args = (-1, phy_cfg.rx_freq)
-            farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_RECEIVE, rx_args), "SX127xSpiAhsm")
+            _receive_cont(phy_cfg.rx_freq)
             return me.handled(me, event)
 
         elif sig == farc.Signal._MAC_TM_EVT_TMOUT:
@@ -277,3 +269,11 @@ class HeyMacCsmaAhsm(farc.Ahsm):
                     if n[0] == self.saddr:
                         return True
         return False
+
+
+## Convenience functions
+
+def _receive_cont(freq):
+    """Commands the modem to receive-continuous mode
+    """
+    farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_RECEIVE, (-1, freq)), "SX127xSpiAhsm")
