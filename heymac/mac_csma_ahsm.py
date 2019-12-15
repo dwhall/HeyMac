@@ -49,7 +49,7 @@ class HeyMacCsmaAhsm(farc.Ahsm):
     def _initializing(me, event):
         """State: HeyMacCsmaAhsm:_initializing
         - initializes MAC related variables and the tx-pkt queue
-        - always transitions to the _listening state
+        - always transitions to the _lurking state
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
@@ -65,7 +65,7 @@ class HeyMacCsmaAhsm(farc.Ahsm):
             return me.handled(me, event)
 
         elif sig == farc.Signal._ALWAYS:
-            return me.tran(me, HeyMacCsmaAhsm._listening)
+            return me.tran(me, HeyMacCsmaAhsm._lurking)
 
         elif sig == farc.Signal.EXIT:
             return me.handled(me, event)
@@ -96,7 +96,7 @@ class HeyMacCsmaAhsm(farc.Ahsm):
 
         elif sig == farc.Signal.MAC_TX_REQ:
             # This low-level state should just enqueue pkts
-            # because the active state may be _listening.
+            # because the active state may be _lurking.
             me.mac_txq.insert(0, event.value) # TODO: _networking state should periodically monitor & fwd
             return me.handled(me, event)
 
@@ -114,14 +114,15 @@ class HeyMacCsmaAhsm(farc.Ahsm):
 
 
     @farc.Hsm.state
-    def _listening(me, event):
-        """State: HeyMacCsmaAhsm:_running:_listening
-        - listens for a fixed period (two beacon cycles) to build neighbor list
-        - transitions to _beaconing state
+    def _lurking(me, event):
+        """State: HeyMacCsmaAhsm:_running:_lurking
+        Passively receives radio and GPS for a fixed period
+        (two beacon cycles) to build neighbor list,
+        then transitions to the _beaconing state
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
-            logging.info("LISTENING")
+            logging.info("LURKING")
             # rx continuously on the rx_freq
             value = (-1, phy_cfg.rx_freq)
             farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_RECEIVE, value), "SX127xSpiAhsm")

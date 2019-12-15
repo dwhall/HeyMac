@@ -87,7 +87,7 @@ class HeyMacAhsm(farc.Ahsm):
             return me.handled(me, event)
 
         elif sig == farc.Signal._ALWAYS:
-            return me.tran(me, HeyMacAhsm._listening)
+            return me.tran(me, HeyMacAhsm._lurking)
 
         elif sig == farc.Signal.EXIT:
             return me.handled(me, event)
@@ -138,14 +138,14 @@ class HeyMacAhsm(farc.Ahsm):
 
 
     @farc.Hsm.state
-    def _listening(me, event):
-        """State: HeyMacAhsm:_running:_listening
-        Listens to radio and GPS for timing discipline sources.
-        Transitions to Scheduling after listening for N superframes.
+    def _lurking(me, event):
+        """State: HeyMacAhsm:_running:_lurking
+        Passively receives radio and GPS for timing discipline sources.
+        Transitions to Scheduling after lurking for N superframes.
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
-            logging.info("LISTENING")
+            logging.info("LURKING")
             # rx continuously on the rx_freq
             value = (-1, phy_cfg.rx_freq)
             farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_RECEIVE, value), "SX127xSpiAhsm")
