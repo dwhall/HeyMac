@@ -24,19 +24,27 @@ class HeyMacFrame(dpkt.Packet):
     [PID,Fctl,NetId,DstAddr,IEs,SrcAddr,Payld,MIC,Hops,TxAddr]
     """
     # HeyMac Protocol ID
+    # XXX. ....     Protocol
+    # ...X X...            Type
+    # .... .XXX                  Version
     # 1110 0vvv     HeyMac TDMA, (vvv)ersion
     # 1110 1vvv     HeyMac CSMA, (vvv)ersion
     # 1111 xxxx     HeyMac (RFU: Flood, Extended, etc.)
-    # Structure definitions
-    PID_HEYMAC_MASK = 0b11100000
+    # PID field masks
+    PID_PROTOCOL_MASK = 0b11100000
     PID_TYPE_MASK = 0b00011000
     PID_VER_MASK = 0b00000111
-    # Value definitions
-    PID_HEYMAC = 0b11100000
-    PID_TDMA_TYPE = 0b00000000
-    PID_CSMA_TYPE = 0b00001000
-    PID_TDMA_VER = 0b00000011
-    PID_CSMA_VER = 0b00000000
+    # PID field values
+    PID_PROTOCOL_HEYMAC = 0b11100000
+    PID_TYPE_TDMA = 0b00000000
+    PID_TYPE_CSMA = 0b00001000
+    PID_VER_TDMA = 0b00000000
+    PID_VER_CSMA = 0b00000000
+
+    SUPPORTED_CSMA_VERS = (0,)
+    SUPPORTED_TDMA_VERS = (0,)
+
+    PID_HEYMAC_CSMA_0 = PID_PROTOCOL_MASK | PID_TYPE_CSMA | 0
 
     # Frame Control Field (Fctl) subfield values
     FCTL_X_SHIFT = 7 # Extended frame (none of the other bits apply)
@@ -50,9 +58,9 @@ class HeyMacFrame(dpkt.Packet):
 
     __byte_order__ = '!'  # Network order
     __hdr__ = (
-        ('pid', 'B', PID_HEYMAC),
         # The underscore prefix means do not access that field directly.
-        # Access properties .fctl, .fctl_l, .fctl_n, etc. instead.
+        # Access properties .pid_protocol, .fctl, .fctl_l, .fctl_n, etc. instead.
+        ('_pid', 'B', PID_HEYMAC_CSMA_0),
         ('_fctl', 'B', 0),
         # The fields above are guaranteed to be present.
         # Below this are optional fields.
@@ -103,6 +111,55 @@ class HeyMacFrame(dpkt.Packet):
         # FIXME
         return (0,0)
 
+
+    # Getters for the _pid field
+    @property
+    def pid(self,):
+        return self._pid
+
+    @property
+    def pid_protocol(self,):
+        """Gets the Protocol value in the PID field.
+        """
+        return self._pid & HeyMacFrame.PID_PROTOCOL_MASK
+
+    @property
+    def pid_type(self,):
+        """Gets the Type value in the PID field.
+        """
+        return self._pid & HeyMacFrame.PID_TYPE_MASK
+
+    @property
+    def pid_ver(self,):
+        """Gets the Version value in the PID field.
+        Returns None if the type is not TDMA or CSMA.
+        """
+        ver = None
+        if self.pid_type in (HeyMacFrame.PID_TYPE_TDMA, HeyMacFrame.PID_TYPE_CSMA):
+            ver = self._pid & HeyMacFrame.PID_VER_MASK
+        return ver
+
+    # Setters for the _pid field
+    @pid_protocol.setter
+    def pid_protocol(self, val):
+        """Sets the Protocol value in the PID field.
+        """
+        self._pid &= ~HeyMacFrame.PID_PROTOCOL_MASK
+        self._pid |= (val & HeyMacFrame.PID_PROTOCOL_MASK)
+
+    @pid_type.setter
+    def pid_type(self, val):
+        """Sets the Type value in the PID field.
+        """
+        self._pid &= ~HeyMacFrame.PID_TYPE_MASK
+        self._pid |= (val & HeyMacFrame.PID_TYPE_MASK)
+
+    @pid_ver.setter
+    def pid_ver(self, val):
+        """Sets the Version value in the PID field.
+        """
+        self._pid &= ~HeyMacFrame.PID_VER_MASK
+        self._pid |= (val & HeyMacFrame.PID_VER_MASK)
 
     # Getters for the _fctl field
     @property
@@ -365,8 +422,12 @@ class HeyMacFrame(dpkt.Packet):
 
     # API
     def is_heymac(self,):
-        return (self.pid & HeyMacFrame.PID_HEYMAC_MASK) == HeyMacFrame.PID_HEYMAC
+        return self.pid_protocol == HeyMacFrame.PID_PROTOCOL_HEYMAC
 
     def is_heymac_version_compatible(self,):
-        # TODO: make this more robust
-        return self.pid == HeyMacFrame.PID_HEYMAC
+        if self.pid_type == HeyMacFrame.PID_TYPE_CSMA:
+            return self.pid_ver in HeyMacFrame.SUPPORTED_CSMA_VERS
+        elif self.pid_type == HeyMacFrame.PID_TYPE_TDMA:
+            return self.pid_ver in HeyMacFrame.SUPPORTED_TDMA_VERS
+        else:
+            return False

@@ -15,7 +15,7 @@ class TestHeyMacFrame(unittest.TestCase):
         # Pack
         f = heymac.HeyMacFrame()
         b = bytes(f)
-        self.assertEqual(b, b"\xE0\x00")
+        self.assertEqual(b, b"\xE8\x00")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertTrue(f.is_heymac())
@@ -39,8 +39,8 @@ class TestHeyMacFrame(unittest.TestCase):
     def test_csma(self,):
         # Pack
         f = heymac.HeyMacFrame()
-        f.pid = heymac.HeyMacFrame.PID_HEYMAC \
-            | heymac.HeyMacFrame.PID_CSMA_TYPE
+        f.pid_protocol = heymac.HeyMacFrame.PID_PROTOCOL_HEYMAC
+        f.pid_type = heymac.HeyMacFrame.PID_TYPE_CSMA
         b = bytes(f)
         self.assertEqual(b, b"\xE8\x00")
         # Unpack
@@ -66,7 +66,7 @@ class TestHeyMacFrame(unittest.TestCase):
         f = heymac.HeyMacFrame()
         f.data = b"ABCD"
         b = bytes(f)
-        self.assertEqual(b, b"\xE0\x00ABCD")
+        self.assertEqual(b, b"\xE8\x00ABCD")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_x, 0)
@@ -88,9 +88,9 @@ class TestHeyMacFrame(unittest.TestCase):
     def test_csma_ver(self,):
         # Pack
         f = heymac.HeyMacFrame()
-        f.pid = heymac.HeyMacFrame.PID_HEYMAC \
-            | heymac.HeyMacFrame.PID_CSMA_TYPE \
-            | heymac.HeyMacFrame.PID_CSMA_VER
+        f.pid_protocol = heymac.HeyMacFrame.PID_PROTOCOL_HEYMAC
+        f.pid_type = heymac.HeyMacFrame.PID_TYPE_CSMA
+        f.pid_ver = 0 #heymac.HeyMacFrame.PID_VER_CSMA
         b = bytes(f)
         self.assertEqual(b, b"\xE8\x00")
         # Unpack
@@ -117,7 +117,7 @@ class TestHeyMacFrame(unittest.TestCase):
         f = heymac.HeyMacFrame()
         f.saddr = b"\x01\x02\x03\x04\x05\x06\x07\x08"
         b = bytes(f)
-        self.assertEqual(b, b"\xE0\x44\x01\x02\x03\x04\x05\x06\x07\x08")
+        self.assertEqual(b, b"\xE8\x44\x01\x02\x03\x04\x05\x06\x07\x08")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_x, 0)
@@ -151,7 +151,7 @@ class TestHeyMacFrame(unittest.TestCase):
         )
         f.data = bytes(bcn)
         b = bytes(f)
-        self.assertEqual(b, b"\xE0\x04\x11\x12\x01\xf5\x02\x03\x04\x00\x00\x00\x2a\x00\x00\x00\x00\x00\x00\x00\x00")
+        self.assertEqual(b, b"\xE8\x04\x11\x12\x01\xf5\x02\x03\x04\x00\x00\x00\x2a\x00\x00\x00\x00\x00\x00\x00\x00")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_x, 0)
@@ -182,7 +182,7 @@ class TestHeyMacFrame(unittest.TestCase):
         f = heymac.HeyMacFrame()
         f.saddr = b"\x01\x02\x03\x04\x05\x06\x07\x08"
         b = bytes(f)
-        self.assertEqual(b, b"\xE0\x44\x01\x02\x03\x04\x05\x06\x07\x08")
+        self.assertEqual(b, b"\xE8\x44\x01\x02\x03\x04\x05\x06\x07\x08")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_x, 0)
@@ -208,7 +208,7 @@ class TestHeyMacFrame(unittest.TestCase):
         f.saddr = b"\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8"
         f.data = b"hi"
         b = bytes(f)
-        self.assertEqual(b, b"\xE0\x54\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8hi")
+        self.assertEqual(b, b"\xE8\x54\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8hi")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_x, 0)
@@ -234,7 +234,7 @@ class TestHeyMacFrame(unittest.TestCase):
         f.saddr = b"\xc1\xc2"
         f.data = b"hello world"
         b = bytes(f)
-        self.assertEqual(b, b"\xE0\x14\xd1\xd2\xc1\xc2hello world")
+        self.assertEqual(b, b"\xE8\x14\xd1\xd2\xc1\xc2hello world")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_x, 0)
@@ -258,7 +258,7 @@ class TestHeyMacFrame(unittest.TestCase):
         f = heymac.HeyMacFrame()
         f.data = heymac.APv6Frame()
         b = bytes(f)
-        self.assertEqual(b, b"\xE0\x00\xD7")
+        self.assertEqual(b, b"\xE8\x00\xD7")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_x, 0)
@@ -280,7 +280,7 @@ class TestHeyMacFrame(unittest.TestCase):
         f = heymac.HeyMacFrame()
         f.data = b"6x7"
         b = bytes(f)
-        self.assertEqual(b, b"\xE0\x006x7")
+        self.assertEqual(b, b"\xE8\x006x7")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_x, 0)
@@ -306,7 +306,7 @@ class TestHeyMacFrame(unittest.TestCase):
         f.daddr = 0xd1d2
         f.data = b"data"
         b = bytes(f)
-        self.assertEqual(b, b"\xE0\x30\x80\xa5\xd1\xd2data")
+        self.assertEqual(b, b"\xE8\x30\x80\xa5\xd1\xd2data")
         # Unpack
         f = heymac.HeyMacFrame(b)
         self.assertEqual(f.fctl_x, 0)
