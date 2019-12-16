@@ -36,6 +36,13 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(f.txaddr, b"")
 
 
+    def test_not_mac(self,):
+        b = b"\x00\x00"
+        # Unpack
+        # expect that constructor raises exception due to invalid frame header
+        self.assertRaises(ValueError, heymac.HeyMacFrame, b)
+
+
     def test_csma(self,):
         # Pack
         f = heymac.HeyMacFrame()

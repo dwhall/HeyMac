@@ -291,7 +291,7 @@ class HeyMacFrame(dpkt.Packet):
 
         # validate the PID
         if not self.is_heymac():
-            raise dpkt.UnpackError("Invalid PID value")
+            raise ValueError("Invalid PID value")
 
         # The Fctl field can be every bit-combination
         # so there's no illegal value; no way to validate.
@@ -420,9 +420,15 @@ class HeyMacFrame(dpkt.Packet):
         # returns the combined bytes object
         return super().pack_hdr() + bytes(d)
 
+
     # API
-    def is_heymac(self,):
-        return self.pid_protocol == HeyMacFrame.PID_PROTOCOL_HEYMAC
+    def is_heymac(self, pid_type=PID_TYPE_CSMA):
+        """Returns TRUE if the frame header PID Protocol field is HeyMac
+        and the PID Type field matches the given argument.
+        Does not check the PID Version field.
+        """
+        return (self.pid_protocol == HeyMacFrame.PID_PROTOCOL_HEYMAC
+            and self.pid_type == pid_type)
 
     def is_heymac_version_compatible(self,):
         if self.pid_type == HeyMacFrame.PID_TYPE_CSMA:
