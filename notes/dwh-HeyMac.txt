@@ -117,12 +117,46 @@ FrmRep Period   Sframe * 2 ^ frOrder(5)      16.0   S
 ExtBcn Period   Sframe * 2 ^ ebOrder(10)    512.0   S
 
 
+Field Header Bit Patterns
+-------------------------
+
+==========  ====================
+10xx xxxx   HeyMac Mac cmd
+110x xxxx   APv6 Net hdr
+1110 xxxx   HeyMac Mac hdr (PID)
+1111 0xxx   RFC 6282 UDP hdr
+==========  ====================
+
+
+Calculating Frame Size
+----------------------
+
+Fctl:
+
+X L N D I S M P
+0 L N D 0 S M x
+===============
+b   0   1
+---------------
+N   0   2
+D   0   2+6L
+S   0   2+6L
+M   0   3+6L
+===============
+
+hdr_sz = 2 # (pid + fctl)
+    + fctl_n * 2
+    + fctl_d * (2 + 6 * fctl_l)
+    # TODO: + sizeof( IEs )
+    + fctl_s * (2 + 6 * fctl_l)
+ftr_sz = fctl_m * (3 + 6 * fctl_l)
+payld_sz = frame_sz - hdr_sz - ftr_sz
+
 
 Information Elements
 --------------------
 
-Method 1 (explicit length):
-
+Note for comparison:
 IEEE 802.15.4 spec 7.4.2.1.
 2-octet header, followed by 0..127 octet content.
 [TIIIIIIIILLLLLLL]
@@ -130,41 +164,31 @@ T = Type (always 0)
 I = Element ID (0..255)
 L = Length (0..127)
 
+Information Elements
+(think of them as extended frame control data)
+hIE: header IE: must not be included in Cipher range
+bIE: body IE: may included in Cipher range
 
-Method 2a (implicit length, more bytes):
-
-T = Type (always 1)
 ==========  ==========  ====================
-Tag/Len     Qty         IE Form
+bit pattern h,b         IE size (count of octets that follow)
 ----------  ----------  --------------------
-T000 0000   1           Terminator
-T000 1xxx   8           8-Byte
-T001 xxxx   16          4-Byte
-T01x xxxx   32          2-Byte
-T1xx xxxx   64          1-Byte
+0000 01Tt   1,1         8 (first octet is ID, 7 octets data)
+0000 1xTt   2,2         4
+0001 xxTt   4,4         2
+001x xxTt   8,8         1
+01bx xxTt   8,8         0 (b: 1-bit data)
 ==========  ==========  ====================
+(t = IE is terminator, T = Type 0:hIE, 1:bIE)
 
-
-Method 2b (implicit length, bits):
-
-T = Type (always 1)
-==========  ==========  ====================
-Tag/Len     Qty         IE Form
-----------  ----------  --------------------
-T000 0000   1           Terminator
-T000 01xx   4           8-Byte
-T000 1xxx   8           4-Byte
-T001 xxxx   16          2-Byte
-T01x xxxx   32          1-Byte
-T1bx xxxx   32          1-bit
-==========  ==========  ====================
 
 IE Uses
 -------
 
-Sequence Number
-MIC Type
-Encipher Type
+hIEs
+    Encipher Algo
+bIEs
+    MIC Algo
+    Sequence Number
 
 
 Commands

@@ -339,18 +339,18 @@ class HeyMacFrame(dpkt.Packet):
 
         # At this point self.data contains the payload, which may be empty.
         # The first byte of the payload denotes its type.
+        # Create an instance of its type and keep it as self.payld
         if self.data:
-            payld_type = self.data[0]
-            if payld_type & APv6Frame.IPHC_PREFIX_MASK == APv6Frame.APV6_PREFIX:
+            if self.is_data_net_layer(self.data[0]):
                 try:
                     self.payld = APv6Frame(self.data)
                 except:
                     logging.info("invalid APv6 frame: %b", self.data)
-            else:
+            elif self.is_data_mac_layer(self.data[0]):
                 try:
                     self.payld = HeyMacCmdInstance(self.data)
                 except:
-                    logging.info("invalid MAC cmd %d", self.data[0])
+                    logging.info("invalid MAC cmd %d", self.data[0] & HeyMacCmd.CMD_MASK)
 
 
     def pack_hdr(self):
@@ -437,3 +437,16 @@ class HeyMacFrame(dpkt.Packet):
             return self.pid_ver in HeyMacFrame.SUPPORTED_TDMA_VERS
         else:
             return False
+
+    def is_data_mac_layer(self,):
+        """Returns TRUE if the first octet in the payload
+        indicates this frame is meant for the MAC layer
+        """
+        return (self.data[0] & HeyMacCmd.PREFIX_MASK) == HeyMacCmd.PREFIX
+
+    def is_data_net_layer(self,):
+        """Returns TRUE if the first octet in the payload
+        indicates this frame is meant for the NET layer
+        """
+        return (self.data[0] & APv6Frame.IPHC_PREFIX_MASK) == APv6Frame.APV6_PREFIX
+

@@ -218,18 +218,36 @@ class HeyMacCsmaAhsm(farc.Ahsm):
         try:
             f = mac_frame.HeyMacFrame(bytes(payld))
         except:
-            logging.warning("rxd pkt failed unpacking")
+            logging.warning("rxd pkt failed header validation or unpacking")
+            return
+
+        if f.pid_type != HeyMacFrame.PID_TYPE_CSMA:
+            logging.warning("rxd pkt is not HeyMac CSMA")
             return
 
         if not f.is_heymac_version_compatible():
-            logging.warning("rxd pkt has incompatible version")
+            logging.warning("rxd pkt has incompatible HeyMac version")
             return
 
         logging.info(
             "rx_time        %f\tRXD %d bytes, rssi=%d dBm, snr=%.3f dB\t%s",
             rx_time, len(payld), rssi, snr, repr(f))
 
-        self.mac_data.process_heymac_frame(f)
+        #TODO:
+        if TRUE: # f.is_meant_for_this_node():
+            if f.is_data_mac_layer():
+                # TODO: if frame type is beacon:
+                # Move to process_mac_frame():
+                self.mac_data.process_bcn(rx_time, f)
+
+            elif f.is_payld_net_layer():
+                self.process_net_pkt(rx_time, f)
+
+        # else:
+        #   if I should forward frame:
+        #       reduce hop count
+        #       apply my address
+        #       put pkt in txq
 
 
     def _tx_bcn(self,):

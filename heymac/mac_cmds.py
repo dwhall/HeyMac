@@ -31,7 +31,9 @@ class HeyMacCmd(dpkt.Packet):
     This class helps organize inheritance
     and can serve as a constructor for all command packets
     """
-    pass
+    PREFIX = 0b10000000
+    PREFIX_MASK = 0b11000000
+    CMD_MASK = 0b00111111
 
 
 class HeyMacCmdInvalid(HeyMacCmd):
@@ -39,7 +41,7 @@ class HeyMacCmdInvalid(HeyMacCmd):
     """
     __byte_order__ = '!' # Network order
     __hdr__ = (
-        ('cmd', 'B', HeyMacCmdId.INVALID),
+        ('cmd', 'B', HeyMacCmd.PREFIX | HeyMacCmdId.INVALID),
     )
 
 
@@ -56,7 +58,7 @@ class HeyMacCmdSbcn(HeyMacCmd):
 
     __byte_order__ = '!' # Network order
     __hdr__ = (
-        ('cmd', 'B', HeyMacCmdId.SBCN),
+        ('cmd', 'B', HeyMacCmd.PREFIX | HeyMacCmdId.SBCN),
         # The underscore prefix means do not access that field directly.
         # Access properties: .bcn_en, .sf_order and .eb_order, instead.
         ('_frame_spec', 'B', 0),
@@ -201,7 +203,7 @@ class HeyMacCmdEbcn(HeyMacCmdSbcn):
 
     __byte_order__ = '!' # Network order
     __hdr__ = (
-        ('cmd', 'B', HeyMacCmdId.EBCN),
+        ('cmd', 'B', HeyMacCmd.PREFIX | HeyMacCmdId.EBCN),
         # The underscore prefix means do not access that field directly.
         # Access properties: .bcn_en, .sf_order and .eb_order, instead.
         ('_frame_spec', 'B', 0),
@@ -327,7 +329,7 @@ class HeyMacCmdTxt(HeyMacCmd):
     """
     __byte_order__ = '!' # Network order
     __hdr__ = (
-        ('cmd', 'B', HeyMacCmdId.TXT),
+        ('cmd', 'B', HeyMacCmd.PREFIX | HeyMacCmdId.TXT),
         ('msg', '0s', b''),
     )
 
@@ -349,19 +351,17 @@ class HeyMacCmdTxt(HeyMacCmd):
 
 
 class HeyMacCmdCbcn(HeyMacCmd):
-    """HeyMac Csma Beacon command packet
-    { 4, TBD }
+    """HeyMac CSMA Beacon command packet
+    { 4, caps, status, nets[], ngbrs[] } # NOTE: form not finalized
     """
     __byte_order__ = '!' # Network order
     __hdr__ = (
-        ('cmd', 'B', HeyMacCmdId.CBCN),
-        # The underscore prefix means do not access that field directly.
-        # Access properties: .bcn_en, .sf_order and .eb_order, instead.
-#        ('_frame_spec', 'B', 0),
-        ('caps', 'B', 0),
-        ('status', 'B', 0),
+        ('cmd', 'B', HeyMacCmd.PREFIX | HeyMacCmdId.CBCN),
+        ('caps', 'H', 0),
+        ('status', 'H', 0),
         # variable-length fields:
-#        ('ngbrs', '0s', b''),
+        ('nets', '0s', b''),    # N, N * [netid, shrt_addr]
+        ('ngbrs', '0s', b''),   # N, N * long_addr
     )
 
 
@@ -381,7 +381,7 @@ class HeyMacCmdProtocol(HeyMacCmd):
 
     __byte_order__ = '!' # Network order
     __hdr__ = (
-        ('cmd', 'B', HeyMacCmdId.PROTO),
+        ('cmd', 'B', HeyMacCmd.PREFIX | HeyMacCmdId.PROTO),
         ('pid', 'B', 0), # Protocol ID
         ('mid', 'B', 0), # Message ID
     )
@@ -400,8 +400,9 @@ CMD_CLASS_LUT = (
 )
 
 
-def HeyMacCmdInstance(cmd):
+def HeyMacCmdInstance(mac_payld):
     """Returns an instance of one of the HeyMacCmd classes
-    based on the command id (first byte of cmd).
+    based on the command id (within the first byte of mac_payld).
     """
-    return CMD_CLASS_LUT[cmd[0]](cmd)
+    cmd_id = mac_payld[0] & HeyMacCmd.CMD_MASK
+    return CMD_CLASS_LUT[cmd_id](mac_payld)
