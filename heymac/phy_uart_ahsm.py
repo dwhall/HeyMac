@@ -17,11 +17,11 @@ except:
     from . import mock_serial as serial
 
 
-# Time period to check UART for data
-UART_POLL_PERIOD = 0.100 # [secs]
-
 
 class UartAhsm(farc.Ahsm):
+    # Time period to check UART for data
+    UART_POLL_PERIOD = 0.100 # [secs]
+
     def __init__(self, rx_callback=None):
         super().__init__()
         self.rx_callback = rx_callback
@@ -76,12 +76,12 @@ class UartAhsm(farc.Ahsm):
             me.ser = serial.Serial(**me.uart_stngs)
 
             # Start the polling timer
-            me.tm_evt.postEvery(me, UART_POLL_PERIOD)
+            me.tm_evt.postEvery(me, UartAhsm.UART_POLL_PERIOD)
             return me.handled(me, event)
 
         elif sig == farc.Signal._PHY_UART_TM_EVT:
             # UART buffer size depends on baud rate (2X for margin)
-            ser_fifo_max = 2 * round(me.ser.baudrate * UART_POLL_PERIOD)
+            ser_fifo_max = 2 * round(me.ser.baudrate * UartAhsm.UART_POLL_PERIOD)
 
             # Read the available data from the serial port
             new_bytes = me.ser.read(ser_fifo_max)
@@ -117,3 +117,16 @@ class UartAhsm(farc.Ahsm):
             return me.handled(me, event)
 
         return me.super(me, me.top)
+
+    # Public interface
+    def post_open(self, stngs):
+        """Posts the OPEN event to self with the given settings
+        """
+        # TODO: validate settings
+        self.postFIFO(farc.Event(farc.Signal.PHY_UART_OPEN, stngs))
+
+
+    def post_close(self):
+        """Posts the CLOSE event to self
+        """
+        self.postFIFO(farc.Event(farc.Signal.PHY_UART_close))

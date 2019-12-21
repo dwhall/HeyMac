@@ -1,5 +1,5 @@
 # A time slot (Tslot) is a window of time to complete a 256 byte frame
-# and an acknowledgement frame.  The HeyMac protocol uses a whole number
+# and an acknowledgement frame.  The HeyMac TDMA protocol uses a whole number
 # of Tslots within one second.
 TSLOTS_PER_SEC = 4
 

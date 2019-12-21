@@ -13,7 +13,7 @@
     <state name="initializing">
      <entry brief="post(CFG_LORA, Sx127xAhsm)"/>
      <tran trig="ALWAYS" target="../../2/6">
-      <tran_glyph conn="48,16,2,0,16">
+      <tran_glyph conn="48,16,2,0,20">
        <action box="0,0,10,2"/>
       </tran_glyph>
      </tran>
@@ -75,7 +75,7 @@
        <exit box="1,4,15,2"/>
       </state_glyph>
      </state>
-     <state name="listening">
+     <state name="lurking">
       <documentation>ex_prep()</documentation>
       <entry brief="rx until tmout"/>
       <exit brief="post(CANCEL, PHY)"/>
@@ -84,7 +84,7 @@
         <action box="0,-2,14,2"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="24,32,28,18">
+      <state_glyph node="24,36,28,14">
        <entry box="1,2,26,2"/>
        <exit box="1,4,27,2"/>
       </state_glyph>

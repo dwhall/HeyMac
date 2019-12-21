@@ -37,18 +37,18 @@
      <documentation>This is LoRa mode Standby</documentation>
      <tran trig="RECEIVE" target="../6">
       <action>(time, freq)</action>
-      <tran_glyph conn="20,32,3,0,8,8">
+      <tran_glyph conn="20,32,3,0,8,4">
        <action box="0,-2,10,2"/>
       </tran_glyph>
      </tran>
      <tran trig="TRANSMIT" target="../5">
       <action>(time, freq)</action>
-      <tran_glyph conn="20,30,3,0,32,10">
+      <tran_glyph conn="20,30,3,0,32,6">
        <action box="0,-2,11,2"/>
       </tran_glyph>
      </tran>
      <tran trig="CAD" target="../../3/3">
-      <tran_glyph conn="20,28,3,0,48,30">
+      <tran_glyph conn="20,28,3,0,48,28">
        <action box="0,-2,10,2"/>
       </tran_glyph>
      </tran>
@@ -67,11 +67,11 @@
       <entry>Set IRQs, DIO, TX FIFO, TX freq</entry>
       <tran trig="ALWAYS" target="../../../3/1">
        <action brief="time.sleep()"/>
-       <tran_glyph conn="46,48,3,0,6,10">
+       <tran_glyph conn="46,44,3,0,6,12">
         <action box="0,-2,16,2"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="46,40,16,10">
+      <state_glyph node="46,36,16,10">
        <entry box="1,2,6,2"/>
       </state_glyph>
      </state>
@@ -79,11 +79,11 @@
       <entry>Set IRQs, DIO, RX FIFO and RX freq.</entry>
       <tran trig="ALWAYS" target="../../../3/2">
        <action brief="time.sleep()"/>
-       <tran_glyph conn="22,48,3,0,6,10">
+       <tran_glyph conn="22,44,3,0,6,12">
         <action box="0,-2,15,2"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="22,40,16,10">
+      <state_glyph node="22,36,16,10">
        <entry box="1,2,15,2"/>
       </state_glyph>
      </state>
@@ -95,12 +95,12 @@
        <exit box="1,4,17,2"/>
       </state_glyph>
      </state>
-     <state_glyph node="20,18,72,34"/>
+     <state_glyph node="20,18,72,30"/>
     </state>
     <state name="working">
      <tran trig="CANCEL" target="../../2">
       <action brief="set_mode(&quot;stdby&quot;)"/>
-      <tran_glyph conn="20,78,3,2,68,-26">
+      <tran_glyph conn="20,84,3,2,68,-36">
        <action box="0,-2,20,2"/>
       </tran_glyph>
      </tran>
@@ -108,41 +108,49 @@
       <entry brief="set_mode(&quot;tx&quot;)"/>
       <tran trig="DIO0" target="../../../2">
        <action>This is TX_DONE</action>
-       <tran_glyph conn="46,64,3,2,14,-12">
+       <tran_glyph conn="46,62,3,2,14,-14">
         <action box="0,-2,16,2"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="46,58,16,12">
+      <state_glyph node="46,56,16,12">
        <entry box="1,2,15,2"/>
       </state_glyph>
      </state>
-     <state name="receiving">
+     <state name="listening">
       <entry brief="set_mode(&quot;rxonce&quot;)"/>
       <tran trig="DIO0" target="../../../2">
        <action brief="rx_done()"/>
-       <tran_glyph conn="22,64,3,2,16,-12">
+       <tran_glyph conn="22,62,3,2,16,-14">
         <action box="0,-2,18,2"/>
        </tran_glyph>
       </tran>
       <tran trig="DIO1" target="../../../2">
        <action brief="clear_irqs()">This is RX_TIMEOUT</action>
-       <tran_glyph conn="22,66,3,2,18,-14">
+       <tran_glyph conn="22,64,3,2,18,-16">
         <action box="0,-2,20,2"/>
        </tran_glyph>
       </tran>
-      <tran trig="DIO3">
+      <tran trig="DIO3" target="../4">
        <action brief="clear_irqs()">This is a ValidHeader signal from</action>
-       <tran_glyph conn="22,68,3,-1,18">
+       <tran_glyph conn="22,66,3,0,12,2">
         <action box="0,-2,18,2"/>
        </tran_glyph>
       </tran>
       <tran trig="TRANSMIT" target="../../../2/5">
        <action brief="set_mode(&quot;stdby&quot;)"/>
-       <tran_glyph conn="22,72,3,3,20,-28,4">
+       <tran_glyph conn="22,78,3,3,20,-38,4">
         <action box="0,-2,20,2"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="22,58,22,16">
+      <state name="receiving">
+       <tran trig="TRANSMIT/enqueue(pkt)">
+        <tran_glyph conn="24,72,3,-1,14">
+         <action box="0,-2,16,2"/>
+        </tran_glyph>
+       </tran>
+       <state_glyph node="24,68,16,6"/>
+      </state>
+      <state_glyph node="22,56,22,24">
        <entry box="1,2,18,2"/>
       </state_glyph>
      </state>
@@ -151,21 +159,21 @@
       <entry brief="set_mode(&quot;cad&quot;)"/>
       <tran trig="DIO3" target="../../../2">
        <action brief="cad_done()"/>
-       <tran_glyph conn="66,64,3,2,14,-12">
+       <tran_glyph conn="66,62,3,2,14,-14">
         <action box="0,-2,18,2"/>
        </tran_glyph>
       </tran>
       <tran trig="DIO4" target="../../../2">
        <action brief="cad_detected()"/>
-       <tran_glyph conn="66,66,3,2,16,-14">
+       <tran_glyph conn="66,64,3,2,16,-16">
         <action box="0,-2,18,2"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="66,58,20,12">
+      <state_glyph node="66,56,20,12">
        <entry box="1,2,15,2"/>
       </state_glyph>
      </state>
-     <state_glyph node="20,54,72,26"/>
+     <state_glyph node="20,52,72,34"/>
     </state>
     <state_diagram size="113,109"/>
    </statechart>

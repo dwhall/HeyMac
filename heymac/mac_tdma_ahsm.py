@@ -18,7 +18,7 @@ import socket
 
 import farc
 
-from . import dll_data
+from . import mac_data
 from . import mac_tdma_cfg
 from . import mac_cmds
 from . import mac_tdma_discipline
@@ -63,13 +63,13 @@ class HeyMacAhsm(farc.Ahsm):
 
         # Data Link Layer data
         # TODO: network's SF/EB_ORDER values may change at runtime.
-        #       Need to have dll_data's ValidatedDicts adapt.
+        #       Need to have mac_data's ValidatedDicts adapt.
         tm_tslot_period = (1.0 / mac_tdma_cfg.TSLOTS_PER_SEC)
         tm_sf_period = (2 ** mac_tdma_cfg.FRAME_SPEC_SF_ORDER) * tm_tslot_period
         tm_eb_period = (2 ** mac_tdma_cfg.FRAME_SPEC_EB_ORDER) * tm_sf_period
         bcn_expiration = 4 * tm_sf_period
         ebcn_expiration = 2 * tm_eb_period
-        me.dll_data = dll_data.DllData(bcn_expiration, ebcn_expiration)
+        me.mac_data = mac_data.MacData(bcn_expiration, ebcn_expiration)
 
         # Transmit queue
         me.mac_txq = []
@@ -87,7 +87,7 @@ class HeyMacAhsm(farc.Ahsm):
             return me.handled(me, event)
 
         elif sig == farc.Signal._ALWAYS:
-            return me.tran(me, HeyMacAhsm._listening)
+            return me.tran(me, HeyMacAhsm._lurking)
 
         elif sig == farc.Signal.EXIT:
             return me.handled(me, event)
@@ -138,14 +138,14 @@ class HeyMacAhsm(farc.Ahsm):
 
 
     @farc.Hsm.state
-    def _listening(me, event):
-        """State: HeyMacAhsm:_running:_listening
-        Listens to radio and GPS for timing discipline sources.
-        Transitions to Scheduling after listening for N superframes.
+    def _lurking(me, event):
+        """State: HeyMacAhsm:_running:_lurking
+        Passively receives radio and GPS for timing discipline sources.
+        Transitions to Scheduling after lurking for N superframes.
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
-            logging.info("LISTENING")
+            logging.info("LURKING")
             # rx continuously on the rx_freq
             value = (-1, phy_cfg.rx_freq)
             farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_RECEIVE, value), "SX127xSpiAhsm")
@@ -292,7 +292,7 @@ class HeyMacAhsm(farc.Ahsm):
                 "rx_time        %f\tRXD %d bytes, rssi=%d dBm, snr=%.3f dB\t%s",
                 rx_time, len(payld), rssi, snr, repr(f))
 
-            self.dll_data.process_heymac_frame(f)
+            self.mac_data.process_heymac_frame(f)
 
             if f.is_bcn():
                 self._on_rxd_mac_bcn(self, rx_time, f, rssi, snr)
@@ -350,7 +350,7 @@ class HeyMacAhsm(farc.Ahsm):
             status=0,
             asn=self.asn,
             tx_slots=my_bcn_slotmap, # FIXME
-            ngbr_tx_slots=self.dll_data.get_bcn_slotmap(mac_tdma_cfg.FRAME_SPEC_SF_ORDER),
+            ngbr_tx_slots=self.mac_data.get_bcn_slotmap(mac_tdma_cfg.FRAME_SPEC_SF_ORDER),
             )
         tx_args = (abs_time, phy_cfg.tx_freq, bytes(frame)) # tx time, freq and data
         farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
@@ -371,7 +371,7 @@ class HeyMacAhsm(farc.Ahsm):
             status=0,
             asn=self.asn,
             tx_slots=my_bcn_slotmap, # FIXME
-            ngbr_tx_slots=self.dll_data.get_bcn_slotmap(mac_tdma_cfg.FRAME_SPEC_SF_ORDER),
+            ngbr_tx_slots=self.mac_data.get_bcn_slotmap(mac_tdma_cfg.FRAME_SPEC_SF_ORDER),
             # extended fields:
             station_id=socket.gethostname().encode(),
             geoloc=getattr(self, "gps_gprmc", b""), #TODO: extract lat/lon from gprmc
@@ -398,7 +398,7 @@ class HeyMacAhsm(farc.Ahsm):
         in its extended beacon neighbor report;
         proving two-way transmission has taken place.
         """
-        ngbr_ebcns = self.dll_data.get_ebcns()
+        ngbr_ebcns = self.mac_data.get_ebcns()
         for ngbr, ebcn in ngbr_ebcns.items():
             if ebcn.valid:
                 ebcn = ebcn.value
@@ -422,7 +422,7 @@ class HeyMacAhsm(farc.Ahsm):
                    % (2 ** self.sf_order)
 
         # Increment the intial value while there is a collision with neighboring beacons
-        bcn_slotmap = self.dll_data.get_bcn_slotmap(mac_tdma_cfg.FRAME_SPEC_SF_ORDER)
+        bcn_slotmap = self.mac_data.get_bcn_slotmap(mac_tdma_cfg.FRAME_SPEC_SF_ORDER)
         while bcn_slotmap[ bcn_slot // 8 ] & (1 << (bcn_slot % 8)):
             bcn_slot += 1
 

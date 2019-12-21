@@ -22,6 +22,8 @@ class HeyMacCmdId(enum.IntEnum):
     SBCN = 1
     EBCN = 2
     TXT = 3
+    CBCN = 4
+    PROTO = 5
 
 
 class HeyMacCmd(dpkt.Packet):
@@ -29,10 +31,9 @@ class HeyMacCmd(dpkt.Packet):
     This class helps organize inheritance
     and can serve as a constructor for all command packets
     """
-    pass
-#    def __init__(self, cmd_id):
-#        super().__init__()
-# TODO: create instance of class using cmd_id or data
+    PREFIX = 0b10000000
+    PREFIX_MASK = 0b11000000
+    CMD_MASK = 0b00111111
 
 
 class HeyMacCmdInvalid(HeyMacCmd):
@@ -40,14 +41,14 @@ class HeyMacCmdInvalid(HeyMacCmd):
     """
     __byte_order__ = '!' # Network order
     __hdr__ = (
-        ('cmd', 'B', HeyMacCmdId.INVALID),
+        ('cmd', 'B', HeyMacCmd.PREFIX | HeyMacCmdId.INVALID),
     )
 
 
 class HeyMacCmdSbcn(HeyMacCmd):
     """HeyMac Standard Beacon command packet
+    { 1, _frame_spec, dscpln, caps, status, asn, tx_slots, ngbr_tx_slots }
     """
-
     FRAME_SPEC_BCN_EN_MASK = 0b10000000
     FRAME_SPEC_BCN_EN_SHIFT = 7
     FRAME_SPEC_EB_ORDER_MASK = 0b01110000
@@ -57,7 +58,7 @@ class HeyMacCmdSbcn(HeyMacCmd):
 
     __byte_order__ = '!' # Network order
     __hdr__ = (
-        ('cmd', 'B', HeyMacCmdId.SBCN),
+        ('cmd', 'B', HeyMacCmd.PREFIX | HeyMacCmdId.SBCN),
         # The underscore prefix means do not access that field directly.
         # Access properties: .bcn_en, .sf_order and .eb_order, instead.
         ('_frame_spec', 'B', 0),
@@ -186,6 +187,7 @@ class HeyMacCmdSbcn(HeyMacCmd):
 
 class HeyMacCmdEbcn(HeyMacCmdSbcn):
     """HeyMac Extended Beacon command packet.
+    { 2, ...many fields... }
     Inherits from HeyMacCmdSbcn in order to re-use the property setters/getters
     because Ebcn shares many fields with Sbcn.
     """
@@ -201,7 +203,7 @@ class HeyMacCmdEbcn(HeyMacCmdSbcn):
 
     __byte_order__ = '!' # Network order
     __hdr__ = (
-        ('cmd', 'B', HeyMacCmdId.EBCN),
+        ('cmd', 'B', HeyMacCmd.PREFIX | HeyMacCmdId.EBCN),
         # The underscore prefix means do not access that field directly.
         # Access properties: .bcn_en, .sf_order and .eb_order, instead.
         ('_frame_spec', 'B', 0),
@@ -322,9 +324,12 @@ class HeyMacCmdEbcn(HeyMacCmdSbcn):
 
 
 class HeyMacCmdTxt(HeyMacCmd):
+    """HeyMac Text message command packet
+    { 3, msg }
+    """
     __byte_order__ = '!' # Network order
     __hdr__ = (
-        ('cmd', 'B', HeyMacCmdId.TXT),
+        ('cmd', 'B', HeyMacCmd.PREFIX | HeyMacCmdId.TXT),
         ('msg', '0s', b''),
     )
 
@@ -344,3 +349,60 @@ class HeyMacCmdTxt(HeyMacCmd):
         self.msg = buf[self.__hdr_len__:]
         self.data = bytes()
 
+
+class HeyMacCmdCbcn(HeyMacCmd):
+    """HeyMac CSMA Beacon command packet
+    { 4, caps, status, nets[], ngbrs[] } # NOTE: form not finalized
+    """
+    __byte_order__ = '!' # Network order
+    __hdr__ = (
+        ('cmd', 'B', HeyMacCmd.PREFIX | HeyMacCmdId.CBCN),
+        ('caps', 'H', 0),
+        ('status', 'H', 0),
+        # variable-length fields:
+        ('nets', '0s', b''),    # N, N * [netid, shrt_addr]
+        ('ngbrs', '0s', b''),   # N, N * long_addr
+    )
+
+
+class HeyMacCmdProtocol(HeyMacCmd):
+    """HeyMac Protocol command packet
+    { 5, pid, mid }
+    """
+    PID_INVAL = 0
+    PID_NET_JOIN = 1
+    PID_NET_LEAVE = 2
+
+    MID_NAK = 0
+    MID_NET_JOIN_RQST = 1
+    MID_NET_JOIN_ACCPT = 2
+    MID_NET_JOIN_NTFY = 3
+    MID_NET_JOIN_RJCT = 4
+
+    __byte_order__ = '!' # Network order
+    __hdr__ = (
+        ('cmd', 'B', HeyMacCmd.PREFIX | HeyMacCmdId.PROTO),
+        ('pid', 'B', 0), # Protocol ID
+        ('mid', 'B', 0), # Message ID
+    )
+
+
+# EVERYTHING BELOW THIS MUST BE AT THE BOTTOM OF THE FILE
+
+# The order of this LUT must match HeyMacCmdId
+CMD_CLASS_LUT = (
+    HeyMacCmdInvalid,   # INVALID = 0
+    HeyMacCmdSbcn,
+    HeyMacCmdEbcn,
+    HeyMacCmdTxt,
+    HeyMacCmdCbcn,
+    HeyMacCmdProtocol,  # PROTO = 5
+)
+
+
+def HeyMacCmdInstance(mac_payld):
+    """Returns an instance of one of the HeyMacCmd classes
+    based on the command id (within the first byte of mac_payld).
+    """
+    cmd_id = mac_payld[0] & HeyMacCmd.CMD_MASK
+    return CMD_CLASS_LUT[cmd_id](mac_payld)

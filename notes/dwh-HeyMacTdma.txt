@@ -1,0 +1,127 @@
+HeyMac TDMA
+===========
+
+
+Level
+~~~~~
+
+Level is the number of Tslots per second; a measure of data capacity.
+HeyMac divides 1s by an integer to get the Tslot interval.
+The divisor is called the Level.  The faster the data transfer,
+the shorter the Tslots, the greater the Level.
+
+A Tslot (timeslot) is a measure of time that allows
+the largest Physical payload (256B), TX/RX turnaround, an Ack frame and margins.
+
+======  ========
+Level   Tslot
+        Duration
+======  ========
+1       1000 ms
+2        500 ms
+3        333 ms
+4        250 ms
+5        200 ms
+6        166.7 ms
+7        142.8 ms
+8        125 ms
+======  ========
+
+Mode2 is Level 6 (Tslot=166.7 ms)
+all others are Level 4 (Tslot=250.0 ms):
+
+    ==================  ======  ======  ======  ======
+    Activity            LoRa0   LoRa1   LoRa2   LoRa3
+    ==================  ======  ======  ======  ======
+    Margin                6       0       6       3
+    255B payload        199     237     117     206
+    TX/RX turnaround      1       1       1       1
+    Margin                4       0       4       3
+    32B Ack              35      40      19      34
+    Margin                5       0       5       3
+    ------------------  ------  ------  ------  ------
+    Tslot duration      250 ms  277 ms  152 ms  250 ms
+    ------------------  ------  ------  ------  ------
+    Level               4       3       6       4
+    ==================  ======  ======  ======  ======
+
+
+Order
+~~~~~
+
+Order is a measure of node density.
+HeyMac uses 2**Order Tslots per Sframe
+and increases the Order dynamically as needed.
+More Tslots are needed (for beaconing, at least)
+as the number of neighbors within 1-hop of a single node rises.
+
+Mode0 utilizes Orders 1,4,6 and 8.
+
+======  =========   =========   ================
+        Tslots/     Sframe      Node
+Order   Sframe      Duration    Density
+======  =========   =========   ================
+1         4            1s       Pair (1..2)
+4        16            4s       Low (1..8)
+6        64           16s       Med (4..32)
+8       256           64s       High (16..128)
+10                   256s  4m
+12                  1024s 17m
+14 max              4096s 68m
+======  =========   =========   ================
+
+
+Small Beacon
+------------
+
+======  ====================    ========================================
+Octets  Field                   Bitfields
+======  ====================    ========================================
+1       FrameSpec
+                                7       Bcn/TS enabled
+                                6..4    frOrder // FrmRep: frame repeat period
+                                3..0    ebOrder // ExtBcn: extended beacon period
+1       Dscpln                  7..4    Dscpln source
+                                3..0    Distance from source
+1       Caps                    0       Root-able
+                                1       Ample power
+1       Status                  0       Child-able (not transient and address available)
+                                1       GPS valid (PPS & date/time)
+4       Abs Sframe Nmbr         Current Sframe
+Fbf     TxFrames                The Sframes in which this node TXs
+Fbf     NgbrTxFrames            The Sframes in which this node's ngbrs Tx
+                                Fbf := 2^frOrder / 8   // Frame Bit Field
+------  --------------------    ----------------------------------------
+16      when frOrder=5          Small Beacon payld size
+======  ====================    ========================================
+
+If Caps or Status bits ever run out, use an IE.
+
+Small Beacon Frame::
+
+                +------+--------+-----+-----------+
+    Field:      | Fctl | VerSeq | Src | Small Bcn |
+                +------+--------+-----+-----------+
+    octets:     |  1   |    1   |  8  |    16     |
+                +------+--------+-----+-----------+
+
+Small Beacon total size: 26B
+LoRa1, ExplctHdr, Payload 26B, CRC, : 33.92 mS.
+Must reduce payload to 19B (Small Bcn to 9B) to fit in 1 Tslot (not likely to happen).
+
+
+Ext Beacon
+----------
+
+Small Beacon plus:
+
+======  ====================    ========================================
+Octets  Field                   Bitfields
+======  ====================    ========================================
+*       station_id
+*       ngbr_data
+*       nets_data
+*       geoloc
+======  ====================    ========================================
+
+
