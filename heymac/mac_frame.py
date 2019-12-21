@@ -11,12 +11,17 @@ which may be installed via::
 """
 
 
+import collections
 import logging
 
 import dpkt # pip install dpkt
 
 from .mac_cmds import *
 from .net_frame import APv6Frame
+
+
+FrameInfo = collections.namedtuple("FrameInfo", ["frame", "rx_time", "rssi", "snr"])
+FrameInfo.__doc__ = "A namedtuple of a HeyMacFrame and its reception time, RSSI and SNR"
 
 
 class HeyMacFrame(dpkt.Packet):
@@ -341,16 +346,18 @@ class HeyMacFrame(dpkt.Packet):
         # The first byte of the payload denotes its type.
         # Create an instance of its type and keep it as self.payld
         if self.data:
-            if self.is_data_net_layer(self.data[0]):
-                try:
-                    self.payld = APv6Frame(self.data)
-                except:
-                    logging.info("invalid APv6 frame: %b", self.data)
-            elif self.is_data_mac_layer(self.data[0]):
+            if self.is_data_mac_layer():
                 try:
                     self.payld = HeyMacCmdInstance(self.data)
                 except:
-                    logging.info("invalid MAC cmd %d", self.data[0] & HeyMacCmd.CMD_MASK)
+                    logging.info("invalid MAC frame: %s", self.data.encode())
+                    raise ValueError()
+            elif self.is_data_net_layer():
+                try:
+                    self.payld = APv6Frame(self.data)
+                except:
+                    logging.info("invalid APv6 pkt: %s", self.data.encode())
+                    raise ValueError()
 
 
     def pack_hdr(self):

@@ -125,6 +125,14 @@ Field Header Bit Patterns
 110x xxxx   APv6 Net hdr
 1110 xxxx   HeyMac Mac hdr (PID)
 1111 0xxx   RFC 6282 UDP hdr
+----------  --------------------
+            qty
+            hIE,bIE     sz
+0000 01Tt   1,1         8 (first octet is ID, 7 octets data)
+0000 1xTt   2,2         4
+0001 xxTt   4,4         2
+001x xxTt   8,8         1
+01bx xxTt   8,8         0 (b: 1-bit data)
 ==========  ====================
 
 

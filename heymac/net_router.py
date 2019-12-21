@@ -4,7 +4,7 @@ Copyright 2018 Dean Hall.  See LICENSE for details.
 Routing
 -------
 
-In a DAG, message routing is either "up" or "down".
+Message travel along a DAG is either "up" or "down".
 Upward routes travel toward the DAG's Root.
 Downward routes travel toward a leaf node.
 
@@ -27,11 +27,13 @@ to reach node 0xC59A from Root, the route is::
 
     0x0000, 0xC000, 0xC500, 0xC590, 0xC59A
 
+Note that the reverse route is also just as simple.
 Second, when routing from one node to another a simple
 up-down route is available.  The route proceeds from the source,
 up to the nearest ancestor common to both nodes
-and then down to the destination.  Determining the
-nearest common ancestor (NCA) address is trivial:
+and then down to the destination.  The nearest common
+ancestor (NCA) may or may not be the root.  Determining the
+nearest common ancestor address is trivial:
 
 1) Proceed along the address nibbles from left to right.
 2) If the source and destination nibbles match, copy that nibble to the NCA.
@@ -87,15 +89,15 @@ def get_route(srcx, dstx):
     return route
 
 
-# NOTE: This function returns False in some cases
-# where a node could opportunistically make routing improvements.
-# i.e. This function returns True only for simplest route.
 def should_route(resx, dstx, locx):
     """Returns True if this node (loc) should route a frame
     that has the given resender and destination addresses.
     In this case, "resender" is the neighbor that transmitted
     this frame to this node.
     NOTE: The source address is not considered because it may be encrypted.
+    NOTE: This function returns True only for the basic up/down route
+    which means this function returns False in some cases
+    where a node could opportunistically make routing improvements.
     """
     # Do not route, already at destination
     if dstx == locx:

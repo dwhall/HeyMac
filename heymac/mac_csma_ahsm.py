@@ -14,7 +14,7 @@ import logging
 
 import farc
 
-from . import mac_data
+from . import mac_csma_data
 from . import mac_csma_cfg
 from . import mac_cmds
 from . import mac_frame
@@ -56,7 +56,7 @@ class HeyMacCsmaAhsm(farc.Ahsm):
             logging.info("INITIALIZING")
 
             # Data Link Layer data
-            me.mac_data = mac_data.MacData()
+            me.mac_csma_data = mac_csma_data.MacData()
 
             # Transmit queue
             me.mac_txq = []
@@ -214,6 +214,9 @@ class HeyMacCsmaAhsm(farc.Ahsm):
     def _on_rxd_frame(self, rx_time, payld, rssi, snr):
         """This function is called when the PHY layer has received a frame
         and passed it to the MAC layer.
+        The frame is validated and collected into a frame_info.
+        The frame is processed according to whether it is MAC or NET layer.
+        Processing may involve consuming, forwarding or dropping the frame.
         """
         try:
             f = mac_frame.HeyMacFrame(bytes(payld))
@@ -233,15 +236,35 @@ class HeyMacCsmaAhsm(farc.Ahsm):
             "rx_time        %f\tRXD %d bytes, rssi=%d dBm, snr=%.3f dB\t%s",
             rx_time, len(payld), rssi, snr, repr(f))
 
-        #TODO:
-        if TRUE: # f.is_meant_for_this_node():
-            if f.is_data_mac_layer():
-                # TODO: if frame type is beacon:
-                # Move to process_mac_frame():
-                self.mac_data.process_bcn(rx_time, f)
+        frame_info = mac_frame.FrameInfo(f, rx_time, rssi, snr)
 
-            elif f.is_payld_net_layer():
-                self.process_net_pkt(rx_time, f)
+        # If frame is a MAC cmd
+        if f.is_data_mac_layer():
+            # If this node should process the frame
+            # (frame addressed to this node
+            # TODO: or frame is flood/broadcast)
+            if f.daddr == self.mac_csma_data.this_node['addr64']:
+                self._process_mac_frame(frame_info)
+
+            # If this node should resend the frame
+            # (frame is not addressed to this node and is multihop and
+            # TODO: not in recent frame list)
+            if (f.daddr != self.mac_csma_data.this_node['addr64']
+                and f.fctl_m != 0):
+                # reduce hop count
+                f.hops -= 1
+                # apply my address
+                f.txaddr = self.mac_csma_data.this_node['addr64']
+                # put pkt in txq
+                self.mac_txq.append(f)
+
+        # Else if the frame is a NET pkt
+        elif f.is_data_net_layer():
+            # TODO:
+            # If this node should process the frame
+            # (frame addressed to this node or frame is flood/broadcast)
+            # If this node should resend the frame
+            self.process_net_pkt(f, rx_time)
 
         # else:
         #   if I should forward frame:
@@ -280,13 +303,21 @@ class HeyMacCsmaAhsm(farc.Ahsm):
         """Returns True if at least one neighbor lists this node
         in its neighbor list; proving two-way transmission has taken place.
         """
-        ngbr_cbcns = self.mac_data.get_cbcns()
+        ngbr_cbcns = self.mac_csma_data.get_cbcns()
         for ngbr, cbcn in ngbr_cbcns.items():
             if cbcn.valid:
                 for n in cbcn.value.ngbrs:
                     if n[0] == self.saddr:
                         return True
         return False
+
+
+    def _process_mac_frame(self, frame_info):
+        """Processes the frame according to its MAC cmd.
+        """
+        f = frame_info.frame
+        if isinstance(f.payld, mac_cmds.HeyMacCmdCbcn):
+            self.mac_csma_data.process_beacon(frame_info)
 
 
 ## Convenience functions
