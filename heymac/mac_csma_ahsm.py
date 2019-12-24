@@ -25,6 +25,7 @@ class HeyMacCsmaAhsm(farc.Ahsm):
     def __init__(self, saddr, station_id):
         super().__init__()
 
+        # TODO: these go in mac data?
         self.saddr = saddr
         self.station_id = station_id
 
@@ -282,6 +283,7 @@ class HeyMacCsmaAhsm(farc.Ahsm):
         """Builds a HeyMac CsmaBeacon and passes it to the PHY for transmit.
         """
         frame = mac_frame.HeyMacFrame()
+        frame.saddr = self.saddr
         frame.data = mac_cmds.HeyMacCmdCbcn(
             caps=0,
             status=0,
