@@ -35,8 +35,9 @@ class HeyMacCsmaAhsm(farc.Ahsm):
         """
         # Incoming signals
         farc.Signal.register("MAC_TX_REQ")
-        farc.Framework.subscribe("PHY_RXD_DATA", me)
         farc.Framework.subscribe("PHY_GPS_NMEA", me)
+        farc.Framework.subscribe("PHY_RXD_DATA", me)
+        farc.Framework.subscribe("PHY_TX_DONE", me)
 
         # Initialize timer events
         me.bcn_evt = farc.TimeEvent("_MAC_BCN_EVT_TMOUT")
@@ -167,6 +168,10 @@ class HeyMacCsmaAhsm(farc.Ahsm):
             # Transmit a std beacon during this node's beacon slot
             logging.info("bcn")
             me._tx_bcn()
+            return me.handled(me, event)
+
+        elif sig == farc.Signal.PHY_TX_DONE:
+            # After a beacon is transmitted, go back to receiving continuously
             _receive_cont(phy_cfg.rx_freq)
             return me.handled(me, event)
 

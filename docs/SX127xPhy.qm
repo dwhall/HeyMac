@@ -106,32 +106,34 @@
      </tran>
      <state name="transmitting">
       <entry brief="set_mode(&quot;tx&quot;)"/>
+      <exit brief="pub(PHY_TX_DONE)"/>
       <tran trig="DIO0" target="../../../2">
-       <action>This is TX_DONE</action>
-       <tran_glyph conn="46,62,3,2,14,-14">
+       <action brief="TX_DONE">This is TX_DONE</action>
+       <tran_glyph conn="46,65,3,2,17,-17">
         <action box="0,-2,16,2"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="46,56,16,12">
+      <state_glyph node="46,56,18,12">
        <entry box="1,2,15,2"/>
+       <exit box="1,4,16,2"/>
       </state_glyph>
      </state>
      <state name="listening">
       <entry brief="set_mode(&quot;rxonce&quot;)"/>
       <tran trig="DIO0" target="../../../2">
-       <action brief="rx_done()"/>
+       <action brief="RX_DONE"/>
        <tran_glyph conn="22,62,3,2,16,-14">
         <action box="0,-2,18,2"/>
        </tran_glyph>
       </tran>
       <tran trig="DIO1" target="../../../2">
-       <action brief="clear_irqs()">This is RX_TIMEOUT</action>
+       <action brief="TX_TIMEOUT">This is RX_TIMEOUT</action>
        <tran_glyph conn="22,64,3,2,18,-16">
         <action box="0,-2,20,2"/>
        </tran_glyph>
       </tran>
       <tran trig="DIO3" target="../4">
-       <action brief="clear_irqs()">This is a ValidHeader signal from</action>
+       <action brief="VALID_HEADER">This is a ValidHeader signal from</action>
        <tran_glyph conn="22,66,3,0,12,2">
         <action box="0,-2,18,2"/>
        </tran_glyph>
