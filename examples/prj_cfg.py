@@ -22,7 +22,7 @@ gpio_ins = (
     (24, GPIO.RISING, "PHY_DIO2"),
     (6, GPIO.RISING, "PHY_DIO3"),
     (5, GPIO.RISING, "PHY_DIO4"),
-    (22, GPIO.RISING, "PHY_DIO5"),
+#    (22, GPIO.RISING, "PHY_DIO5"),
     (26, GPIO.RISING, "PHY_GPS_PPS"),
 )
 
