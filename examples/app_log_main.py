@@ -39,7 +39,7 @@ def main():
 
     # Instantiate state machines
     gpioAhsm = heymac.GpioAhsm()
-    spiAhsm = heymac.SX127xSpiAhsm(prj_stngs.spi_stngs, prj_stngs.lora_stngs)
+    spiAhsm = heymac.SX127xSpiAhsm(prj_stngs.spi_stngs, prj_stngs.modem_stngs)
     uartAhsm = heymac.UartAhsm(heymac.parse_nmea)
     macAhsm = heymac.HeyMacCsmaAhsm(saddr, station_id)
 
