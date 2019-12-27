@@ -35,7 +35,7 @@ class MacData(object):
         # d = vdict.ValidatedDict()
         # exp = MacData.N_EXPIRATION * mac_csma_cfg.BEACON_PERIOD_SEC
         # d.set_default_expiration(exp)
-        # self.cbcns = d
+        self.cbcns = {}
         self.this_node = {}
         self.ngbr_list = []
 

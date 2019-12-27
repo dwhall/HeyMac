@@ -19,10 +19,11 @@ import prj_cfg
 import prj_stngs
 
 
-def main():
-    # Register signal for app-specific UART callback
-    farc.Signal.register("PHY_GPS_NMEA")
-
+def get_long_mac_addr():
+    """Returns the 64-bit MAC address
+    that is computed from the public key
+    found in a specific, pre-made file.
+    """
     # Turn user JSON config files into Python dicts
     mac_identity = utl.get_from_json("HeyMac", "mac_identity.json")
     # Convert hex bytes to bytearray since JSON can't do binary strings
@@ -32,8 +33,14 @@ def main():
     h.update(pub_key)
     h.update(h.digest())
     saddr = h.digest()[:8]
-    assert saddr[0] in (0xfc, 0xfd)
 
+    assert len(saddr) == 8
+    assert saddr[0] in (0xfc, 0xfd)
+    return saddr
+
+
+def main():
+    saddr = get_long_mac_addr()
     # The hostname is the station ID
     station_id = socket.gethostname().encode()
 
@@ -56,12 +63,7 @@ def main():
     macAhsm.start(50)
 
     # Open the UART to process NMEA
-    uart_stngs = {
-        "port": "/dev/serial0",
-        "baudrate": 9600,
-        "timeout": 0,
-    }
-    uartAhsm.post_open(uart_stngs)
+    uartAhsm.post_open(prj_cfg.uart_cfg)
 
     farc.run_forever()
 

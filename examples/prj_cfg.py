@@ -30,3 +30,10 @@ gpio_outs = (
     #pin_nmbr, pin_initial
     (17, GPIO.HIGH), # GPS_RST
 )
+
+# UART connectionto the GPS module (NMEA)
+uart_cfg = {
+    "port": "/dev/serial0",
+    "baudrate": 9600,
+    "timeout": 0,
+}

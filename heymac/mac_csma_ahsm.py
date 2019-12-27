@@ -160,7 +160,7 @@ class HeyMacCsmaAhsm(farc.Ahsm):
             _receive_cont(phy_cfg.rx_freq)
 
             # Transition to _networking if a bidirectional path is discovered
-            if me._ngbr_hears_me(me):
+            if me._ngbr_hears_me():
                 return me.tran(me, HeyMacCsmaAhsm._networking)
             else:
                 return me.handled(me, event)
