@@ -230,7 +230,7 @@ class HeyMacCsmaAhsm(farc.Ahsm):
             logging.warning("rxd pkt failed header validation or unpacking")
             return
 
-        if f.pid_type != HeyMacFrame.PID_TYPE_CSMA:
+        if f.pid_type != mac_frame.HeyMacFrame.PID_TYPE_CSMA:
             logging.warning("rxd pkt is not HeyMac CSMA")
             return
 
@@ -249,18 +249,18 @@ class HeyMacCsmaAhsm(farc.Ahsm):
             # If this node should process the frame
             # (frame addressed to this node
             # TODO: or frame is flood/broadcast)
-            if f.daddr == self.mac_csma_data.this_node['addr64']:
+            if f.daddr == self.saddr:
                 self._process_mac_frame(frame_info)
 
             # If this node should resend the frame
             # (frame is not addressed to this node and is multihop and
             # TODO: not in recent frame list)
-            if (f.daddr != self.mac_csma_data.this_node['addr64']
+            if (f.daddr != self.saddr
                 and f.fctl_m != 0):
                 # reduce hop count
                 f.hops -= 1
                 # apply my address
-                f.txaddr = self.mac_csma_data.this_node['addr64']
+                f.txaddr = self.saddr
                 # put pkt in txq
                 self.mac_txq.append(f)
 
@@ -287,7 +287,7 @@ class HeyMacCsmaAhsm(farc.Ahsm):
         frame.data = mac_cmds.HeyMacCmdCbcn(
             caps=0,
             status=0,
-            )
+                        )
         tx_args = (-1, phy_cfg.tx_freq, bytes(frame)) # immediate transmit
         farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
 
