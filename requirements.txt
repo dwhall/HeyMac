@@ -1,2 +1,4 @@
-dpkt >= 1.9.1   # https://pypi.org/project/dpkt/
-farc >= 0.1.0   # https://pypi.org/project/farc/
+asn1 >= 2.2.0           # https://pypi.org/project/asn1/
+cryptography >= 2.8     # https://pypi.org/project/cryptography/
+dpkt >= 1.9.1           # https://pypi.org/project/dpkt/
+farc >= 0.1.0           # https://pypi.org/project/farc/
