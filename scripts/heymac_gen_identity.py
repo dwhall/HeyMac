@@ -109,7 +109,8 @@ if __name__ == "__main__":
     key_bytes = _get_key_from_asn1(der_bytes)
 
     # Save private key to a file
-    fn = os.path.join(utl.get_app_data_path("HeyMac"), "heymac.pem")
+    heymac_path = utl.get_app_data_path("HeyMac")
+    fn = os.path.join(heymac_path, "prv_key.pem")
     with open(fn, "wb") as f:
         f.write(prv_key.private_bytes(
             encoding=serialization.Encoding.PEM,
@@ -118,14 +119,14 @@ if __name__ == "__main__":
     print("Wrote: %s" % fn)
 
     # Save DER to a file
-    fn = os.path.join(utl.get_app_data_path("HeyMac"), "pub_key.der")
+    fn = os.path.join(heymac_path, "pub_key.der")
     with open(fn, "wb") as f:
         f.write(der_bytes)
     print("Wrote: %s" % fn)
 
     # Create a HeyMac identity (credential) file including the public key
-    fn = os.path.join(utl.get_app_data_path("HeyMac"), "mac_identity.json")
-    with open(fn, 'w') as f:
+    fn = os.path.join(heymac_path, "mac_identity.json")
+    with open(fn, "w") as f:
         json_str = json.dumps({
             "name": name,
             "callsign": callsign,
