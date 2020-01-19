@@ -7,6 +7,13 @@ This is a tool to generate a HeyMac identity configuration file.
 An asymmetric cryptographic keypair is generated
 such that the SHA512(SHA512(pub_key)) starts with 0xFC or 0xFD
 
+WARNING: The private key of this keypair is not safely protected!
+In particular, the private key file's passphrase is exposed to
+the console when it is requested by the application.
+You should not use this keypair for meaningful cryptography!
+In this project, we are using the keypair to authenticate
+messages for recreational/amateur radio communication.
+
 Dependencies::
 
     pip install asn1
@@ -30,6 +37,14 @@ from cryptography.hazmat.primitives.asymmetric import ec
 
 from heymac import utl
 
+
+WARNING = """WARNING: The private key of this keypair is not safely protected!
+In particular, the private key file's passphrase is exposed to
+the console when it is requested by the application.
+You should not use this keypair for meaningful cryptography!
+In this project, we are using the keypair to authenticate
+messages for recreational/amateur radio communication.
+"""
 
 def gen_keypair():
     """Generates asymmetric keypair using elliptic curve SECP384R1
@@ -100,6 +115,7 @@ if __name__ == "__main__":
     name = input("Full name: ")
     callsign = input("Callsign: ")
     passphrase = input("Private key encryption passphrase: ")  # sketchy
+    print(WARNING)
     passphrase = passphrase.encode()
 
     prv_key, pub_key = gen_personal_keypair()
