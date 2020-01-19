@@ -3,9 +3,17 @@
 """
 Copyright 2017 Dean Hall.  See LICENSE for details.
 
-This is a tool to generate a HeyMac identity configuration file.
-An asymmetric cryptographic keypair is generated
-such that the SHA512(SHA512(pub_key)) starts with 0xFC or 0xFD
+This is a tool to generate a set of credential files used by HeyMac.
+The files generated include a private key file (.pem),
+a public key file (.der) and a HeyMac identity file (.json).
+
+Elleptic Curve Cryptography is used to generate an asymmetric key pair
+repeatedly until SHA512(SHA512(<public key>)) starts with 0xFC or 0xFD,
+for personal or device credentials, respectively.
+
+Personal credentials are stored in an application-specific location,
+while device credentials are saved to the current directory.
+This program prints the output path of all files as they are written.
 
 WARNING: The private key of this keypair is not safely protected!
 In particular, the private key file's passphrase is exposed to
@@ -17,13 +25,14 @@ messages for recreational/amateur radio communication.
 Dependencies::
 
     pip install asn1
-    pip install crytography
+    pip install cryptography
 
 References:
     https://cryptography.io/en/latest/
     https://github.com/andrivet/python-asn1/blob/master/examples/dump.py
 """
 
+import argparse
 import codecs
 import hashlib
 import json
@@ -111,7 +120,49 @@ def _get_key_from_asn1(der_bytes):
     return rdparse_asn1(decoder)
 
 
-if __name__ == "__main__":
+def gen_device_credentials():
+    name = input("Full name: ")
+    tac_id = input("Tactical ID (Callsign-###): ")
+    passphrase = input("Private key encryption passphrase: ")  # sketchy
+    print(WARNING)
+    passphrase = passphrase.encode()
+
+    prv_key, pub_key = gen_device_keypair()
+    der_bytes = pub_key.public_bytes(
+        serialization.Encoding.DER,
+        serialization.PublicFormat.SubjectPublicKeyInfo)
+    key_bytes = _get_key_from_asn1(der_bytes)
+
+    # Save private key to a file
+    outfile_path = os.getcwd()
+    fn = os.path.join(outfile_path, tac_id + ".pem")
+    with open(fn, "wb") as f:
+        f.write(prv_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=serialization.BestAvailableEncryption(passphrase)))
+    print("Wrote: %s" % fn)
+
+    # Save DER to a file
+    fn = os.path.join(outfile_path, tac_id + ".der")
+    with open(fn, "wb") as f:
+        f.write(der_bytes)
+    print("Wrote: %s" % fn)
+
+    # Create a HeyMac device (credential) file including the public key
+    fn = os.path.join(outfile_path, tac_id + ".json")
+    with open(fn, "w") as f:
+        json_str = json.dumps({
+            "name": name,
+            "tac_id": tac_id,
+            # "key_bytes": key_bytes.hex()}) # Python 3.5 and later
+            "pub_key": codecs.encode(key_bytes, 'hex').decode() # Python 3.4
+            })
+        f.write(json_str)
+    print("Wrote: %s" % fn)
+
+
+def gen_personal_credentials():
     name = input("Full name: ")
     callsign = input("Callsign: ")
     passphrase = input("Private key encryption passphrase: ")  # sketchy
@@ -151,3 +202,14 @@ if __name__ == "__main__":
             })
         f.write(json_str)
     print("Wrote: %s" % fn)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-d", "--device", help='Generate device credential files')
+    args = parser.parse_args()
+
+    if bool(args.device):
+        gen_device_credentials()
+    else:
+        gen_personal_credentials()
