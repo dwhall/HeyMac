@@ -48,7 +48,7 @@ A few of the fields may be absent if they are not needed.
 The address fields may be absent or short (2 octets) or long (8 octets).
 
 A specially-formed `Identification Certificate`_ is the one piece of information
-needed to provision an APv6/HeyMac node.  An `asymmetric keypair`_ is generated
+needed to provision a HeyMac node.  An `asymmetric keypair`_ is generated
 such that computing a specified hash of the public key
 results in the node's statistically-unique, long address.
 Linking a public key and an address in this way is called `cryptographic addressing`_.
@@ -69,8 +69,8 @@ A beacon is a message that identifies the node with its long address and
 provides other pieces of information useful to communication and networking.
 By listening to the radio over time and hearing beacons and other messages,
 a node builds a list of its immediate neighbors.
-Two-way communication with these neighbors is likely, but not guaranteed.
-The conditions may be such that the neighbor cannot hear you for some reason.
+Two-way communication with each neighbor is likely, but not guaranteed.
+The conditions may be such that a neighbor cannot hear you for some reason.
 
 A node communicates with its neighors by sending broadcast or addressed HeyMac Commands.
 There are a handful of HeyMac Commands that do a number of useful things.
@@ -132,8 +132,8 @@ any node receiving a message can forward the mesage without knowing
 the source address.  Thus, HeyMac offers a little bit of anonymity
 by allowing the source address of message to be encrypted if so desired.
 
-An up/down route is not optimally efficient, but it is reasonably efficient
-and, moreover, is guaranteed to exist as long as both endpoints remain linked to the tree.
+An up/down route is not an optimal route, but it is reasonably close
+and, moreover, is guaranteed to exist as long as both endpoints remain linked to the root.
 The simplicity of up/down routing means that keeping a routing table is not necessary.
 Even the lowest-memory nodes can perform the essential routing function.
 Whereas 802.15.4 networks have reduced function devices (RFDs) that do not route,
@@ -161,12 +161,12 @@ Then, each dropped node proceeds with the regular joining process.
 
 The rejoining process means two things: (1) a single node might have different
 short addresses at different points in time (one fresh, one stale) and
-(2) a message that is in-flight during a branch restructuring might be using a stale address.
-This tree-state problem is addressed by building a sequence number into the tree's Network ID.
-Any time the tree's structure changes in such a way to cause routing problems, the root
-increments the Network ID's sequence number and propagates the new number to all nodes in the network.
+(2) a message that is in-flight during a branch restructuring might contain a stale address.
+This address freshness problem is addressed by building a sequence number into the tree's Network ID.
+Any time the tree's structure changes in such a way to cause stale addresses (routing problems), the root
+increments the Network ID's sequence number and broadcasts the new Network ID to all nodes.
 
-While not required, it would be possible for every in-flight message having a stale network ID
+While not required, it would be possible for every in-flight message with a stale network ID
 to be forwarded to the root.  The root would be capable of translating the stale address
 to the fresh address and forwarding the message.
 
@@ -175,18 +175,14 @@ L+: IPv6, UDP and Fragmentation
 -------------------------------
 
 HeyMac is designed to work with IPv6 networks by using the APv6 adaptation layer.
-APv6 is a lot like 6LoWPAN, but it offers fewer options and in some cases smaller
-frame overhead.
-
 APv6 offers both IPv6 and UDP header compression.  Compression benefits the most
 when the UDP message travels strictly withing the HeyMac network because short addresses
-can be used.  However, APv6 also allows bridging and border-routing to a full-scale IPv6 network.
-Unfortunately, TCP traffic will not yet flow into the HeyMac network.
+can be used.  However, APv6 also allows 128-bit addressing for bridging and border-routing
+to a full-scale IPv6 network.  Unfortunately, TCP traffic will not yet flow into the HeyMac network.
 
 Any carrier of IPv6 must accept packets of up to 1280 octets.  Since this won't fit into
-the meager constraint of the LoRa frame (256 octets), APv6 uses a HeyMac Information Element (IE)
-data field to assist with packet fragmentation and reassembly.  APv6 uses the
-`Gomez fragmentation header`_ which only adds three octets of overhead to each fragment.
+the meager constraint of the LoRa frame (256 octets), APv6 employs the
+`Gomez fragmentation header`_ to assist with packet fragmentation and reassembly.
 
 .. _`Gomez fragmentation header`: https://tools.ietf.org/html/draft-gomez-6lo-optimized-fragmentation-header-00
 
