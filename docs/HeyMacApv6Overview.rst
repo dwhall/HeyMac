@@ -162,7 +162,7 @@ Then, each dropped node proceeds with the regular joining process.
 The rejoining process means two things: (1) a single node might have different
 short addresses at different points in time (one fresh, one stale) and
 (2) a message that is in-flight during a branch restructuring might contain a stale address.
-This address freshness problem is addressed by building a sequence number into the tree's Network ID.
+This address freshness problem is solved by building a sequence number into the tree's Network ID.
 Any time the tree's structure changes in such a way to cause stale addresses (routing problems), the root
 increments the Network ID's sequence number and broadcasts the new Network ID to all nodes.
 

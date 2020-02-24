@@ -17,6 +17,7 @@ import logging
 import dpkt # pip install dpkt
 
 from .mac_cmds import *
+from .mac_cmd_instance import HeyMacCmdInstance
 from .net_frame import APv6Frame
 
 
@@ -29,27 +30,28 @@ class HeyMacFrame(dpkt.Packet):
     [PID,Fctl,NetId,DstAddr,IEs,SrcAddr,Payld,MIC,Hops,TxAddr]
     """
     # HeyMac Protocol ID
-    # XXX. ....     Protocol
-    # ...X X...            Type
-    # .... .XXX                  Version
-    # 1110 0vvv     HeyMac TDMA, (vvv)ersion
-    # 1110 1vvv     HeyMac CSMA, (vvv)ersion
-    # 1111 xxxx     HeyMac (RFU: Flood, Extended, etc.)
+    # XXXX ....     PID delim
+    # .... XX..            PID value
+    # .... ..XX                  PID variant
+    # ---- ----
+    # 1110 00vv     HeyMac TDMA, (vv)ersion
+    # 1110 01vv     HeyMac CSMA, (vv)ersion
+    # 1110 1xxx     HeyMac (RFU: Flood, Extended, etc.)
     # PID field masks
-    PID_PROTOCOL_MASK = 0b11100000
-    PID_TYPE_MASK = 0b00011000
-    PID_VER_MASK = 0b00000111
+    PID_PROTOCOL_MASK = 0b11110000
+    PID_TYPE_MASK = 0b00001100
+    PID_VER_MASK = 0b00000011
     # PID field values
     PID_PROTOCOL_HEYMAC = 0b11100000
     PID_TYPE_TDMA = 0b00000000
-    PID_TYPE_CSMA = 0b00001000
+    PID_TYPE_CSMA = 0b00000100
     PID_VER_TDMA = 0b00000000
     PID_VER_CSMA = 0b00000000
 
     SUPPORTED_CSMA_VERS = (0,)
     SUPPORTED_TDMA_VERS = (0,)
 
-    PID_HEYMAC_CSMA_0 = PID_PROTOCOL_MASK | PID_TYPE_CSMA | 0
+    PID_HEYMAC_CSMA_0 = PID_PROTOCOL_HEYMAC | PID_TYPE_CSMA | 0     # 0xE4
 
     # Frame Control Field (Fctl) subfield values
     FCTL_X_SHIFT = 7 # Extended frame (none of the other bits apply)
@@ -348,7 +350,7 @@ class HeyMacFrame(dpkt.Packet):
         if self.data:
             if self.is_data_mac_layer():
                 try:
-                    self.payld = HeyMacCmdInstance(self.data)
+                    self.payld = HeyMacCmd.get_instance(self.data)
                 except:
                     logging.info("invalid MAC frame: %s", self.data.encode())
                     raise ValueError()

@@ -7,23 +7,9 @@ HeyMac Commands for MAC frame types:
 # Text message
 """
 
-import enum
 import struct
 
 import dpkt # pip install dpkt
-
-
-# HeyMac Command IDs
-class HeyMacCmdId(enum.IntEnum):
-    """An enumeration of HeyMac MAC Command IDs.
-    The Command ID occupies the first octet of a Command Packet.
-    """
-    INVALID = 0
-    SBCN = 1
-    EBCN = 2
-    TXT = 3
-    CBCN = 4
-    PROTO = 5
 
 
 class HeyMacCmd(dpkt.Packet):
@@ -31,17 +17,67 @@ class HeyMacCmd(dpkt.Packet):
     This class helps organize inheritance
     and can serve as a constructor for all command packets
     """
+    # HeyMac segments (hdr, body, etc) have a small, unique bit pattern
+    # at the start of the segment called a prefix.
+    # The MAC Command's prefix is two bits: '10'
     PREFIX = 0b10000000
     PREFIX_MASK = 0b11000000
     CMD_MASK = 0b00111111
+
+    # Enum of Command IDs
+    CID_INVALID = 0
+    CID_SBCN = 1
+    CID_EBCN = 2
+    CID_TXT = 3
+    CID_CBCN = 4
+    CID_JOIN = 5
+
+    _SUBCLASS_LUT = {}
+
+    __byte_order__ = '!' # Network order
+    __hdr__ = (
+        ('_cmd', 'B', PREFIX ),
+    )
+
+    @classmethod
+    def set_subclass(cls,subcls_id, subcls):
+        cls._SUBCLASS_LUT[subcls_id] = subcls
+
+
+    @classmethod
+    def get_instance(cls, data):
+        subcls = cls._SUBCLASS_LUT[data[0] & HeyMacCmd.CMD_MASK]
+        if hasattr(subcls, 'get_instance'):
+            return subcls.get_instance(data)
+        else:
+            return subcls(data)
+
+
+    # Getters for underscore-prefixed fields
+    @property
+    def cmd(self,):
+        """Gets the command ID subfield from the command message
+        Strips away the two-bit command prefix.
+        """
+        return self._cmd & ~HeyMacCmd.PREFIX_MASK & 0xFF
+
+    # Setters for underscore-prefixed fields
+    @cmd.setter
+    def cmd(self, cmd_id):
+        """Applies the command prefix and sets the command ID
+        """
+        assert cmd_id & HeyMacCmd.PREFIX_MASK == 0
+
+        self._cmd = HeyMacCmd.PREFIX | (cmd_id & 0xFF)
 
 
 class HeyMacCmdInvalid(HeyMacCmd):
     """HeyMac Invalid command packet
     """
+    CID = HeyMacCmd.CID_INVALID
     __byte_order__ = '!' # Network order
     __hdr__ = (
-        ('cmd', 'B', HeyMacCmd.PREFIX | HeyMacCmdId.INVALID),
+        ('_cmd', 'B', HeyMacCmd.PREFIX | HeyMacCmd.CID_INVALID),
     )
 
 
@@ -49,6 +85,8 @@ class HeyMacCmdSbcn(HeyMacCmd):
     """HeyMac Standard Beacon command packet
     { 1, _frame_spec, dscpln, caps, status, asn, tx_slots, ngbr_tx_slots }
     """
+    CID = HeyMacCmd.CID_SBCN
+
     FRAME_SPEC_BCN_EN_MASK = 0b10000000
     FRAME_SPEC_BCN_EN_SHIFT = 7
     FRAME_SPEC_EB_ORDER_MASK = 0b01110000
@@ -58,7 +96,7 @@ class HeyMacCmdSbcn(HeyMacCmd):
 
     __byte_order__ = '!' # Network order
     __hdr__ = (
-        ('cmd', 'B', HeyMacCmd.PREFIX | HeyMacCmdId.SBCN),
+        ('_cmd', 'B', HeyMacCmd.PREFIX | HeyMacCmd.CID_SBCN),
         # The underscore prefix means do not access that field directly.
         # Access properties: .bcn_en, .sf_order and .eb_order, instead.
         ('_frame_spec', 'B', 0),
@@ -191,6 +229,8 @@ class HeyMacCmdEbcn(HeyMacCmdSbcn):
     Inherits from HeyMacCmdSbcn in order to re-use the property setters/getters
     because Ebcn shares many fields with Sbcn.
     """
+    CID = HeyMacCmd.CID_SBCN
+
     FRAME_SPEC_BCN_EN = 0b10000000
     FRAME_SPEC_BCN_EN_SHIFT = 7
     FRAME_SPEC_EB_ORDER_MASK = 0b01110000
@@ -203,9 +243,9 @@ class HeyMacCmdEbcn(HeyMacCmdSbcn):
 
     __byte_order__ = '!' # Network order
     __hdr__ = (
-        ('cmd', 'B', HeyMacCmd.PREFIX | HeyMacCmdId.EBCN),
         # The underscore prefix means do not access that field directly.
-        # Access properties: .bcn_en, .sf_order and .eb_order, instead.
+        # Access properties: .cmd, .bcn_en, .sf_order and .eb_order, instead.
+        ('_cmd', 'B', HeyMacCmd.PREFIX | HeyMacCmd.CID_EBCN),
         ('_frame_spec', 'B', 0),
         ('dscpln', 'B', 0), # 0x0X:None, 0x1X:RF, 0x2X:GPS (lower nibble is nhops to GPS)
         ('caps', 'B', 0),
@@ -327,9 +367,13 @@ class HeyMacCmdTxt(HeyMacCmd):
     """HeyMac Text message command packet
     { 3, msg }
     """
+    CID = HeyMacCmd.CID_TXT
+
     __byte_order__ = '!' # Network order
     __hdr__ = (
-        ('cmd', 'B', HeyMacCmd.PREFIX | HeyMacCmdId.TXT),
+        # The underscore prefix means do not access that field directly.
+        # Access properties: .cmd, instead.
+        ('_cmd', 'B', HeyMacCmd.PREFIX | HeyMacCmd.CID_TXT),
         ('msg', '0s', b''),
     )
 
@@ -354,9 +398,13 @@ class HeyMacCmdCbcn(HeyMacCmd):
     """HeyMac CSMA Beacon command packet
     { 4, caps, status, nets[], ngbrs[] } # NOTE: form not finalized
     """
+    CID = HeyMacCmd.CID_CBCN
+
     __byte_order__ = '!' # Network order
     __hdr__ = (
-        ('cmd', 'B', HeyMacCmd.PREFIX | HeyMacCmdId.CBCN),
+        # The underscore prefix means do not access that field directly.
+        # Access properties: .cmd, instead.
+        ('_cmd', 'B', HeyMacCmd.PREFIX | HeyMacCmd.CID_CBCN),
         ('caps', 'H', 0),
         ('status', 'H', 0),
         # variable-length fields:
@@ -365,44 +413,33 @@ class HeyMacCmdCbcn(HeyMacCmd):
     )
 
 
-class HeyMacCmdProtocol(HeyMacCmd):
-    """HeyMac Protocol command packet
-    { 5, pid, mid }
+class HeyMacCmdJoin(HeyMacCmd):
+    """Returns an instance of HeyMacCmdJoin* based on the payload's message ID (MID)
     """
-    PID_INVAL = 0
-    PID_NET_JOIN = 1
-    PID_NET_LEAVE = 2
+    CID = HeyMacCmd.CID_JOIN
 
-    MID_NAK = 0
-    MID_NET_JOIN_RQST = 1
-    MID_NET_JOIN_ACCPT = 2
-    MID_NET_JOIN_NTFY = 3
-    MID_NET_JOIN_RJCT = 4
+    # Cmd ID (5) Join Message IDs
+    MID_RQST = 1   # Node requests to join a network
+    MID_RSPD = 2   # Parent replies to requestor with address
+    MID_CNFM = 3   # Child replies to parent to ack the new address
+    MID_RJCT = 4   # Parent rejects request to join network
+    MID_LEAV = 5   # Child tells parent he is leaving (all nets)
+    MID_DROP = 6   # Parent tells children he is leaving (all nets)
 
-    __byte_order__ = '!' # Network order
-    __hdr__ = (
-        ('cmd', 'B', HeyMacCmd.PREFIX | HeyMacCmdId.PROTO),
-        ('pid', 'B', 0), # Protocol ID
-        ('mid', 'B', 0), # Message ID
-    )
+    _SUBCLASS_LUT = {}
 
 
-# EVERYTHING BELOW THIS MUST BE AT THE BOTTOM OF THE FILE
-
-# The order of this LUT must match HeyMacCmdId
-CMD_CLASS_LUT = (
-    HeyMacCmdInvalid,   # INVALID = 0
-    HeyMacCmdSbcn,
-    HeyMacCmdEbcn,
-    HeyMacCmdTxt,
-    HeyMacCmdCbcn,
-    HeyMacCmdProtocol,  # PROTO = 5
-)
+    @classmethod
+    def set_subclass(cls, subcls_id, subcls):
+        cls._SUBCLASS_LUT[subcls_id] = subcls
 
 
-def HeyMacCmdInstance(mac_payld):
-    """Returns an instance of one of the HeyMacCmd classes
-    based on the command id (within the first byte of mac_payld).
-    """
-    cmd_id = mac_payld[0] & HeyMacCmd.CMD_MASK
-    return CMD_CLASS_LUT[cmd_id](mac_payld)
+    @classmethod
+    def get_instance(cls, data):
+        assert data[0] & cls.CMD_MASK == HeyMacCmd.CID_JOIN
+        subcls = cls._SUBCLASS_LUT[data[1]]
+        return subcls(data)
+
+
+for cls in HeyMacCmd.__subclasses__():
+    HeyMacCmd.set_subclass(cls.CID, cls)
