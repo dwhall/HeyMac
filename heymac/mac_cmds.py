@@ -47,7 +47,9 @@ class HeyMacCmd(dpkt.Packet):
     @classmethod
     def get_instance(cls, data):
         subcls = cls._SUBCLASS_LUT[data[0] & HeyMacCmd.CMD_MASK]
-        if hasattr(subcls, 'get_instance'):
+        # If the subclass has its own get_instance()
+        # (and specifically does not inherit it from this class)
+        if hasattr(subcls.__dict__, 'get_instance'):
             return subcls.get_instance(data)
         else:
             return subcls(data)

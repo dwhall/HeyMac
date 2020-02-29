@@ -50,8 +50,6 @@ class HeyMacFrame(dpkt.Packet):
     SUPPORTED_CSMA_VERS = (0,)
     SUPPORTED_TDMA_VERS = (0,)
 
-    PID_HEYMAC_CSMA_0 = PID_PROTOCOL_HEYMAC | PID_TYPE_CSMA | 0     # 0xE4
-
     # Frame Control Field (Fctl) subfield values
     FCTL_X_SHIFT = 7 # Extended frame (none of the other bits apply)
     FCTL_L_SHIFT = 6 # Long addressing
@@ -66,7 +64,7 @@ class HeyMacFrame(dpkt.Packet):
     __hdr__ = (
         # The underscore prefix means do not access that field directly.
         # Access properties .pid_protocol, .fctl, .fctl_l, .fctl_n, etc. instead.
-        ('_pid', 'B', PID_HEYMAC_CSMA_0),
+        ('_pid', 'B', PID_PROTOCOL_HEYMAC),
         ('_fctl', 'B', 0),
         # The fields above are guaranteed to be present.
         # Below this are optional fields.
@@ -297,7 +295,7 @@ class HeyMacFrame(dpkt.Packet):
 
         # validate the PID
         if not self.is_heymac():
-            raise ValueError("Invalid PID value")
+            raise ValueError("Invalid PID Protocol value")
 
         # The Fctl field can be every bit-combination
         # so there's no illegal value; no way to validate.
@@ -430,13 +428,14 @@ class HeyMacFrame(dpkt.Packet):
 
 
     # API
-    def is_heymac(self, pid_type=PID_TYPE_CSMA):
+    def is_heymac(self,):
         """Returns TRUE if the frame header PID Protocol field is HeyMac
-        and the PID Type field matches the given argument.
-        Does not check the PID Version field.
+        Does not check the PID Type or Version field.
         """
-        return (self.pid_protocol == HeyMacFrame.PID_PROTOCOL_HEYMAC
-            and self.pid_type == pid_type)
+        return self.pid_protocol == HeyMacFrame.PID_PROTOCOL_HEYMAC
+
+    def is_heymac_type(self, type_):
+        return self.pid_type == type_
 
     def is_heymac_version_compatible(self,):
         if self.pid_type == HeyMacFrame.PID_TYPE_CSMA:
@@ -458,3 +457,32 @@ class HeyMacFrame(dpkt.Packet):
         """
         return (self.data[0] & APv6Frame.IPHC_PREFIX_MASK) == APv6Frame.APV6_PREFIX
 
+
+# Convenience class
+
+class HeyMacFrameCsmaV0(dpkt.Packet):
+    """HeyMac CSMA ver 0 frame definition
+    [PID,Fctl,NetId,DstAddr,IEs,SrcAddr,Payld,MIC,Hops,TxAddr]
+    """
+    PID_HEYMAC_CSMA_0 = HeyMacFrame.PID_PROTOCOL_HEYMAC | HeyMacFrame.PID_TYPE_CSMA | 0     # 0xE4
+
+    __byte_order__ = '!'  # Network order
+    __hdr__ = (
+        # The underscore prefix means do not access that field directly.
+        # Access properties .pid_protocol, .fctl, .fctl_l, .fctl_n, etc. instead.
+        ('_pid', 'B', PID_HEYMAC_CSMA_0),
+        ('_fctl', 'B', 0),
+        # The fields above are guaranteed to be present.
+        # Below this are optional fields.
+        # The type spec '0s' lets us consume a variable number of bytes
+        # for the field.
+        ('netid', '0s', b''),
+        ('daddr', '0s', b''),
+        ('hie', '0s', b''), # header IEs appear in cleartext
+        ('bie', '0s', b''), # body IEs may be enciphered
+        ('saddr', '0s', b''),
+#        ('_', '0s', b''), # use .data to access payload
+        ('mic', '0s', b''),
+        ('hops', '0s', b''),
+        ('txaddr', '0s', b''),
+    )
