@@ -17,7 +17,6 @@ import logging
 import dpkt # pip install dpkt
 
 from .mac_cmds import *
-from .mac_cmd_instance import HeyMacCmdInstance
 from .net_frame import APv6Frame
 
 

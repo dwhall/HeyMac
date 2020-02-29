@@ -1,6 +1,5 @@
 
 from .mac_cmds import *
-from .mac_cmd_instance import HeyMacCmdInstance
 from .mac_cmd_join import *
 from .mac_frame import HeyMacFrame
 from .net_frame import APv6Frame

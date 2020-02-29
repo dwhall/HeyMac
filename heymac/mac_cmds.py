@@ -40,7 +40,7 @@ class HeyMacCmd(dpkt.Packet):
     )
 
     @classmethod
-    def set_subclass(cls,subcls_id, subcls):
+    def set_subclass(cls, subcls_id, subcls):
         cls._SUBCLASS_LUT[subcls_id] = subcls
 
 
@@ -427,11 +427,6 @@ class HeyMacCmdJoin(HeyMacCmd):
     MID_DROP = 6   # Parent tells children he is leaving (all nets)
 
     _SUBCLASS_LUT = {}
-
-
-    @classmethod
-    def set_subclass(cls, subcls_id, subcls):
-        cls._SUBCLASS_LUT[subcls_id] = subcls
 
 
     @classmethod
