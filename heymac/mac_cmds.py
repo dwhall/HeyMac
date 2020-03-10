@@ -407,10 +407,10 @@ class HeyMacCmdCbcn(HeyMacCmd):
         # The underscore prefix means do not access that field directly.
         # Access properties: .cmd, instead.
         ('_cmd', 'B', HeyMacCmd.PREFIX | HeyMacCmd.CID_CBCN),
-        ('caps', 'H', 0),
-        ('status', 'H', 0),
+        ('caps', 'H', 0),       # static capabilities
+        ('status', 'H', 0),     # dynamic status
         # variable-length fields:
-        ('nets', '0s', b''),    # N, N * [netid, shrt_addr]
+        ('nets', '0s', b''),    # N, N * [netid, shrt_addr, roots_long_addr]
         ('ngbrs', '0s', b''),   # N, N * long_addr
     )
 

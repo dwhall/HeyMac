@@ -3,15 +3,17 @@ APv6 Networks
 
 APv6 takes the HeyMac NetId and gives further meaning to each field.
 
-NetId := { SubnetId, SubnetInstance }
-SubnetId := { Svc, Ver }
-SubnetInstance := { Inst, Sqnc }
+NetId := AVIS (6,2,5,3 bits)
+    App         the purpose of hosting the net
+    Version     the app’s protocol compatibility value (must change version when protocol is incompatible)
+    Instance    a value to distinguish one App+Version from another (random at init) (equiv of DODAG Version)
+    Sequence    a value to distinguish one shape of this net from another (increment w/rollover when branches change)
 
-Svc: Service
-Ver: Service Protocol Version
-Inst: Instance of the service (equiv of DODAG Version)
-Sqnc: Sequence number
-// Inst and Sqnc the same?
+Tree Collision:
+A node detects two NetIds w/same [AVI]S, but different LongAddr/PubKey
+This requires beacons to contain: {NetId, MySaddr, RootsLongAddr}
+Node sends NetMgmt,DupNetApps to ONE of the roots (which one?)
+Root should incr AVIS Instance field and push new NetId to its tree
 
 
 Services

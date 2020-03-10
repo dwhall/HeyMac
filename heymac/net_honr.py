@@ -35,9 +35,9 @@ has repair and renumbering operations.
 Addressing
 ----------
 
-The Root of the network is given the special address zero (0x000).
-All non-Root nodes have their address formed as follows:
-take the parent's address and replace the left-most-zero nibble
+The Root of the network is given the special address zero (0x0000).
+All non-Root nodes form their address as follows:
+take the parent's address and replace the left-most zero nibble
 with a nibble value 1 through 14 (or hex 1 through E).
 
 The nodes that have the Root as their parent (a.k.a. Rank 1 nodes),
@@ -82,7 +82,7 @@ accept and process the message.
 Furthermore, a node may broadcast more than one step down its DAG
 by appending as many fifteen nibbles as allowed.
 For example, if the node 0x2000 sends a message to 0x2FF0,
-all of 0x2000's Rank 2 and Rank 3 children and grandchildren
+all of 0x2000's Rank 2 children and Rank 3 grandchildren
 will receive the message, but the Rank 4 great-grandchildren will not.
 The address 0xFFFF is broadcast to all nodes in the network, including Root.
 
@@ -107,7 +107,7 @@ and may not be used in a node's address.  This yields::
 addresses (including Root) available to use out of 65536 possible.
 That is a 37% loss of address space.
 
-However, a node with no zero-value nibble (a.k.a. a Rank 4 node)
+A node with no zero-value nibble (a.k.a. a Rank 4 node)
 may not assign any node to be its child.  So the HONR numbering system
 creates a hard limit to the number of hops in the network.
 This tradeoff is acceptable as each hop creates message latency

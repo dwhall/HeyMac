@@ -125,14 +125,6 @@ Field Header Bit Patterns
 110x xxxx   APv6 Net hdr
 1110 xxxx   HeyMac Mac hdr (PID)
 1111 0xxx   RFC 6282 UDP hdr
-----------  --------------------
-            qty
-            hIE,bIE     sz
-0000 01Tt   1,1         8 (first octet is ID, 7 octets data)
-0000 1xTt   2,2         4
-0001 xxTt   4,4         2
-001x xxTt   8,8         1
-01bx xxTt   8,8         0 (b: 1-bit data)
 ==========  ====================
 
 
@@ -180,11 +172,17 @@ bIE: body IE: may included in Cipher range
 ==========  ==========  ====================
 bit pattern h,b         IE size (count of octets that follow)
 ----------  ----------  --------------------
-0000 01Tt   1,1         8 (first octet is ID, 7 octets data)
-0000 1xTt   2,2         4
-0001 xxTt   4,4         2
-001x xxTt   8,8         1
-01bx xxTt   8,8         0 (b: 1-bit data)
+0000 11Tt   1,1         18 (first octet is ID, 16 octets of data)
+0000 10Tt   1,1         10 (first octet is ID,  8 octets of data)
+0000 01Tt   1,1         6  (first octet is ID,  4 octets of data)
+0000 001t     1             Frag1 hdr (first fragment)
+                                11 bits datagram_sz
+                                5  bits datagram_tag
+0001 001t     1             FragN hdr (successive fragment)
+                                11 bits datagram_offset
+                                5  bits datagram_tag
+2-7                         RFU
+bxxx 00Tt   8,8         0 (1-bit flag)
 ==========  ==========  ====================
 (t = IE is terminator, T = Type 0:hIE, 1:bIE)
 
@@ -195,6 +193,7 @@ IE Uses
 hIEs
     Encipher Algo
 bIEs
+    Frag1,N header
     MIC Algo
     Sequence Number
 
