@@ -460,7 +460,7 @@ class HeyMacFrame(dpkt.Packet):
 
 # Convenience class
 
-class HeyMacFrameCsmaV0(dpkt.Packet):
+class HeyMacFrameCsmaV0(HeyMacFrame):
     """HeyMac CSMA ver 0 frame definition
     [PID,Fctl,NetId,DstAddr,IEs,SrcAddr,Payld,MIC,Hops,TxAddr]
     """

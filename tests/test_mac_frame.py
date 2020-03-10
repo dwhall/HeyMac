@@ -332,5 +332,32 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(f.txaddr, b"")
 
 
+    def test_csma_ver0(self,):
+        # Pack
+        f = heymac.HeyMacFrameCsmaV0()
+        f.pid_protocol = heymac.HeyMacFrame.PID_PROTOCOL_HEYMAC
+        f.pid_type = heymac.HeyMacFrame.PID_TYPE_CSMA
+        f.pid_ver = 0 #heymac.HeyMacFrame.PID_VER_CSMA
+        b = bytes(f)
+        self.assertEqual(b, b"\xE4\x00")
+        # Unpack
+        f = heymac.HeyMacFrameCsmaV0(b)
+        self.assertEqual(f.pid, 0xE4)
+        self.assertEqual(f.fctl_x, 0)
+        self.assertEqual(f.fctl_l, 0)
+        self.assertEqual(f.fctl_n, 0)
+        self.assertEqual(f.fctl_d, 0)
+        self.assertEqual(f.fctl_i, 0)
+        self.assertEqual(f.fctl_s, 0)
+        self.assertEqual(f.fctl_m, 0)
+        self.assertEqual(f.fctl_p, 0)
+        self.assertEqual(f.netid, b"")
+        self.assertEqual(f.daddr, b"")
+        self.assertEqual(f.saddr, b"")
+        self.assertEqual(f.data, b"")
+        self.assertEqual(f.hops, b"")
+        self.assertEqual(f.txaddr, b"")
+
+
 if __name__ == '__main__':
     unittest.main()
