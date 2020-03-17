@@ -6,7 +6,6 @@ Copyright 2018 Dean Hall.  See LICENSE for details.
 Launches all the state machines to run the HeyMac network
 """
 
-import hashlib
 import logging
 import socket
 import sys
@@ -19,28 +18,8 @@ import prj_cfg
 import prj_stngs
 
 
-def get_long_mac_addr():
-    """Returns the 64-bit MAC address
-    that is computed from the public key
-    found in a specific, pre-made file.
-    """
-    # Turn user JSON config files into Python dicts
-    mac_identity = utl.get_from_json("HeyMac", "mac_identity.json")
-    # Convert hex bytes to bytearray since JSON can't do binary strings
-    pub_key = bytearray.fromhex(mac_identity['pub_key'])
-    # Calculate the 128-bit source address from the identity's pub_key
-    h = hashlib.sha512()
-    h.update(pub_key)
-    h.update(h.digest())
-    saddr = h.digest()[:8]
-
-    assert len(saddr) == 8
-    assert saddr[0] in (0xfc, 0xfd)
-    return saddr
-
-
 def main():
-    saddr = get_long_mac_addr()
+    saddr = utl.get_long_mac_addr("KC4KSU")
     # The hostname is the station ID
     station_id = socket.gethostname().encode()
 

@@ -3,6 +3,7 @@
 Copyright 2018 Dean Hall.  See LICENSE for details.
 """
 
+import hashlib
 import json
 import os
 import sys
@@ -36,3 +37,26 @@ def get_from_json(app_name, fn):
     with open(file_path) as f:
         data = json.load(f)
     return data
+
+
+def get_long_mac_addr(tac_id):
+    """Returns the 64-bit MAC address
+    that is computed from the public key
+    found in a specific, pre-made file.
+    """
+    fn = tac_id + "_cred.json"
+    # Turn user JSON config files into Python dicts
+    mac_identity = get_from_json("HeyMac", fn)
+    # Convert hex bytes to bytearray since JSON can't do binary strings
+    pub_key = bytearray.fromhex(mac_identity['pub_key'])
+    # Calculate the 128-bit source address from the identity's pub_key
+    h = hashlib.sha512()
+    h.update(pub_key)
+    h.update(h.digest())
+    saddr = h.digest()[:8]
+
+    assert len(saddr) == 8
+    assert saddr[0] in (0xfc, 0xfd)
+    return saddr
+
+

@@ -16,17 +16,23 @@ logging.basicConfig(
         level = logging.INFO)
 
 import heymac
+from heymac import utl
 
 import app_chat_ahsm
 import prj_cfg
+import prj_stngs
 
 
 def main():
+    saddr = utl.get_long_mac_addr("KC4KSU")
+    # The hostname is the station ID
+    station_id = socket.gethostname().encode()
+
     # Instantiate state machines
     gpioAhsm = heymac.GpioAhsm()
-    spiAhsm = heymac.SX127xSpiAhsm()
+    spiAhsm = heymac.SX127xSpiAhsm(prj_stngs.spi_stngs, prj_stngs.modem_stngs)
     uartAhsm = heymac.UartAhsm()
-    macAhsm = heymac.HeyMacAhsm()
+    macAhsm = heymac.HeyMacCsmaAhsm(saddr, station_id)
     chatAhsm = app_chat_ahsm.ChatAhsm()
 
     # Configure GPIO
