@@ -46,6 +46,7 @@ import argparse
 import codecs
 import datetime
 import fnmatch
+import getpass
 import hashlib
 import json
 import os
@@ -63,9 +64,7 @@ from cryptography.x509.oid import NameOID
 from heymac import utl
 
 
-WARNING = """WARNING: This tool does not adequately protect the private key!
-In particular, the private key file's passphrase is exposed to
-the console when it is requested by the application.
+WARNING = """WARNING: This tool does not protect the private key!
 You should not use this keypair for meaningful cryptography!
 In this project, we are using the keypair to authenticate
 messages for recreational/amateur radio communication.
@@ -197,8 +196,8 @@ def _write_pub_key_to_der(pub_key, field_info):
 
 
 def _write_cert_to_x509(pub_key, prv_key, person_info):
-    """Gets input for and writes a self-signed X.509 certificate.
-    Returns the callsgn as a string.
+    """Writes a self-signed X.509 certificate to a file
+    using info from the given person_info dict
     """
     # Generate a self-signed certificate (subject and issuer are the same)
     subject = issuer = x509.Name([
@@ -255,12 +254,13 @@ def gen_device_credentials():
 
     # Get input for the private key passphrase
     print(WARNING)
-    passphrase = input("Private key encryption passphrase: ")  # sketchy
+
+    passphrase = getpass.getpass("Private key encryption passphrase: ")
     passphrase = passphrase.encode()
 
     # Use input and certificate data to build the device info
     dev_info = {}
-    dev_id = input("Device ID (callsign-###): %s-" % callsign)
+    dev_id = input("Tactical ID (callsign-###): %s-" % callsign)
     dev_info["callsign"] = callsign + '-' + dev_id
     dev_info["cmn_name"] = name
 
