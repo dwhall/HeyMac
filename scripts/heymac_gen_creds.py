@@ -24,9 +24,7 @@ The paths of all generated files are printed to the console as they are written.
 The device keypairs and certificates must be copied to their respective devices;
 that process is specific to the device/software being used.
 
-WARNING: This tool does not adequately protect the private key!
-In particular, the private key file's passphrase is exposed to
-the console when it is requested by the application.
+WARNING: This tool does not protect the private key!
 You should not use this keypair for meaningful cryptography!
 In this project, we are using the keypair to authenticate
 messages for recreational/amateur radio communication.
@@ -141,7 +139,12 @@ def _get_key_from_asn1(der_bytes):
                 retval = rdparse_asn1(decoder)
                 decoder.leave()
         return retval
-    return rdparse_asn1(decoder)
+    pub_key_bytes = rdparse_asn1(decoder)
+    # FIXME: pub_key_bytes is 98 bytes and always begins with "\x00\x04".
+    #        So I remove those two leading bytes and use the remaining 96 bytes.
+    #        Size agreement: 96 bytes == 768 bits == two 384 bit numbers (SECP384R1)
+    pub_key_bytes = pub_key_bytes[2:]
+    return pub_key_bytes
 
 
 def _write_cred_to_json(pub_key, field_info):
@@ -239,9 +242,10 @@ def gen_device_credentials():
     result = []
     for root, dirs, files in os.walk(heymac_path):
         for fn in files:
-            if fnmatch.fnmatch(fn, "*_cert.pem"):
+            if fnmatch.fnmatch(fn, "*cert.pem"):
                 result.append(os.path.join(root, fn))
-    assert len(result) == 1, "Zero or more than one cert file.  Aborting."
+    cert_file_cnt = len(result)
+    assert cert_file_cnt == 1, "Aborting.  Expected one cert file, but found %d." % cert_file_cnt
     cert_fn = result[0]
 
     # Read the personal certificate
@@ -284,7 +288,7 @@ def gen_personal_credentials():
     prv_key, pub_key = gen_personal_keypair()
 
     # Get a passphrase to encrypt the private key for local storage
-    passphrase = input("Private key encryption passphrase: ")  # sketchy
+    passphrase = getpass.getpass("Private key encryption passphrase: ")
     passphrase = passphrase.encode()
 
     # Get input for the certificate
@@ -306,7 +310,8 @@ def gen_personal_credentials():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--device", help='Generate device credential files')
+    parser.add_argument("-d", "--device", default=False, help='Generate device credential files')
+    #parser.add_argument("-d", "--device", default=True, help='Generate device credential files')
     args = parser.parse_args()
 
     if bool(args.device):

@@ -17,7 +17,7 @@ def get_app_data_path(app_name):
     assert type(app_name) == str
 
     if sys.platform == 'darwin':
-        from AppKit import NSSearchPathForDirectoriesInDomains, NSApplicationSupportDirectory, NSUserDomainMask
+        from AppKit import NSSearchPathForDirectoriesInDomains, NSApplicationSupportDirectory, NSUserDomainMask # pip install pyobjc
         app_data_path = os.path.join(NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, True)[0], app_name)
     elif sys.platform == 'win32':
         app_data_path = os.path.join(os.environ['APPDATA'], app_name)
