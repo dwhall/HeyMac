@@ -13,7 +13,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/dwhall/HeyMac",
     packages=setuptools.find_packages(),
-    scripts = ["scripts/heymac_gen_identity.py"],
+    scripts = ["scripts/heymac_gen_creds.py"],
     classifiers=[
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
