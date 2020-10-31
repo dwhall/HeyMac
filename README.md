@@ -62,3 +62,14 @@ connection is made by a trace in the Dragino PCB.
 | ------ | ---------------------------------------- |
 | W      | Added a fly wire                         |
 | 1      | Either GPIO25 always remains an unusable input, or cut trace to Pi's pin22. |
+
+# Getting Started
+
+This project is meant to be run on a Raspberry Pi with a LoRa shield.  However, it can also be run in a limited fashion on a PC (posix or windows) where some of the hardware peripherals are mocked.
+
+The following steps will get you going on a PC or a Pi:
+
+1. Use git to clone this project and its submodules.
+1. Use Python's pip tool to install dependencies (see requirements.txt).
+1. Run scripts/heymac_gen_creds.py via CLI and answer its questions to generate a local credential file.
+1. Run one of the example/app_*_main.py files (recommend doing this from VSCode).
