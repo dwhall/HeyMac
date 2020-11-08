@@ -31,24 +31,24 @@ class HeyMacCsmaAhsm(farc.Ahsm):
 
 
     @farc.Hsm.state
-    def _initial(me, event):
+    def _initial(self, event):
         """Pseudostate: HeyMacCsmaAhsm:_initial
         """
         # Incoming signals
         farc.Signal.register("MAC_TX_REQ")
-        farc.Framework.subscribe("PHY_GPS_NMEA", me)
-        farc.Framework.subscribe("PHY_RXD_DATA", me)
-        farc.Framework.subscribe("PHY_TX_DONE", me)
+        farc.Framework.subscribe("PHY_GPS_NMEA", self)
+        farc.Framework.subscribe("PHY_RXD_DATA", self)
+        farc.Framework.subscribe("PHY_TX_DONE", self)
 
         # Initialize timer events
-        me.bcn_evt = farc.TimeEvent("_MAC_BCN_EVT_TMOUT")
-        me.tm_evt = farc.TimeEvent("_MAC_TM_EVT_TMOUT")
+        self.bcn_evt = farc.TimeEvent("_MAC_BCN_EVT_TMOUT")
+        self.tm_evt = farc.TimeEvent("_MAC_TM_EVT_TMOUT")
 
-        return me.tran(me, HeyMacCsmaAhsm._initializing)
+        return self.tran(self._initializing)
 
 
     @farc.Hsm.state
-    def _initializing(me, event):
+    def _initializing(self, event):
         """State: HeyMacCsmaAhsm:_initializing
         - initializes MAC related variables and the tx-pkt queue
         - always transitions to the _lurking state
@@ -58,25 +58,25 @@ class HeyMacCsmaAhsm(farc.Ahsm):
             logging.info("INITIALIZING")
 
             # Data Link Layer data
-            me.mac_csma_data = mac_csma_data.MacData()
+            self.mac_csma_data = mac_csma_data.MacData()
 
             # Transmit queue
-            me.mac_txq = []
+            self.mac_txq = []
 
-            me.postFIFO(farc.Event(farc.Signal._ALWAYS, None))
-            return me.handled(me, event)
+            self.post_fifo(farc.Event(farc.Signal._ALWAYS, None))
+            return self.handled(event)
 
         elif sig == farc.Signal._ALWAYS:
-            return me.tran(me, HeyMacCsmaAhsm._lurking)
+            return self.tran(self._lurking)
 
         elif sig == farc.Signal.EXIT:
-            return me.handled(me, event)
+            return self.handled(event)
 
-        return me.super(me, me.top)
+        return self.super(self.top)
 
 
     @farc.Hsm.state
-    def _running(me, event):
+    def _running(self, event):
         """State: HeyMacCsmaAhsm:_running
         The _running state:
         - receives continuously for two beacon periods
@@ -86,35 +86,35 @@ class HeyMacCsmaAhsm(farc.Ahsm):
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
-            return me.handled(me, event)
+            return self.handled(event)
 
         elif sig == farc.Signal.PHY_RXD_DATA:
             rx_time, payld, rssi, snr = event.value
-            me._on_rxd_frame(rx_time, payld, rssi, snr)
+            self._on_rxd_frame(rx_time, payld, rssi, snr)
             _receive_cont(phy_cfg.rx_freq)
-            return me.handled(me, event)
+            return self.handled(event)
 
         elif sig == farc.Signal.MAC_TX_REQ:
             # This low-level state should just enqueue pkts
             # because the active state may be _lurking.
-            me.mac_txq.insert(0, event.value) # TODO: _networking state should periodically monitor & fwd
-            return me.handled(me, event)
+            self.mac_txq.insert(0, event.value) # TODO: _networking state should periodically monitor & fwd
+            return self.handled(event)
 
         elif sig == farc.Signal.PHY_GPS_NMEA:
-            me.gps_gprmc = event.value
-            return me.handled(me, event)
+            self.gps_gprmc = event.value
+            return self.handled(event)
 
         elif sig == farc.Signal.SIGTERM:
-            return me.tran(me, me._exiting)
+            return self.tran(self._exiting)
 
         elif sig == farc.Signal.EXIT:
-            return me.handled(me, event)
+            return self.handled(event)
 
-        return me.super(me, me.top)
+        return self.super(self.top)
 
 
     @farc.Hsm.state
-    def _lurking(me, event):
+    def _lurking(self, event):
         """State: HeyMacCsmaAhsm:_running:_lurking
         Passively receives radio and GPS for a fixed period
         (two beacon cycles) to build neighbor list,
@@ -125,23 +125,23 @@ class HeyMacCsmaAhsm(farc.Ahsm):
             logging.info("LURKING")
             _receive_cont(phy_cfg.rx_freq)
             listening_period = mac_csma_cfg.BEACON_PERIOD_SEC
-            me.tm_evt.postIn(me, listening_period)
-            return me.handled(me, event)
+            self.tm_evt.post_in(self, listening_period)
+            return self.handled(event)
 
         elif sig == farc.Signal._MAC_TM_EVT_TMOUT:
             # listening timer has expired, transition to _beaconing
-            return me.tran(me, me._beaconing)
+            return self.tran(self._beaconing)
 
         elif sig == farc.Signal.EXIT:
             # Cancel the timer in case of a forced exit
-            me.tm_evt.disarm()
-            return me.handled(me, event)
+            self.tm_evt.disarm()
+            return self.handled(event)
 
-        return me.super(me, me._running)
+        return self.super(self._running)
 
 
     @farc.Hsm.state
-    def _beaconing(me, event):
+    def _beaconing(self, event):
         """State: HeyMacCsmaAhsm:_running:_beaconing
         - periodically transmits a beacon
         - transitions to _networking state when bidirectional path discovered
@@ -149,46 +149,46 @@ class HeyMacCsmaAhsm(farc.Ahsm):
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             logging.info("BEACONING")
-            me.bcn_evt.postEvery(me, mac_csma_cfg.BEACON_PERIOD_SEC)
-            me.tm_evt.postEvery(me, 1.0)
-            return me.handled(me, event)
+            self.bcn_evt.post_every(self, mac_csma_cfg.BEACON_PERIOD_SEC)
+            self.tm_evt.post_every(self, 1.0)
+            return self.handled(event)
 
         elif sig == farc.Signal.PHY_RXD_DATA:
             # Process the received frame just like in _running state
             rx_time, payld, rssi, snr = event.value
-            me._on_rxd_frame(rx_time, payld, rssi, snr)
+            self._on_rxd_frame(rx_time, payld, rssi, snr)
             _receive_cont(phy_cfg.rx_freq)
 
             # Transition to _networking if a bidirectional path is discovered
-            if me._ngbr_hears_me():
-                return me.tran(me, HeyMacCsmaAhsm._networking)
+            if self._ngbr_hears_me():
+                return self.tran(self._networking)
             else:
-                return me.handled(me, event)
+                return self.handled(event)
 
         elif sig == farc.Signal._MAC_BCN_EVT_TMOUT:
             # Transmit a std beacon during this node's beacon slot
             logging.info("bcn")
-            me._tx_bcn()
-            return me.handled(me, event)
+            self._tx_bcn()
+            return self.handled(event)
 
         elif sig == farc.Signal.PHY_TX_DONE:
             # After a beacon is transmitted, go back to receiving continuously
             _receive_cont(phy_cfg.rx_freq)
-            return me.handled(me, event)
+            return self.handled(event)
 
         elif sig == farc.Signal._MAC_TM_EVT_TMOUT:
-            me._attempt_tx_from_q()
-            return me.handled(me, event)
+            self._attempt_tx_from_q()
+            return self.handled(event)
 
         elif sig == farc.Signal.EXIT:
-            me.bcn_evt.disarm()
-            return me.handled(me, event)
+            self.bcn_evt.disarm()
+            return self.handled(event)
 
-        return me.super(me, me._running)
+        return self.super(self._running)
 
 
     @farc.Hsm.state
-    def _networking(me, event):
+    def _networking(self, event):
         """State: HeyMacCsmaAhsm:_running:_beaconing:_networking
         """
         sig = event.signal
@@ -197,22 +197,22 @@ class HeyMacCsmaAhsm(farc.Ahsm):
 
         elif sig == farc.Signal.PHY_RXD_DATA:
             rx_time, payld, rssi, snr = event.value
-            me._on_rxd_frame(me, rx_time, payld, rssi, snr)
-            return me.handled(me, event)
+            self._on_rxd_frame(rx_time, payld, rssi, snr)
+            return self.handled(event)
 
-        return me.super(me, me._running)
+        return self.super(self._running)
 
 
     @farc.Hsm.state
-    def _exiting(me, event):
+    def _exiting(self, event):
         """State HeyMacCsmaAhsm:_exiting
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             logging.info("EXITING")
-            return me.handled(me, event)
+            return self.handled(event)
 
-        return me.super(me, me.top)
+        return self.super(self.top)
 
 
 #### End State Machines

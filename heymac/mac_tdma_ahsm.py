@@ -36,30 +36,30 @@ mac_identity['pub_key'] = bytearray.fromhex(mac_identity['pub_key'])
 class HeyMacAhsm(farc.Ahsm):
 
     @farc.Hsm.state
-    def _initial(me, event):
+    def _initial(self, event):
         """Pseudostate: HeyMacAhsm:_initial
         """
         # Incoming signals
         farc.Signal.register("MAC_TX_REQ")
-        farc.Framework.subscribe("PHY_GPS_PPS", me)
-        farc.Framework.subscribe("PHY_RXD_DATA", me)
-        farc.Framework.subscribe("PHY_GPS_NMEA", me)
+        farc.Framework.subscribe("PHY_GPS_PPS", self)
+        farc.Framework.subscribe("PHY_RXD_DATA", self)
+        farc.Framework.subscribe("PHY_GPS_NMEA", self)
 
         # Initialize a timer event
-        me.tm_evt = farc.TimeEvent("_MAC_TDMA_TM_EVT_TMOUT")
+        self.tm_evt = farc.TimeEvent("_MAC_TDMA_TM_EVT_TMOUT")
 
         # Calculate the 128-bit source address from the identity's pub_key
         h = hashlib.sha512()
         h.update(mac_identity['pub_key'])
         h.update(h.digest())
-        me.saddr = h.digest()[:8]
-        assert me.saddr[0] in (0xfc, 0xfd)
+        self.saddr = h.digest()[:8]
+        assert self.saddr[0] in (0xfc, 0xfd)
 
         # Init HeyMac values
-        me.asn = 0
-        me.sf_order = mac_tdma_cfg.FRAME_SPEC_SF_ORDER
-        me.eb_order = mac_tdma_cfg.FRAME_SPEC_EB_ORDER
-        me.dscpln = mac_tdma_discipline.HeyMacDiscipline()
+        self.asn = 0
+        self.sf_order = mac_tdma_cfg.FRAME_SPEC_SF_ORDER
+        self.eb_order = mac_tdma_cfg.FRAME_SPEC_EB_ORDER
+        self.dscpln = mac_tdma_discipline.HeyMacDiscipline()
 
         # Data Link Layer data
         # TODO: network's SF/EB_ORDER values may change at runtime.
@@ -69,34 +69,34 @@ class HeyMacAhsm(farc.Ahsm):
         tm_eb_period = (2 ** mac_tdma_cfg.FRAME_SPEC_EB_ORDER) * tm_sf_period
         bcn_expiration = 4 * tm_sf_period
         ebcn_expiration = 2 * tm_eb_period
-        me.mac_data = mac_data.MacData(bcn_expiration, ebcn_expiration)
+        self.mac_data = mac_data.MacData(bcn_expiration, ebcn_expiration)
 
         # Transmit queue
-        me.mac_txq = []
+        self.mac_txq = []
 
-        return me.tran(me, HeyMacAhsm._initializing)
+        return self.tran(HeyMacAhsm._initializing)
 
 
     @farc.Hsm.state
-    def _initializing(me, event):
+    def _initializing(self, event):
         """State: HeyMacAhsm:_initializing
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
-            me.postFIFO(farc.Event(farc.Signal._ALWAYS, None))
-            return me.handled(me, event)
+            self.post_fifo(farc.Event(farc.Signal._ALWAYS, None))
+            return self.handled(event)
 
         elif sig == farc.Signal._ALWAYS:
-            return me.tran(me, HeyMacAhsm._lurking)
+            return self.tran(HeyMacAhsm._lurking)
 
         elif sig == farc.Signal.EXIT:
-            return me.handled(me, event)
+            return self.handled(event)
 
-        return me.super(me, me.top)
+        return self.super(self.top)
 
 
     @farc.Hsm.state
-    def _running(me, event):
+    def _running(self, event):
         """State: HeyMacAhsm:_running
         The _running state:
         - uses PPS events from the GPIO to establish timing discipline
@@ -105,40 +105,40 @@ class HeyMacAhsm(farc.Ahsm):
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
-            return me.handled(me, event)
+            return self.handled(event)
 
         elif sig == farc.Signal.PHY_GPS_PPS:
             time_of_pps = event.value
-            me.dscpln.update_pps(time_of_pps)
-            return me.handled(me, event)
+            self.dscpln.update_pps(time_of_pps)
+            return self.handled(event)
 
         elif sig == farc.Signal.PHY_RXD_DATA:
             rx_time, payld, rssi, snr = event.value
-            me.on_rxd_frame(me, rx_time, payld, rssi, snr)
+            self.on_rxd_frame(me, rx_time, payld, rssi, snr)
             # immediate rx continuous
             rx_args = (-1, phy_cfg.rx_freq)
             farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_RECEIVE, rx_args), "SX127xSpiAhsm")
-            return me.handled(me, event)
+            return self.handled(event)
 
         elif sig == farc.Signal.MAC_TX_REQ:
-            me.mac_txq.insert(0, event.value)
-            return me.handled(me, event)
+            self.mac_txq.insert(0, event.value)
+            return self.handled(event)
 
         elif sig == farc.Signal.PHY_GPS_NMEA:
-            me.gps_gprmc = event.value
-            return me.handled(me, event)
+            self.gps_gprmc = event.value
+            return self.handled(event)
 
         elif sig == farc.Signal.SIGTERM:
-            return me.tran(me, me._exiting)
+            return self.tran(self._exiting)
 
         elif sig == farc.Signal.EXIT:
-            return me.handled(me, event)
+            return self.handled(event)
 
-        return me.super(me, me.top)
+        return self.super(self.top)
 
 
     @farc.Hsm.state
-    def _lurking(me, event):
+    def _lurking(self, event):
         """State: HeyMacAhsm:_running:_lurking
         Passively receives radio and GPS for timing discipline sources.
         Transitions to Scheduling after lurking for N superframes.
@@ -149,25 +149,25 @@ class HeyMacAhsm(farc.Ahsm):
             # rx continuously on the rx_freq
             value = (-1, phy_cfg.rx_freq)
             farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_RECEIVE, value), "SX127xSpiAhsm")
-            listen_secs = mac_tdma_cfg.N_SFRAMES_TO_LISTEN * (2 ** me.sf_order) / mac_tdma_cfg.TSLOTS_PER_SEC
-            me.tm_evt.postIn(me, listen_secs)
-            return me.handled(me, event)
+            listen_secs = mac_tdma_cfg.N_SFRAMES_TO_LISTEN * (2 ** self.sf_order) / mac_tdma_cfg.TSLOTS_PER_SEC
+            self.tm_evt.post_in(self, listen_secs)
+            return self.handled(event)
 
         elif sig == farc.Signal._MAC_TDMA_TM_EVT_TMOUT:
             # listening timer has expired, transition to _beaconing
-            return me.tran(me, me._beaconing)
+            return self.tran(self._beaconing)
 
         # NOTE: This handler is for logging print and may be removed
         elif sig == farc.Signal.PHY_GPS_PPS: # GPS pulse per second pin event
             logging.info("pps            %f", event.value)
             # process PPS in the _running state, too
-            return me.super(me, me._running)
+            return self.super(self._running)
 
-        return me.super(me, me._running)
+        return self.super(self._running)
 
 
     @farc.Hsm.state
-    def _beaconing(me, event):
+    def _beaconing(self, event):
         """State: HeyMacAhsm:_running:_beaconing
         Uses timing discipline to tx beacons.
         """
@@ -175,31 +175,31 @@ class HeyMacAhsm(farc.Ahsm):
         if sig == farc.Signal.ENTRY:
             logging.info("BEACONING")
             # Pick a beacon slot
-            me.bcn_slot = me.pick_bcn_slot(me)
-            logging.info("bcn_slot (%d / %d)" % (me.bcn_slot, 2 ** me.sf_order))
+            self.bcn_slot = self.pick_bcn_slot(me)
+            logging.info("bcn_slot (%d / %d)" % (self.bcn_slot, 2 ** self.sf_order))
             # Calc the start of Tslots
             now = farc.Framework._event_loop.time()
-            me.next_tslot = me.dscpln.get_time_of_next_tslot(now)
-            logging.info("next_tslot = %f", me.next_tslot)
-            me.tm_evt.postAt(me, me.next_tslot - mac_tdma_cfg.TSLOT_PREP_TIME)
-            return me.handled(me, event)
+            self.next_tslot = self.dscpln.get_time_of_next_tslot(now)
+            logging.info("next_tslot = %f", self.next_tslot)
+            self.tm_evt.post_at(self, self.next_tslot - mac_tdma_cfg.TSLOT_PREP_TIME)
+            return self.handled(event)
 
         elif sig == farc.Signal._MAC_TDMA_TM_EVT_TMOUT:
-            me.beaconing_and_next_tslot(me)
-            if me.ngbr_hears_me(me):
-                return me.tran(me, HeyMacAhsm._networking)
+            self.beaconing_and_next_tslot(me)
+            if self.ngbr_hears_me(me):
+                return self.tran(HeyMacAhsm._networking)
             else:
-                return me.handled(me, event)
+                return self.handled(event)
 
         elif sig == farc.Signal.EXIT:
-            me.tm_evt.disarm()
-            return me.handled(me, event)
+            self.tm_evt.disarm()
+            return self.handled(event)
 
-        return me.super(me, me._running)
+        return self.super(self._running)
 
 
     @farc.Hsm.state
-    def _networking(me, event):
+    def _networking(self, event):
         """State: HeyMacAhsm:_running:_beaconing:_networking
         Uses timing discipline to schedule packet tx and rx actions.
         """
@@ -209,22 +209,22 @@ class HeyMacAhsm(farc.Ahsm):
 
         elif sig == farc.Signal.PHY_RXD_DATA:
             rx_time, payld, rssi, snr = event.value
-            me.on_rxd_frame(me, rx_time, payld, rssi, snr)
-            return me.handled(me, event)
+            self.on_rxd_frame(me, rx_time, payld, rssi, snr)
+            return self.handled(event)
 
-        return me.super(me, me._running)
+        return self.super(self._running)
 
 
     @farc.Hsm.state
-    def _exiting(me, event):
+    def _exiting(self, event):
         """State HeyMacAhsm:_exiting
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             logging.info("EXITING")
-            return me.handled(me, event)
+            return self.handled(event)
 
-        return me.super(me, me.top)
+        return self.super(self.top)
 
 
 #### End State Machines
@@ -264,7 +264,7 @@ class HeyMacAhsm(farc.Ahsm):
         # less accumulated error.
         now = farc.Framework._event_loop.time()
         self.next_tslot = self.dscpln.get_time_of_next_tslot(now)
-        self.tm_evt.postAt(self, self.next_tslot - mac_tdma_cfg.TSLOT_PREP_TIME)
+        self.tm_evt.post_at(self, self.next_tslot - mac_tdma_cfg.TSLOT_PREP_TIME)
 
 
     @staticmethod
