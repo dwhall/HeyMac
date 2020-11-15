@@ -1,3 +1,3 @@
-[submodule "deps/sx127x_ahsm"]
-	path = deps/sx127x_ahsm
-	url = git@github.com:dwhall/sx127x_ahsm.git
+[submodule "deps/phy_sx127x"]
+	path = deps/phy_sx127x
+	url = git@github.com:dwhall/phy_sx127x.git
