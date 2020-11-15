@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="HeyMac",
-    version="0.1.1",
+    version="0.1.2",
     author="Dean Hall",
     author_email="dwhall256@gmail.com",
     description="A small, flexible protocol stack for the Semtech SX127X radio data modem.",
