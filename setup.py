@@ -5,10 +5,10 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="HeyMac",
-    version="0.1.0",
+    version="0.1.1",
     author="Dean Hall",
     author_email="dwhall256@gmail.com",
-    description="Layered protocol driver for low-power, lossy wireless data transfer",
+    description="A small, flexible protocol stack for the Semtech SX127X radio data modem.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/dwhall/HeyMac",
@@ -19,6 +19,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         "License :: OSI Approved :: MIT License",
 
         # This project is designed to run on a Raspberry Pi

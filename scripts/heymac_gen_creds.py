@@ -254,12 +254,9 @@ def gen_device_credentials():
     cert = x509.load_pem_x509_certificate(pem_data, default_backend())
     name = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
     callsign = cert.subject.get_attributes_for_oid(NameOID.PSEUDONYM)[0].value
+
     print("Using info from personal certificate of %s (%s)" % (name, callsign))
-
-    # Get input for the private key passphrase
-    print(WARNING)
-
-    passphrase = getpass.getpass("Private key encryption passphrase: ")
+    passphrase = getpass.getpass("Input the private key encryption passphrase for %s: " % fn)
     passphrase = passphrase.encode()
 
     # Use input and certificate data to build the device info
