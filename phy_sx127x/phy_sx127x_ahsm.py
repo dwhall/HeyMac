@@ -34,6 +34,17 @@ class PhySX127xAhsm(farc.Ahsm):
         now = farc.Framework._event_loop.time()
         self.post_fifo(farc.Event(self._dio_sig_lut[dio], now))
 
+#### Public interface
+
+    def enqueue_for_tx(self, frame, tm_to_tx, tx_stngs):
+        """Enqueues the given frame bytes for transmit
+        at the given time with the given settings.
+        """
+        assert type(frame) is bytes
+        # TODO: collect arguments into container and enqueue
+
+
+#### State machine
 
     @farc.Hsm.state
     def _initial(self, event):
