@@ -3,6 +3,7 @@
 Copyright 2020 Dean Hall.  See LICENSE for details.
 """
 
+import collections
 import logging
 import time
 
@@ -12,27 +13,24 @@ from . import phy_sx127x
 
 
 class PhySX127xAhsm(farc.Ahsm):
-    """Medium Access Control (MAC) state machine
-    for the Semtec SX127x family of radio modems.
+    """Physical Layer (PHY) state machine
+    for the Semtech SX127x family of radio modems.
     """
+    # Values for enqueue_for_tx()'s tm_to_tx argument.
+    ENQ_TX_NOW = 0  # Use normally for "transmit now"
+    ENQ_TX_IMMEDIATELY = -1 # Use sparingly to jump the queue
 
-    def __init__(self,):
+ 
+    def __init__(self, lstn_by_dflt=True):
+        """Listen by default means the radio enters 
+        continuous-rx mode when it is not doing anything else.
+        If this is false, the radio enters sleep mode
+        when it is not doing anything else.
+        """
         super().__init__()
         self.sx127x = phy_sx127x.PhySX127x()
+        self._lstn_by_dflt = lstn_by_dflt
 
-        # Listen by default means the radio enters continuous-rx mode when it is not doing anything else.
-        # If this is false, the radio enters sleep mode when it is not doing anything else.
-        self._lstn_by_dflt = True  # TODO: parameterize this (mac_stngs maybe?)
-
-
-    def _dio_isr_clbk(self, dio):
-        """Callback given to phy_sx127x for when a DIO pin event occurs.
-        This procedure posts a farc Event corresponding
-        to the DIO pin event to this state machine.
-        The pin edge's arrival time is the value of the Event.
-        """
-        now = farc.Framework._event_loop.time()
-        self.post_fifo(farc.Event(self._dio_sig_lut[dio], now))
 
 #### Public interface
 
@@ -41,7 +39,50 @@ class PhySX127xAhsm(farc.Ahsm):
         at the given time with the given settings.
         """
         assert type(frame) is bytes
-        # TODO: collect arguments into container and enqueue
+
+        tx_data = (frame, tm_to_tx, tx_stngs)
+
+        # IMMEDIATELY means this frame jumps to the front of the line
+        # put it in the immediate queue (which goes before the tm_queue)
+        if tm_to_tx == PhySX127xAhsm.ENQ_TX_IMMEDIATELY:
+            self.im_queue.append(tx_data)
+        else:
+            # NOW means assume a transmit time of now and
+            # pool this frame with other scheduled frames
+            if tm_to_tx == PhySX127xAhsm.ENQ_TX_NOW:
+                tm_to_tx = now = farc.Framework._event_loop.time()
+
+            # Ensure this tx time doesn't overwrite an existing one
+            # by adding one microsecond if there is a duplicate.
+            # This results in FIFO for frames scheduled at the same time.
+            while tm_to_tx in self.tm_queue:
+                tm_to_tx += 0.000_001
+            self.tm_queue[tm_to_tx] = tx_data
+
+        # There is now something to transmit,
+        # so break out of the normal state (rx-cont or sleep)
+        # by signaling the state machine to reschedule
+        self.post_fifo(self._evt_reschedule)
+
+
+    def start_stack(self, farc_prio):
+        """This is the bottom of the stack,
+        so just start this Ahsm
+        """
+        self.start(farc_prio)
+
+
+#### Private interface
+
+    def _dio_isr_clbk(self, dio):
+        """A callback that is given to phy_sx127x 
+        for when a DIO pin event occurs.
+        This procedure posts a farc Event to this state machine
+        corresponding to the DIO pin that transitioned.
+        The pin edge's arrival time is the value of the Event.
+        """
+        now = farc.Framework._event_loop.time()
+        self.post_fifo(farc.Event(self._dio_sig_lut[dio], now))
 
 
 #### State machine
@@ -50,8 +91,9 @@ class PhySX127xAhsm(farc.Ahsm):
     def _initial(self, event):
         """State machine intialization
         """
-        # self-signaling
+        # Self-signaling
         farc.Signal.register("_ALWAYS")
+        farc.Signal.register("_RESCHEDULE")
 
         # DIO Signal table (DO NOT CHANGE ORDER)
         # This table is dual maintenance with  phy_sx127x.PhySX127x.DIO_*
@@ -69,15 +111,13 @@ class PhySX127xAhsm(farc.Ahsm):
             farc.Signal.register("_DIO_PAYLD_CRC_ERR"),
         )
 
-        # Outgoing
-        farc.Signal.register("MAC_NTFY_LNK") # of RX
-
-        # An often-used event
+        # Self-signaling events
         self._evt_always = farc.Event(farc.Signal._ALWAYS, None)
+        self._evt_reschedule = farc.Event(farc.Signal._RESCHEDULE, None)
 
         # Two time events
-        self.tmout_evt = farc.TimeEvent("_MAC_TMOUT")
-        self.prdc_evt = farc.TimeEvent("_MAC_PRDC")
+        self.tmout_evt = farc.TimeEvent("_PHY_TMOUT")
+        self.prdc_evt = farc.TimeEvent("_PHY_PRDC")
 
         return self.tran(self._initializing)
 
@@ -94,11 +134,16 @@ class PhySX127xAhsm(farc.Ahsm):
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             self.tmout_evt.post_in(self, 0.0)
+
             # Init data
-            self.tx_queue = []
+            # We actually use two queues:
+            # One queue for frames that sort by tx time
+            self.tm_queue = {}
+            # Another queue for frames the need to be sent immediately
+            self.im_queue = []
             return self.handled(event)
 
-        elif sig == farc.Signal._MAC_TMOUT:
+        elif sig == farc.Signal._PHY_TMOUT:
             if self.sx127x.open(self._dio_isr_clbk):
                 # Settings that differ from reset
                 self.sx127x.set_fld("FLD_RDO_LORA_MODE", 1)
@@ -157,12 +202,14 @@ class PhySX127xAhsm(farc.Ahsm):
 
         elif sig == farc.Signal._ALWAYS:
             # 4) Apply settings and transition to one of three states
-            if len(self.tx_queue) > 0: # TODO: and tx time is > ~250ms (or some function of frame sz)
+            if self._frame_ready_for_tx():
                 self.sx127x.write_stngs(False)
                 return self.tran(self._txing)
+
             elif self._lstn_by_dflt:
                 self.sx127x.write_stngs(True)
                 return self.tran(self._lstning)
+
             else:
                 return self.tran(self._sleeping)
 
@@ -199,7 +246,7 @@ class PhySX127xAhsm(farc.Ahsm):
             # Start periodic event
             self.prdc_evt.post_every(self, 0.100)  # 100ms
 
-            # Begin RF receive
+            # Enable RF receiver
             # TODO: option for timed rx
             self.sx127x.write_opmode(phy_sx127x.PhySX127x.OPMODE_RXCONT)
             return self.handled(event)
@@ -208,11 +255,12 @@ class PhySX127xAhsm(farc.Ahsm):
             # TODO: log pkt stats
             return self.tran(self._setting)
 
-        elif sig == farc.Signal._MAC_PRDC:
+        elif sig == farc.Signal._PHY_PRDC:
             self.sx127x.updt_rng()
             return self.handled(event)
 
-        # TODO: elif Signal BTN
+        elif sig == farc.Signal._RESCHEDULE:
+            return self.tran(self._setting)
 
         elif sig == farc.Signal._DIO_VALID_HDR:
             self._rxd_hdr_time = event.value
@@ -289,11 +337,15 @@ class PhySX127xAhsm(farc.Ahsm):
             # self.tmout_evt.post_in(self, 1.0)
             return self.handled(event)
 
-        elif sig == farc.Signal._MAC_TMOUT:
+        elif sig == farc.Signal._PHY_TMOUT:
+            # Change modes and await DIO_MODE_RDY
             self.sx127x.write_opmode(phy_sx127x.PhySX127x.OPMODE_STBY, True)
             return self.handled(event)
 
         elif sig == farc.Signal._DIO_MODE_RDY:
+            return self.tran(self._setting)
+
+        elif sig == farc.Signal._RESCHEDULE:
             return self.tran(self._setting)
 
         return self.super(self.top)
@@ -307,7 +359,12 @@ class PhySX127xAhsm(farc.Ahsm):
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
-            # TODO: Fetch TX time, stngs, frame from tx_queue
+            tx_data = self._get_next_tx_data()
+            assert bool(tx_data), "No tx data!  How did we get here?"
+            frame, tm_to_tx, tx_stngs = tx_data
+
+            # TODO: apply tx_stngs
+            # TODO: microsleep until tm_to_tx
 
             # Enable radio's DIO_TX_DONE pin and interrupt
             self.sx127x.set_fld("FLD_RDO_DIO0", 1)
@@ -317,9 +374,8 @@ class PhySX127xAhsm(farc.Ahsm):
                 phy_sx127x.PhySX127x.IRQ_FLAGS_TXDONE)  #enable these
 
             # Write frame into radio's FIFO
-            frm = [0,]*12 # TODO: Get frame from front of tx_queue
             self.sx127x.write_fifo_ptr(0x00)
-            self.sx127x.write_fifo(frm)
+            self.sx127x.write_fifo(frame)
 
             # Start transmission and await DIO_TX_DONE
             self.sx127x.write_opmode(phy_sx127x.PhySX127x.OPMODE_TX, False)
@@ -329,3 +385,45 @@ class PhySX127xAhsm(farc.Ahsm):
             return self.tran(self._setting)
 
         return self.super(self.top)
+
+
+#### Private methods
+
+    def _frame_ready_for_tx(self,):
+        """Returns True if there is a frame in the queues
+        that is ready for transmit soon.
+        Where "soon" means we don't have enough time to sleep
+        between now and the transmit time.
+        """
+        TX_SOON_MARGIN = 0.100 # 100ms TODO: improve this arbitrary choice
+
+        frame_ready = False
+
+        # Return True if there is anything in the immediate queue
+        if len(self.im_queue) > 0:
+            frame_ready = True
+
+        # Return True if there is something in the time queue
+        # that needs to be transmitted soon
+        elif self.tm_queue:
+            now = farc.Framework._event_loop.time()
+            tx_tm = min(self.tm_queue.keys())
+            if tx_tm - now < TX_SOON_MARGIN:
+                frame_ready = True
+        return frame_ready
+
+
+    def _get_next_tx_data(self,):
+        """Returns the tx_data from the queue
+        to use in the next transmission
+        """
+        tx_data = None
+
+        if self.im_queue:
+            tx_data = self.im_queue.pop()
+
+        elif self.tm_queue:
+            tx_tm = min(self.tm_queue.keys())
+            tx_data = self.tm_queue[tx_tm]
+
+        return tx_data

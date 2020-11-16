@@ -206,6 +206,8 @@ class PhySX127x(object):
         self.reset_cfg = phy_cfg.reset_cfg
 
 
+#### Public methods
+
     def clear_irq_flags(self,):
         """Writes the IRQ flags reg back to itself to clear the flags
         """
@@ -351,8 +353,10 @@ class PhySX127x(object):
         self._rng_raw = (self._rng_raw << 1) | (reg & 1)
         # TODO: feed an octet of raw bits into a hash algorithm
 
-    def write_fifo(self, data, sz):
-        assert 0 < sz < 256
+    def write_fifo(self, data, sz=None):
+        if not bool(sz):
+            sz = len(data)
+        assert 0 < sz < 256, "Data will not fit in the radio's FIFO"
         self._write(PhySX127x.REG_RDO_FIFO, data[:sz])
 
 
@@ -457,6 +461,8 @@ class PhySX127x(object):
         for fld in PhySX127x._fld_info.keys():
             self.write_stng(fld)
 
+
+#### Private methods
 
     def _bit_fld(self, ls1, nbits):
         """Creates a bitfield per
