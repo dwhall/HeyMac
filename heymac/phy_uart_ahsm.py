@@ -50,8 +50,6 @@ class UartAhsm(farc.Ahsm):
             return self.handled(event)
 
         elif sig == farc.Signal.PHY_UART_OPEN:
-            # TODO: if value is None: use default uart params
-            self.uart_stngs = event.value
             return self.tran(UartAhsm._running)
 
         elif sig == farc.Signal.SIGTERM:
@@ -73,7 +71,7 @@ class UartAhsm(farc.Ahsm):
             # Open the port with the given argument.
             # expecting a dict like this:
             #   {"port":<uart port string>, "baudrate":<baud rate int>, "timeout"=0}
-            self.ser = serial.Serial(**self.uart_stngs)
+            self.ser = serial.Serial(**self.uart_cfg)
 
             # Start the polling timer
             self.tm_evt.post_every(self, UartAhsm.UART_POLL_PERIOD)
@@ -119,11 +117,12 @@ class UartAhsm(farc.Ahsm):
         return self.super(self.top)
 
     # Public interface
-    def post_open(self, stngs):
-        """Posts the OPEN event to self with the given settings
+    def post_open(self, uart_cfg):
+        """Saves the UART config and posts the OPEN event to self
         """
-        # TODO: validate settings
-        self.post_fifo(farc.Event(farc.Signal.PHY_UART_OPEN, stngs))
+        # TODO: validate config
+        self.uart_cfg = uart_cfg
+        self.post_fifo(farc.Event(farc.Signal.PHY_UART_OPEN, None))
 
 
     def post_close(self):

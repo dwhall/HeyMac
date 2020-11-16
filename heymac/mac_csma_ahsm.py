@@ -13,6 +13,7 @@ State Machine for Carrier-Sense Multiple Access (CSMA):
 import logging
 
 import farc
+import phy_sx127x
 
 from . import mac_csma_data
 from . import mac_csma_cfg
@@ -25,10 +26,37 @@ class HeyMacCsmaAhsm(farc.Ahsm):
     def __init__(self, saddr, station_id):
         super().__init__()
 
+        # Instantiate the lower layer
+        self.phy_ahsm = phy_sx127x.PhySX127xAhsm()
+
         # TODO: these go in mac data?
         self.saddr = saddr
         self.station_id = station_id
 
+
+#### Public interface
+
+    def start_stack(self, farc_prio, delta_prio=10):
+        """Starts the lower layer giving it a higher priority (lower number)
+        and then starts this Ahsm
+        """
+        assert delta_prio > 0, "Lower layer must have higher priority (lower number)"
+        assert farc_prio - delta_prio > 0, "Priorty must not go below zero"
+        self.phy_ahsm.start_stack(farc_prio - delta_prio)
+        self.start(farc_prio)
+
+
+#### Private methods
+
+    def _phy_rx_clbk(self, rx_data):
+        """A callback that is given to the PHY layer
+        for it to call when a received frame and associated data
+        are valid and should be delivered to the LNK layer.
+        """
+        pass
+
+
+#### State machine
 
     @farc.Hsm.state
     def _initial(self, event):
@@ -288,8 +316,10 @@ class HeyMacCsmaAhsm(farc.Ahsm):
             caps=0,
             status=0,
                         )
-        tx_args = (-1, phy_cfg.tx_freq, bytes(frame)) # immediate transmit
-        farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
+        #tx_args = (-1, phy_cfg.tx_freq, bytes(frame)) # immediate transmit
+        #farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
+        tx_stngs = (("FLD_NM", phy_cfg.tx_freq))
+        self.phy_ahsm.enqueue_for_tx(bytes(frame), -1, tx_stngs)
 
 
     def _attempt_tx_from_q(self,):
@@ -302,8 +332,10 @@ class HeyMacCsmaAhsm(farc.Ahsm):
             logging.info("tx from q")
             frame = mac_frame.HeyMacFrame()
             frame.data = self.mac_txq.pop()
-            tx_args = (-1, phy_cfg.tx_freq, bytes(frame)) # tx immediately, freq and data
-            farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
+            #tx_args = (-1, phy_cfg.tx_freq, bytes(frame)) # tx immediately, freq and data
+            #farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
+            tx_stngs = (("FLD_NM", phy_cfg.tx_freq))
+            self.phy_ahsm.enqueue_for_tx(bytes(frame), -1, tx_stngs)
 
 
     def _ngbr_hears_me(self,):
@@ -332,4 +364,5 @@ class HeyMacCsmaAhsm(farc.Ahsm):
 def _receive_cont(freq):
     """Commands the modem to receive-continuous mode
     """
-    farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_RECEIVE, (-1, freq)), "SX127xSpiAhsm")
+# TODO: this goes away after SX127xSpiAhsm is able to init with rx-cont setting
+#    farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_RECEIVE, (-1, freq)), "SX127xSpiAhsm")
