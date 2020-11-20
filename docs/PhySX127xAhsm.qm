@@ -32,27 +32,27 @@
        <guard brief="else"/>
        <choice target="../../../../3">
         <guard brief="lstn_by_dflt"/>
-        <choice_glyph conn="28,64,4,0,10">
+        <choice_glyph conn="28,60,4,0,14">
          <action box="0,2,13,2"/>
         </choice_glyph>
        </choice>
        <choice target="../../../../6">
         <guard brief="else"/>
-        <choice_glyph conn="28,64,5,3,18">
+        <choice_glyph conn="28,60,5,3,18">
          <action box="1,-2,14,2"/>
         </choice_glyph>
        </choice>
-       <choice_glyph conn="28,54,4,-1,10">
+       <choice_glyph conn="28,50,4,-1,10">
         <action box="0,2,10,2"/>
        </choice_glyph>
       </choice>
       <choice target="../../../4">
        <guard brief="len(tx_que) &gt; 0"/>
-       <choice_glyph conn="28,54,5,3,18">
+       <choice_glyph conn="28,50,5,3,18">
         <action box="1,-2,14,2"/>
        </choice_glyph>
       </choice>
-      <tran_glyph conn="20,46,3,-1,8,8">
+      <tran_glyph conn="20,46,3,-1,8,4">
        <action box="0,-2,10,2"/>
       </tran_glyph>
      </tran>
@@ -61,7 +61,7 @@
        <action box="0,-2,19,2"/>
       </tran_glyph>
      </tran>
-     <state_glyph node="20,38,20,34"/>
+     <state_glyph node="20,38,20,30"/>
     </state>
     <state name="_lstning">
      <tran trig="_RESCHEDULE" target="../../2">
@@ -94,11 +94,11 @@
     </state>
     <state name="_txing">
      <tran trig="DIO_TX_DONE" target="../../2">
-      <tran_glyph conn="46,56,3,1,26,-14,-32">
+      <tran_glyph conn="46,52,3,1,26,-10,-32">
        <action box="0,-2,18,2"/>
       </tran_glyph>
      </tran>
-     <state_glyph node="46,50,20,8"/>
+     <state_glyph node="46,46,20,8"/>
     </state>
     <state name="_rxing">
      <tran trig="DIO_RX_DONE" target="../../2">
@@ -120,21 +120,21 @@
     </state>
     <state name="_sleeping">
      <tran trig="SIG_UPDT" target="../../2">
-      <tran_glyph conn="46,70,3,1,26,-28,-32">
-       <action box="0,-2,14,2"/>
-      </tran_glyph>
-     </tran>
-     <tran trig="_PHY_TMOUT" target="../../2">
-      <tran_glyph conn="46,68,3,1,26,-26,-32">
-       <action box="0,-2,14,2"/>
-      </tran_glyph>
-     </tran>
-     <tran trig="_RESCHEDULE" target="../../2">
       <tran_glyph conn="46,66,3,1,26,-24,-32">
        <action box="0,-2,14,2"/>
       </tran_glyph>
      </tran>
-     <state_glyph node="46,60,20,12"/>
+     <tran trig="_PHY_TMOUT" target="../../2">
+      <tran_glyph conn="46,64,3,1,26,-22,-32">
+       <action box="0,-2,14,2"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="_RESCHEDULE" target="../../2">
+      <tran_glyph conn="46,62,3,1,26,-20,-32">
+       <action box="0,-2,14,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="46,56,20,12"/>
     </state>
     <state_diagram size="95,117"/>
    </statechart>

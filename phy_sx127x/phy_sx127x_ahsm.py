@@ -13,8 +13,8 @@ from . import phy_sx127x
 
 
 class PhySX127xAhsm(farc.Ahsm):
-    """Physical Layer (PHY) state machine
-    for the Semtech SX127x family of radio modems.
+    """The PHY layer state machine that automates the behavior
+    of the Semtech SX127x family of radio transceivers.
     """
     # Values for enqueue_for_tx()'s tm_to_tx argument.
     ENQ_TX_NOW = 0  # Use normally for "transmit now"

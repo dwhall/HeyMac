@@ -19,9 +19,8 @@ from . import phy_cfg
 
 
 class PhySX127x(object):
-    """Physical (PHY) Layer
-    SPI operations, settings management and GPIO interfaces
-    for the Semtec SX127x family of digital radio modems.
+    """The PHY layer SPI operations, settings management and GPIO
+    interfaces for the Semtec SX127x family of digital radio transceivers.
     """
 
     # SX127X Oscillator frequency
