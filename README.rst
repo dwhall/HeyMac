@@ -70,6 +70,133 @@ SM, but it does not capture all details.
 .. image:: docs/PhySX127xAhsm.png
 
 
+Public Interface
+----------------
+
+This section describes the public interface of the PHY layer,
+which is the set of methods and arguments available to the entity
+that instantiates the PHY layer.
+
+======================  ================================================
+Method                  Description
+======================  ================================================
+``PhySX127xAhsm()``     The constructor accepts one argument.
+
+                        - *lstn_by_dflt* selects the default behavior
+                          when the device is not doing anything else.
+                          If lstn_by_dflt is ``True``, then the device turns
+                          on its receiver; if it is ``False``, the device
+                          is put into low-power sleep mode.
+----------------------  ------------------------------------------------
+``enqueue_for_tx()``    Puts a set of data into the transmit queue.
+
+                        - *tx_bytes* The Python ``bytes`` object
+                          containing the literal payload to transmit.
+                        - *tx_time* A number representing the time
+                          to perform the transmit.  This is either an
+                          absolute value for time (using the same time as
+                          ``farc.Framework._event_loop.time()``); or it is
+                          a special value:
+
+                          * ``PhySX127xAhsm.ENQ_TM_NOW``
+                          * ``PhySX127xAhsm.ENQ_TM_IMMEDIATELY``
+
+                          ``ENQ_TM_NOW`` uses the current ``time()`` and
+                          inserts this transmission into queue (where there
+                          may be other, potentially delayed payloads waiting).
+                          ``ENQ_TM_IMMEDIATELY`` bypasses the normal queue
+                          and puts the payload in an immediate queue.
+                          The immediate queue is exhausted before the
+                          normal queue may transmit.  Use ``ENQ_TM_IMMEDIATELY``
+                          sparingly.
+
+                        - *tx_stngs* is a sequence of ``(name, value)``
+                          pairs specifically for transmission.
+                          See `Settings`_ for more details.
+----------------------  ------------------------------------------------
+``set_dflt_stngs()``    Sets the default PHY settings.
+
+                        - *dflt_stngs* is a sequence of ``(name, value)``
+                          pairs.  This should be called once before the
+                          state machine is started.  See `Settings`_
+                          for more details.
+----------------------  ------------------------------------------------
+``start_stack()``       Starts the PHY layer state machine with the
+                        given ``farc.Ahsm`` priority.
+======================  ================================================
+
+
+Settings
+--------
+
+An important aspect of manipulating the PHY layer is applying settings
+to the device.  PhySX127x makes applying device settings easy for you.
+Instead of dealing with register addresses, bitwise operations and
+SPI transfers, all you have to do is set a field to a value.
+The field is a bit field, but you only need to know its name.
+**With one exception**, the value you use is exactly the value that would
+go into the bit field (you don't do any shifting).  The exception is
+the radio frequency setting, "FLD_RDO_FREQ", in which case you give
+the desired frequency in Hertz.  Here are some examples::
+
+    # Set the frequency to 432.550 Mhz
+    set_fld("FLD_RDO_FREQ", 432550000)
+
+    # Set the LoRa Coding Rate to 4:5
+    set_fld("FLD_LORA_CR", 1)
+
+    # Set the LoRa Spread Factor to 128 chips per sec
+    set_fld("FLD_LORA_SF", phy_sx127x.PhySX127x.STNG_LORA_SF_128_CPS)
+
+If you have a batch of settings to apply, put the (name, value) tuples
+into a sequence and call set_flds().::
+
+    set_flds((
+        ("FLD_RDO_FREQ", 432550000),
+        ("FLD_LORA_CR", 1),
+        ("FLD_LORA_SF", phy_sx127x.PhySX127x.STNG_LORA_SF_128_CPS),
+    ))
+
+PhySX127x does not write these values to the device registers immediately.
+Instead, it keeps the data until PhySX127xAhsm enters a safe state when the
+radio is not busy.  PhySX127x is also a little smart: it only writes values
+that have changed.  This keeps SPI traffic down.
+
+Now all you need is the list of field names.
+Consult the `SX127x datasheet`_ to learn what these fields do:
+
+==========================  ==================  ==================  ==================
+Field name                  Min value           Max Value           Value after reset
+==========================  ==================  ==================  ==================
+"FLD_RDO_FREQ"              137000000           1020000000          434000000
+--------------------------  ------------------  ------------------  ------------------
+"FLD_RDO_LF_MODE"           0                   1                   1
+"FLD_RDO_LORA_MODE"         0                   1                   0
+"FLD_RDO_OUT_PWR"           0                   15                  15
+"FLD_RDO_MAX_PWR"           0                   7                   4
+"FLD_RDO_PA_BOOST"          0                   1                   0
+"FLD_RDO_LNA_BOOST_HF"      0                   3                   0
+"FLD_RDO_LNA_GAIN"          1                   6                   1
+"FLD_RDO_DIO0"              0                   2                   0
+"FLD_RDO_DIO1"              0                   2                   0
+"FLD_RDO_DIO2"              0                   2                   0
+"FLD_RDO_DIO3"              0                   2                   0
+"FLD_RDO_DIO4"              0                   2                   0
+"FLD_RDO_DIO5"              0                   2                   0
+"FLD_LORA_IMPLCT_HDR_MODE"  0                   1                   0
+"FLD_LORA_CR"               1                   4                   1
+"FLD_LORA_BW"               0                   9                   7
+"FLD_LORA_CRC_EN"           0                   1                   0
+"FLD_LORA_SF"               6                   12                  7
+"FLD_LORA_RX_TMOUT"         0                   1023                0
+"FLD_LORA_PREAMBLE_LEN"     0                   65535               0
+"FLD_LORA_AGC_ON"           0                   1                   0
+"FLD_LORA_SYNC_WORD"        0                   255                 18
+==========================  ==================  ==================  ==================
+
+.. _`SX127x datasheet`: https://www.semtech.com/products/wireless-rf/lora-transceivers/sx1276#download-resources
+
+
 Hardware
 --------
 

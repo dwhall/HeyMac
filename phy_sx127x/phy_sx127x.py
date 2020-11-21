@@ -153,7 +153,7 @@ class PhySX127x(object):
         # name                               mode    start                   cnt     start   cnt     min                 max                 reset
         "FLD_RDO_LF_MODE":          FldInfo( False,  REG_RDO_OPMODE,         1,      3,      1,      0,                  1,                  1                   ),
         "FLD_RDO_LORA_MODE":        FldInfo( False,  REG_RDO_OPMODE,         1,      7,      1,      0,                  1,                  0                   ),
-        "FLD_RDO_FREQ":             FldInfo( False,  REG_RDO_FREQ_MSB,       3,      0,      8,      STNG_RF_FREQ_MIN,   STNG_RF_FREQ_MAX,   0x6C                ),
+        "FLD_RDO_FREQ":             FldInfo( False,  REG_RDO_FREQ_MSB,       3,      0,      8,      STNG_RF_FREQ_MIN,   STNG_RF_FREQ_MAX,   434000000           ),
         "FLD_RDO_OUT_PWR":          FldInfo( False,  REG_RDO_PA_CFG,         1,      0,      4,      0,                  15,                 0x0F                ),
         "FLD_RDO_MAX_PWR":          FldInfo( False,  REG_RDO_PA_CFG,         1,      4,      3,      0,                  7,                  0x04                ),
         "FLD_RDO_PA_BOOST":         FldInfo( False,  REG_RDO_PA_CFG,         1,      7,      1,      0,                  1,                  0                   ),
@@ -307,8 +307,9 @@ class PhySX127x(object):
 
     def set_fld(self, fld, val):
         """Sets the field to the value.
-        The field is not written to the register until
-        the radio is between TX, RX operations
+        The field is not written to the register(s) in this procedure.
+        Once all the fields have been set, call write_stngs() to write
+        all of the settings to the register(s).
         """
         assert fld in PhySX127x._fld_info.keys(), "Invalid field name"
         minval = PhySX127x._fld_info[fld].val_min
@@ -337,8 +338,20 @@ class PhySX127x(object):
             self._rdo_stngs[fld] = val & self._bit_fld(0, PhySX127x._fld_info[fld].bit_cnt)
 
 
+    def set_flds(self, stngs):
+        """Sets all of the (field name, value) pairs in stngs.
+        The fields are not written to the register(s) in this procedure.
+        Once all the fields have been set, call write_stngs() to write
+        all of the settings to the register(s).
+        """
+        for stng_pair in stngs:
+            fld_nm, val = stng_pair
+            self.set_fld(fld_nm, val)
+
+
     def stngs_require_sleep(self,):
-        """Returns True if any outstanding settings must be applied in sleep mode.
+        """Returns True if any outstanding settings require
+        being in sleep mode to be applied.
         At this time, only the LoRa Mode requires sleep mode.
         """
         return self._rdo_stngs["FLD_RDO_LORA_MODE"] != self._rdo_stngs_applied["FLD_RDO_LORA_MODE"]
