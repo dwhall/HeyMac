@@ -22,7 +22,7 @@ class PhySX127xAhsm(farc.Ahsm):
 
  
     def __init__(self, lstn_by_dflt=True):
-        """Listen by default means the radio enters 
+        """Listen by default means the radio enters
         continuous-rx mode when it is not doing anything else.
         If this is false, the radio enters sleep mode
         when it is not doing anything else.
@@ -75,7 +75,7 @@ class PhySX127xAhsm(farc.Ahsm):
 #### Private interface
 
     def _dio_isr_clbk(self, dio):
-        """A callback that is given to phy_sx127x 
+        """A callback that is given to phy_sx127x
         for when a DIO pin event occurs.
         This procedure posts a farc Event to this state machine
         corresponding to the DIO pin that transitioned.

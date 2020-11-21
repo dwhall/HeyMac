@@ -1,4 +1,4 @@
-# This file lets the project run on a PC, 
+# This file lets the project run on a PC,
 # but does no real action on hardware.
 BCM = 0
 IN = 0

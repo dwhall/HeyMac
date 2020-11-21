@@ -11,6 +11,8 @@ Linux on a Raspberry Pi 3 with a modified `Dragino LoRa GPS Hat`_
 
 A state machine manages the operational behavior and calls into a PHY layer module
 to interact with the radio via the SPI bus and GPIO pins.
+This software takes advantage of advanced features of the SX127x,
+so connection to DIO pins 1,2,3 and 5 is necessary.
 
 This repository is designed to be a git submodule
 so that it may be re-used by multiple projects
@@ -58,10 +60,10 @@ The Rxing state exists to keep the radio in receive
 mode until reception is done or there is a timeout.
 We wouldn't want, for example, the arrival of a new item
 in the transmit queue to cause a state transition that
-would turn off the receiver.
+would turn off the receiver in the middle of a reception.
 
 There are many more details to the SM's operation.
-But that is the jist of it.  See the code for details.
+But that is the gist of it.  See the code for details.
 Likewise, the diagram below shows the important aspects of the
 SM, but it does not capture all details.
 
@@ -119,6 +121,10 @@ W        Added a fly wire
 
 Reference
 ---------
+
+Ahsm
+    Augmented Hierarchical State Machine.  A statechart capable of nested states
+    with entry and exit handlers and having a message queue to serialize incoming events.
 
 This project contains design files and documentation that may be opened with
 open source applications.  The following table gives an application that will

@@ -13,4 +13,4 @@ spi_cfg = (0, 0, 10_000_000)
 dio_cfg = (4, 23, 24, 6, 5, 22)
 
 # RPi (BCM GPIO) number connected to LoRa RESET
-reset_cfg = (17) 
+reset_cfg = (17)
