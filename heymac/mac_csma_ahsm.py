@@ -26,8 +26,25 @@ class HeyMacCsmaAhsm(farc.Ahsm):
     def __init__(self, saddr, station_id):
         super().__init__()
 
+        # TODO: this is not where this belongs,
+        # it will move in the future
+        # when I find it a new home
+        # PHY default settings
+        phy_dflt_stngs = (
+            ("FLD_RDO_LORA_MODE", 1),
+            ("FLD_RDO_FREQ", 432550000),
+            ("FLD_RDO_MAX_PWR", 7),
+            ("FLD_RDO_PA_BOOST", 1),
+            ("FLD_LORA_BW", 8), # phy_sx127x.PhySX127x.STNG_LORA_BW_250K
+            ("FLD_LORA_SF", 7), # phy_sx127x.PhySX127x.STNG_LORA_SF_128_CPS
+            ("FLD_LORA_CR", 2), # phy_sx127x.PhySX127x.STNG_LORA_CR_4TO6
+            ("FLD_LORA_CRC_EN", 1),
+            ("FLD_LORA_SYNC_WORD", 0x48),  # FIXME: magic number
+        )
+
         # Instantiate the lower layer
-        self.phy_ahsm = phy_sx127x.PhySX127xAhsm()
+        self.phy_ahsm = phy_sx127x.PhySX127xAhsm(True)
+        self.phy_ahsm.set_dflt_stngs(phy_dflt_stngs)
 
         # TODO: these go in mac data?
         self.saddr = saddr
@@ -36,24 +53,25 @@ class HeyMacCsmaAhsm(farc.Ahsm):
 
 #### Public interface
 
-    def start_stack(self, farc_prio, delta_prio=10):
+    def start_stack(self, ahsm_prio, delta_prio=10):
         """Starts the lower layer giving it a higher priority (lower number)
         and then starts this Ahsm
         """
         assert delta_prio > 0, "Lower layer must have higher priority (lower number)"
-        assert farc_prio - delta_prio > 0, "Priorty must not go below zero"
-        self.phy_ahsm.start_stack(farc_prio - delta_prio)
-        self.start(farc_prio)
+        assert ahsm_prio - delta_prio > 0, "Priorty must not go below zero"
+        self.phy_ahsm.start_stack(ahsm_prio - delta_prio)
+        self.start(ahsm_prio)
 
 
 #### Private methods
 
-    def _phy_rx_clbk(self, rx_data):
+    def _phy_rx_clbk(self, frame_bytes, rx_time, rssi, snr):
         """A callback that is given to the PHY layer
         for it to call when a received frame and associated data
         are valid and should be delivered to the LNK layer.
         """
-        pass
+        # TODO: implement a real callback
+        print("DWH: rx_clbk", frame_baytes, rx_time, rssi, snr)
 
 
 #### State machine
@@ -318,8 +336,8 @@ class HeyMacCsmaAhsm(farc.Ahsm):
                         )
         #tx_args = (-1, phy_cfg.tx_freq, bytes(frame)) # immediate transmit
         #farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
-        tx_stngs = (("FLD_NM", phy_cfg.tx_freq))
-        self.phy_ahsm.enqueue_for_tx(bytes(frame), -1, tx_stngs)
+        tx_stngs = (("FLD_RDO_FREQ", phy_cfg.tx_freq),)
+        self.phy_ahsm.enqueue_for_tx(bytes(frame), self.phy_ahsm.ENQ_TM_NOW, tx_stngs)
 
 
     def _attempt_tx_from_q(self,):
@@ -334,7 +352,7 @@ class HeyMacCsmaAhsm(farc.Ahsm):
             frame.data = self.mac_txq.pop()
             #tx_args = (-1, phy_cfg.tx_freq, bytes(frame)) # tx immediately, freq and data
             #farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
-            tx_stngs = (("FLD_NM", phy_cfg.tx_freq))
+            tx_stngs = (("FLD_RDO_FREQ", phy_cfg.tx_freq),)
             self.phy_ahsm.enqueue_for_tx(bytes(frame), -1, tx_stngs)
 
 

@@ -7,7 +7,7 @@ between modest data rate, small payload radio modems such as the Semtech SX127x.
 HeyMac is distilled from and incompatible with IEEE 802.15.4.
 
 HeyMac is written in Python 3 using the [farc](https://github.com/dwhall/farc)
-hierarchical state machine framework and is intended to run
+state machine framework and is intended to run
 on a Raspberry Pi 3 running Linux.
 HeyMac and farc require the asyncio module found in Python 3.4 and later.
 
