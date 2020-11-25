@@ -1,0 +1,78 @@
+lnk_heymac
+==========
+
+Introduction
+------------
+
+A data link layer (LNK) that provides a frame format
+and automated link data management via a state machine.
+This package uses the `farc`_ state machine framework and
+drives a `Semtech SX127x radio`_ via the `phy_sx127x`_ physical layer.
+
+A state machine manages the operational behavior and calls into other LNK layer modules
+to generate and parse frames, manage link layer data and manage the PHY.
+
+This repository is designed to be a git submodule
+so that it may be re-used by multiple projects
+and is not operational on its own.
+
+.. _`farc`: https://github.com/dwhall/farc
+.. _`Semtech SX127x radio`: https://www.semtech.com/products/wireless-rf/lora-transceivers/sx1276
+.. _`phy_sx127x`: https://github.com/dwhall/phy_sx127x
+
+
+Software
+--------
+
+lnk_heymac_ahsm.py
+    Contains LnkHeymacAhsm, the LNK layer state machine.
+
+
+State Machine
+-------------
+
+
+.. image:: docs/LnkHeymacAhsm.png
+
+
+Public Interface
+----------------
+
+This section describes the public interface of the LNK layer,
+which is the set of methods and arguments available to the entity
+that instantiates the LNK layer.
+
+======================  ================================================
+Method                  Description
+======================  ================================================
+``LnkHeymacAhsm()``     The constructor accepts one argument.
+
+                        - *arg* tbd
+----------------------  ------------------------------------------------
+======================  ================================================
+
+
+Settings
+--------
+
+TBD
+
+Reference
+---------
+
+Ahsm
+    Augmented Hierarchical State Machine.  A statechart capable of nested states
+    with entry and exit handlers and having a message queue to serialize incoming events.
+
+This project contains design files and documentation that may be opened with
+open source applications.  The following table gives an application that will
+open each type of file:
+
+=========== =============== ==============
+Extension   Application     Download link
+=========== =============== ==============
+.qm         `QP Modeler`_   `github`_
+=========== =============== ==============
+
+.. _github: https://github.com/QuantumLeaps/qm/releases
+.. _QP Modeler: https://www.state-machine.com/qm/

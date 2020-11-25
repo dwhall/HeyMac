@@ -1,0 +1,10 @@
+# This file lists the required python modules.
+# To install a module of a specific version:
+#   prototype: pip install --user <modulename>==<version>
+#   example:   pip install --user farc=0.2.0
+
+farc >= 0.2.0   # https://pypi.org/project/farc/
+
+# phy_sx127x is under development and not in PyPI yet
+# get it here: https://github.com/dwhall/phy_sx127x
+#phy_sx127x == 0.0.1
