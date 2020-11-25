@@ -150,10 +150,8 @@ class HeyMacCsmaAhsm(farc.Ahsm):
             self.gps_gprmc = event.value
             return self.handled(event)
 
-        elif sig == farc.Signal.SIGTERM:
-            return self.tran(self._exiting)
-
         elif sig == farc.Signal.EXIT:
+            logging.info("EXIT")
             return self.handled(event)
 
         return self.super(self.top)
@@ -228,6 +226,7 @@ class HeyMacCsmaAhsm(farc.Ahsm):
 
         elif sig == farc.Signal.EXIT:
             self.bcn_evt.disarm()
+            self.tm_evt.disarm()
             return self.handled(event)
 
         return self.super(self._running)
@@ -247,18 +246,6 @@ class HeyMacCsmaAhsm(farc.Ahsm):
             return self.handled(event)
 
         return self.super(self._running)
-
-
-    @farc.Hsm.state
-    def _exiting(self, event):
-        """State HeyMacCsmaAhsm:_exiting
-        """
-        sig = event.signal
-        if sig == farc.Signal.ENTRY:
-            logging.info("EXITING")
-            return self.handled(event)
-
-        return self.super(self.top)
 
 
 #### End State Machines
@@ -337,7 +324,7 @@ class HeyMacCsmaAhsm(farc.Ahsm):
         #tx_args = (-1, phy_cfg.tx_freq, bytes(frame)) # immediate transmit
         #farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
         tx_stngs = (("FLD_RDO_FREQ", phy_cfg.tx_freq),)
-        self.phy_ahsm.enqueue_for_tx(bytes(frame), self.phy_ahsm.ENQ_TM_NOW, tx_stngs)
+        self.phy_ahsm.enqueue_tx(self.phy_ahsm.ENQ_TM_NOW, tx_stngs, bytes(frame))
 
 
     def _attempt_tx_from_q(self,):
@@ -353,7 +340,7 @@ class HeyMacCsmaAhsm(farc.Ahsm):
             #tx_args = (-1, phy_cfg.tx_freq, bytes(frame)) # tx immediately, freq and data
             #farc.Framework.post_by_name(farc.Event(farc.Signal.PHY_TRANSMIT, tx_args), "SX127xSpiAhsm")
             tx_stngs = (("FLD_RDO_FREQ", phy_cfg.tx_freq),)
-            self.phy_ahsm.enqueue_for_tx(bytes(frame), -1, tx_stngs)
+            self.phy_ahsm.enqueue_tx(self.phy_ahsm.ENQ_TM_NOW, tx_stngs, bytes(frame))
 
 
     def _ngbr_hears_me(self,):
