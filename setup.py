@@ -23,9 +23,9 @@ setuptools.setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
 
-        # Alpha status because there is API breakage between releases
-        # without changing the major version number
-        'Development Status :: 3 - Alpha',
+        # Pre-Alpha status because the foundation is being built
+        # and breaking changes are frequent
+        "Development Status :: 2 - Pre-Alpha",
 
         # This project is designed to run on a Raspberry Pi
         # with a SX127X LoRa radio attached via the SPI bus
