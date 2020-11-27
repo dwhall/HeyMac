@@ -14,18 +14,18 @@ class HeymacFrame(object):
     To build a Heymac frame, create an instance and then set fields.
     Here is an example::
 
-        frm = HeymacFrame(
+        frame = HeymacFrame(
             HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
             HeymacFrame.FCTL_D | HeymacFrame.FCTL_S)
-        frm.set_field(HeymacFrame.FLD_SADDR) = b"\x35\x16"
-        frm.set_field(HeymacFrame.FLD_DADDR) = b"\x01\xE3"
-        frm.set_field(HeymacFrame.FLD_PAYLD) = my_data
-        phy_payld = bytes(frm)
+        frame.set_field(HeymacFrame.FLD_SADDR) = b"\x35\x16"
+        frame.set_field(HeymacFrame.FLD_DADDR) = b"\x01\xE3"
+        frame.set_field(HeymacFrame.FLD_PAYLD) = my_data
+        phy_payld = bytes(frame)
 
     To parse a Heymac frame, call the static parse() method::
 
-        frm = HeymacFrame.parse(phy_payld)
-        # TODO: show use of frm.get_field()
+        frame = HeymacFrame.parse(phy_payld)
+        # TODO: show use of frame.get_field()
 
     When working with field values, the data type is
     either a number 0..255 for single-byte fields
@@ -100,7 +100,10 @@ class HeymacFrame(object):
         is_mhop = (fctl & HeymacFrame.FCTL_M) != 0
         has_pending = (fctl & HeymacFrame.FCTL_P) != 0
 
-        frame = bytearray(self.field["pid"], self.field["fctl"])
+        frame = bytearray()
+        frame.append(self.field["pid"])
+        frame.append(self.field["fctl"])
+
         if is_extended:
             if "payld" in self.field: frame.extend(self.field["payld"])
         else:

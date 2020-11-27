@@ -1,1 +1,2 @@
-from .lnk_frame import HeymacFrame
+from .lnk_csma_ahsm import LnkHeymacCsmaAhsm
+#from .lnk_frame import HeymacFrame
