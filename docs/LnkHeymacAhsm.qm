@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model version="5.1.0" links="0">
+ <framework name="qpc"/>
+ <package name="AOs" stereotype="0x02">
+  <class name="LnkHeymacAhsm" superclass="qpc::QActive">
+   <attribute name="tmEvnt" type="QTimeEvt" visibility="0x02" properties="0x00"/>
+   <statechart properties="0x01">
+    <initial target="../1">
+     <initial_glyph conn="26,4,5,0,4,6">
+      <action box="0,-2,10,2"/>
+     </initial_glyph>
+    </initial>
+    <state name="_initializing">
+     <tran trig="_ALWAYS" target="../../2/1">
+      <tran_glyph conn="22,20,3,0,8,14">
+       <action box="0,-2,10,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="22,10,28,12"/>
+    </state>
+    <state name="_running">
+     <state name="_beaconing">
+      <entry brief="bcn_evt.post_every(_BCN_PRD)">Picks beacon slot, sets timer for next Tslot</entry>
+      <exit brief="bcn_evt.disarm()"/>
+      <tran trig="_LNK_BCN_TMOUT">
+       <action brief="_tx_bcn()"/>
+       <tran_glyph conn="56,44,3,-1,28">
+        <action box="0,-2,24,2"/>
+       </tran_glyph>
+      </tran>
+      <state name="_networking">
+       <state_glyph node="58,48,32,12"/>
+      </state>
+      <state_glyph node="56,34,36,28">
+       <entry box="1,2,29,2"/>
+       <exit box="1,4,29,2"/>
+      </state_glyph>
+     </state>
+     <state name="_lurking">
+      <documentation>ex_prep()</documentation>
+      <entry brief="tm_evt.post_in(_BCN_PRD)"/>
+      <exit brief="tm_evt.disarm()"/>
+      <tran trig="_LNK_TMOUT" target="../../0">
+       <tran_glyph conn="22,44,3,3,30,-6,4">
+        <action box="0,-2,14,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="22,34,28,14">
+       <entry box="1,2,25,2"/>
+       <exit box="1,4,25,2"/>
+      </state_glyph>
+     </state>
+     <state_glyph node="20,28,74,36"/>
+    </state>
+    <state_diagram size="113,109"/>
+   </statechart>
+  </class>
+ </package>
+ <directory name=".">
+  <file name="sx127x_phy.c"/>
+ </directory>
+</model>

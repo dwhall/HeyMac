@@ -23,7 +23,7 @@ class LnkHeymac(object):
     """
     # The number of seconds between each emission of a beacon.
     # This value also affects the time a node spends lurking.
-    _BEACON_PERIOD_SEC = 32
+    _BCN_PRD = 32
 
     # The LoRa Sync Word is a SX127x register setting
     # that lets the hardware discriminate for frames
@@ -157,7 +157,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             logging.debug("LNK._lurking")
-            self.tm_evt.post_in(self, LnkHeymac._BEACON_PERIOD_SEC)
+            self.tm_evt.post_in(self, LnkHeymac._BCN_PRD)
             return self.handled(event)
 
         elif sig == farc.Signal._LNK_TMOUT:
@@ -179,7 +179,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             logging.debug("LNK._beaconing")
-            self.bcn_evt.post_every(self, LnkHeymac._BEACON_PERIOD_SEC)
+            self.bcn_evt.post_every(self, LnkHeymac._BCN_PRD)
             self._tx_bcn()
             return self.handled(event)
 
