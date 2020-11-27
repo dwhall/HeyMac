@@ -11,35 +11,33 @@ import socket
 import sys
 
 import farc
-from farc.SimpleSpy import SimpleSpy
+import farc.SimpleSpy
 import heymac
-from heymac import utl
-
-#import prj_cfg
-#import prj_stngs
+#from heymac import utl
+import lnk_heymac
 
 
 def main():
-    saddr = utl.get_long_mac_addr("KC4KSU")
+    if False:
+        farc.Spy.enable_spy(farc.SimpleSpy)
+    else:
+        logging.basicConfig(
+            stream = sys.stdout,
+            format = "%(asctime)s %(message)s",
+            level = logging.DEBUG)
+
+    lnk_addr = heymac.utl.get_long_mac_addr("KC4KSU")
     # The hostname is the station ID
     station_id = socket.gethostname().encode()
 
     # Instantiate state machines
-    macAhsm = heymac.HeyMacCsmaAhsm(saddr, station_id)
+    lnk_ahsm = lnk_heymac.LnkHeymacCsmaAhsm(lnk_addr, station_id)
 
     # Start state machines
-    macAhsm.start_stack(50)
+    lnk_ahsm.start_stack(50)
 
     farc.run_forever()
 
 
 if __name__ == "__main__":
-    if False:
-        farc.Spy.enable_spy(SimpleSpy)
-    else:
-        logging.basicConfig(
-            stream = sys.stdout,
-            format = "%(asctime)s %(message)s",
-            level = logging.INFO)
-
     main()
