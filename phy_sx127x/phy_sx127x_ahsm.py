@@ -13,8 +13,8 @@ from . import phy_sx127x
 
 
 class PhySX127xAhsm(farc.Ahsm):
-    """The PHY layer state machine that automates the behavior
-    of the Semtech SX127x family of radio transceivers.
+    """The physical layer (PHY) state machine that automates
+    the behavior of the Semtech SX127x family of radio transceivers.
     """
     # Special time values to use when enqueing a command
     ENQ_TM_NOW = 0  # Use normally for "do it now"
@@ -162,6 +162,7 @@ class PhySX127xAhsm(farc.Ahsm):
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
+            logging.debug("PHY._initializing")
             self.tmout_evt.post_in(self, 0.0)
 
             # Init data
@@ -201,6 +202,7 @@ class PhySX127xAhsm(farc.Ahsm):
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
+            logging.debug("PHY._scheduling")
             assert self.sx127x.OPMODE_STBY == self.sx127x.read_opmode()
 
             # Move items from the transfer queue to the action queue
@@ -253,6 +255,7 @@ class PhySX127xAhsm(farc.Ahsm):
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
+            logging.debug("PHY._lingering")
             # Start a timer for the next action
             next_action = self._top_action()
             if next_action:
@@ -280,6 +283,8 @@ class PhySX127xAhsm(farc.Ahsm):
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
+            logging.debug("PHY._lingering._listening")
+
             # Get the next action from the queue
             next_action = self._pop_action()
             if next_action:
@@ -372,6 +377,7 @@ class PhySX127xAhsm(farc.Ahsm):
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
+            logging.debug("PHY._lingering._sleeping")
             self.sx127x.write_opmode(phy_sx127x.PhySX127x.OPMODE_SLEEP, False)
             return self.handled(event)
 
@@ -386,6 +392,7 @@ class PhySX127xAhsm(farc.Ahsm):
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
+            logging.debug("PHY._rxing")
             self.tmout_evt.post_in(self, 1.0) # TODO: calc soft timeout delta
             return self.handled(event)
 
@@ -404,10 +411,8 @@ class PhySX127xAhsm(farc.Ahsm):
             return self.tran(self._scheduling)
 
         elif sig == farc.Signal._PHY_TMOUT:
-            self.sx127x.write_opmode(phy_sx127x.PhySX127x.OPMODE_STBY, True)
-            return self.handled(event)
-
-        elif sig == farc.Signal._DIO_MODE_RDY:
+            logging.warning("PHY._rxing@_PHY_TMOUT")
+            self.sx127x.write_opmode(phy_sx127x.PhySX127x.OPMODE_STBY, False)
             return self.tran(self._scheduling)
 
         elif sig == farc.Signal.EXIT:
@@ -425,6 +430,7 @@ class PhySX127xAhsm(farc.Ahsm):
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
+            logging.debug("PHY._txing")
             tx_action = self._pop_action()
             (tx_time, tx_data) = tx_action
             (action, tx_stngs, tx_bytes) = tx_data
@@ -466,6 +472,7 @@ class PhySX127xAhsm(farc.Ahsm):
             return self.tran(self._scheduling)
 
         elif sig == farc.Signal._PHY_TMOUT:
+            logging.warning("PHY._txing@_PHY_TMOUT")
             self.sx127x.write_opmode(phy_sx127x.PhySX127x.OPMODE_STBY, True)
             return self.handled(event)
 

@@ -461,12 +461,14 @@ class PhySX127x(object):
 
         # Write outstanding carrier freq to the regs
         if freq != self._rdo_stngs_freq_applied:
-            reg_freq = [
-                (freq >> 16) & 0xFF,    # MSB
-                (freq >> 8) & 0xFF,     # MID
-                (freq >> 0) & 0xFF,     # LSB
+            # Adjust numerical frequency to register value
+            reg_freq = round(freq * 2**19 / PhySX127x.SX127X_OSC_FREQ)
+            regs = [
+                (reg_freq >> 16) & 0xFF,    # MSB
+                (reg_freq >> 8) & 0xFF,     # MID
+                (reg_freq >> 0) & 0xFF,     # LSB
             ]
-            self._write(PhySX127x.REG_RDO_FREQ_MSB, reg_freq)
+            self._write(PhySX127x.REG_RDO_FREQ_MSB, regs)
             self._rdo_stngs_freq_applied = freq
 
         # RMW typical settings if they have changed
