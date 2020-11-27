@@ -88,11 +88,28 @@ Method                  Description
                           on its receiver; if it is ``False``, the device
                           is put into low-power sleep mode.
 ----------------------  ------------------------------------------------
-``enqueue_for_tx()``    Puts a set of data into the transmit queue.
+``enqueue_rx()``        Puts a receive action into the transfer queue
+                        of the PHY state machine.  The action will be
+                        serviced based on the given ``rx_time``.
 
-                        - *tx_bytes* The Python ``bytes`` object
-                          containing the literal payload to transmit.
-                        - *tx_time* A number representing the time
+                        - ``rx_time`` farc.Framework absolute time value
+                          of when the enable the receiver.
+
+                        - ``rx_stngs`` is a sequence of ``(name, value)``
+                          pairs specifically for receiving.
+                          See `Settings`_ for more details.
+
+                        - `` rx_durxn`` farc.Framework delta time value
+                          after which the receiver is disabled.
+
+                        - `` rx_clbk`` the callback method to call
+                          if a frame is received.
+----------------------  ------------------------------------------------
+``enqueue_tx()``        Puts a transmit action into the transfer queue
+                        of the PHY state machine.  The action will be
+                        serviced based on the given tx_time.
+
+                        - ``tx_time`` A number representing the time
                           to perform the transmit.  This is either an
                           absolute value for time (using the same time as
                           ``farc.Framework._event_loop.time()``); or it is
@@ -110,9 +127,12 @@ Method                  Description
                           normal queue may transmit.  Use ``ENQ_TM_IMMEDIATELY``
                           sparingly.
 
-                        - *tx_stngs* is a sequence of ``(name, value)``
-                          pairs specifically for transmission.
+                        - ``tx_stngs`` is a sequence of ``(name, value)``
+                          pairs specifically for transmitting.
                           See `Settings`_ for more details.
+
+                        - ``tx_bytes`` The Python ``bytes`` object
+                          containing the literal payload to transmit.
 ----------------------  ------------------------------------------------
 ``set_dflt_stngs()``    Sets the default PHY settings.
 
