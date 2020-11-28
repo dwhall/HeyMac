@@ -9,7 +9,37 @@ class HeymacFrame(object):
     """Heymac frame definition
     [PID,Fctl,NetId,DstAddr,IEs,SrcAddr,Payld,MIC,Hops,TxAddr]
 
-    There are two ways to use this class: to build and to parse.
+    PID := Protocol ID
+
+    =========   ======================================
+    Bitfield    Description
+    =========   ======================================
+    XXXX ....   PID ident
+    .... XXXX   PID type
+    ---------   --------------------------------------
+    1110 00vv   Heymac TDMA, (vv)ersion
+    1110 01vv   Heymac CSMA, (vv)ersion
+    1110 1xxx   Heymac (RFU: Flood, Extended, etc.)
+    =========   ======================================
+
+    Fctl := Frame Control
+
+    =========   ======================================
+    Bitfield    Description
+    =========   ======================================
+    10000000    X: eXtended frame
+    01000000    L: Long addressing
+    00100000    N: NetId present
+    00010000    D: DstAddr present
+    00001000    I: IEs present
+    00000100    S: SrcAddr present
+    00000010    M: Multihop fields present
+    00000001    P: Pending frame follows
+    =========   ======================================
+
+    There are two ways to use this class:
+    to build a HeymacFrame object by setting fields
+    and to parse a sequence of bytes yielding HeymacFrame object.
 
     To build a Heymac frame, create an instance and then set fields.
     Here is an example::
@@ -32,14 +62,6 @@ class HeymacFrame(object):
     or a bytearray() or bytes() object for multi-byte fields.
     Multi-byte fields MUST be in Network Order (big-endian).
     """
-    # Heymac Protocol ID
-    # XXXX ....     PID ident
-    # .... XXXX     PID type
-    # ---- ----
-    # 1110 00vv     Heymac TDMA, (vv)ersion
-    # 1110 01vv     Heymac CSMA, (vv)ersion
-    # 1110 1xxx     Heymac (RFU: Flood, Extended, etc.)
-    #
     # PID masks
     PID_IDENT_MASK = 0b11110000
     PID_TYPE_MASK = 0b00001111
@@ -122,13 +144,13 @@ class HeymacFrame(object):
 
 
     @staticmethod
-    def parse(frame):
-        """Parses the given raw frame and returns a HeymacFrame
+    def parse(frame_bytes):
+        """Parses the given frame_bytes and returns a HeymacFrame
         """
-        assert 0 <= max(frame) <= 255, "frame must be a sequence of bytes"
-        pid = frame[0]
-        fctl = frame[1]
-        f = HeymacFrame(pid, fctl)
+        assert 0 <= max(frame_bytes) <= 255, "frame_bytes must be a sequence of bytes"
+        pid = frame_bytes[0]
+        fctl = frame_bytes[1]
+        frame = HeymacFrame(pid, fctl)
         offset = 2
 
         # Convert Fctl bits to friendly names
@@ -148,23 +170,23 @@ class HeymacFrame(object):
         # Format of Extended frame is not defined by Heymac
         # so everything after PID, Fctl is payload
         if is_extended:
-            self.set_field(HeymacFrame.FLD_PAYLD, frame[offset:])
+            frame.set_field(HeymacFrame.FLD_PAYLD, frame_bytes[offset:])
             offset = len(frame)
 
         # Parse a regular Heymac frame
         else:
             if netid_present:
-                self.set_field(HeymacFrame.FLD_NETID, frame[offset:2])
+                frame.set_field(HeymacFrame.FLD_NETID, frame_bytes[offset:offset + 2])
                 offset += 2
 
             if daddr_present:
-                self.set_field(HeymacFrame.FLD_DADDR, frame[offset:addr_sz])
+                frame.set_field(HeymacFrame.FLD_DADDR, frame_bytes[offset:offset + addr_sz])
                 offset += addr_sz
 
             # TODO: parse IEs
 
             if saddr_present:
-                self.set_field(HeymacFrame.FLD_SADDR, frame[offset:addr_sz])
+                frame.set_field(HeymacFrame.FLD_SADDR, frame_bytes[offset:offset + addr_sz])
                 offset += addr_sz
 
             # Determine the size of the items at the tail
@@ -177,20 +199,50 @@ class HeymacFrame(object):
             else:
                 mhop_sz = 0
 
-            paylod_sz = len(frame) - offset - mic_sz - mhop_sz
-            self.set_field(HeymacFrame.FLD_PAYLD, frame[offset:paylod_sz])
+            paylod_sz = len(frame_bytes) - offset - mic_sz - mhop_sz
+            frame.set_field(HeymacFrame.FLD_PAYLD, frame_bytes[offset:offset + paylod_sz])
             offset += paylod_sz
 
             # TODO: parse MIC
 
             if is_mhop:
-                self.set_field(HeymacFrame.FLD_HOPS, frame[offset])
+                frame.set_field(HeymacFrame.FLD_HOPS, frame_bytes[offset])
                 offset += 1
-                self.set_field(HeymacFrame.FLD_PAYLD, frame[offset:addr_sz])
+                frame.set_field(HeymacFrame.FLD_PAYLD, frame_bytes[offset:offset + addr_sz])
                 offset += addr_sz
 
         # Amount parsed must match the frame size
-        assert offset == len(frame)
+        assert offset == len(frame_bytes)
+        return frame
+
+
+    def get_field(self, fld_nm):
+        """Returns the field value.
+        If the field is not present,
+        returns b"" for single-byte fields
+        and b"" for multi-byte fields
+        """
+        assert fld_nm in (
+            HeymacFrame.FLD_PID,
+            HeymacFrame.FLD_FCTL,
+            HeymacFrame.FLD_NETID,
+            HeymacFrame.FLD_DADDR,
+            #HeymacFrame.FLD_IES,   # IEs are not yet supported
+            HeymacFrame.FLD_SADDR,
+            HeymacFrame.FLD_PAYLD,
+            #HeymacFrame.FLD_MIC,   # MICs are not yet supported
+            HeymacFrame.FLD_HOPS,
+            HeymacFrame.FLD_TADDR,
+        )
+        return self.field.get(fld_nm, b"")
+
+
+    def is_heymac(self,):
+        """Returns True if the PID Ident subfield indicates Heymac protocol.
+        Note, this only checks the first four bytes and does not check
+        the rest of the frame for validity.
+        """
+        return self.field[HeymacFrame.FLD_PID] & HeymacFrame.PID_IDENT_MASK == HeymacFrame.PID_IDENT_HEYMAC
 
 
     def set_field(self, fld_nm, value):

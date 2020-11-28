@@ -4,7 +4,7 @@ setup:
 init:
 	sudo pip install -r requirements.txt
 
-#test:
-#	py.test tests
+test:
+	python3 tests/test_lnk_frame.py
 
 .PHONY: setup init test
