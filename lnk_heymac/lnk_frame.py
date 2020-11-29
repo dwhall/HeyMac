@@ -112,30 +112,20 @@ class HeymacFrame(object):
     def __bytes__(self,):
         """Returns the HeymacFrame serialized into a bytes object
         """
-        # Convert Fctl bits to friendly names
-        fctl = self.field["fctl"]
-        is_extended = (fctl & HeymacFrame.FCTL_X) != 0
-        netid_present = (fctl & HeymacFrame.FCTL_N) != 0
-        daddr_present = (fctl & HeymacFrame.FCTL_D) != 0
-        ies_present = (fctl & HeymacFrame.FCTL_I) != 0
-        saddr_present = (fctl & HeymacFrame.FCTL_S) != 0
-        is_mhop = (fctl & HeymacFrame.FCTL_M) != 0
-        has_pending = (fctl & HeymacFrame.FCTL_P) != 0
-
         frame = bytearray()
         frame.append(self.field["pid"])
         frame.append(self.field["fctl"])
 
-        if is_extended:
+        if self._is_extended():
             if "payld" in self.field: frame.extend(self.field["payld"])
         else:
-            if netid_present: frame.extend(self.field["netid"])
-            if daddr_present: frame.extend(self.field["daddr"])
+            if self._is_netid_present(): frame.extend(self.field["netid"])
+            if self._is_daddr_present(): frame.extend(self.field["daddr"])
             # TODO: add IEs
-            if saddr_present: frame.extend(self.field["saddr"])
+            if self._is_saddr_present(): frame.extend(self.field["saddr"])
             if "payld" in self.field: frame.extend(self.field["payld"])
             # TODO: add MICs
-            if is_mhop:
+            if self._is_mhop():
                 frame.append(self.field["hops"])
                 frame.extend(self.field["taddr"])
 
@@ -151,41 +141,28 @@ class HeymacFrame(object):
         pid = frame_bytes[0]
         fctl = frame_bytes[1]
         frame = HeymacFrame(pid, fctl)
+        addr_sz = frame._get_addr_sz()
         offset = 2
-
-        # Convert Fctl bits to friendly names
-        is_extended = (fctl & HeymacFrame.FCTL_X) != 0
-        long_addrs = (fctl & HeymacFrame.FCTL_L) != 0
-        netid_present = (fctl & HeymacFrame.FCTL_N) != 0
-        daddr_present = (fctl & HeymacFrame.FCTL_D) != 0
-        ies_present = (fctl & HeymacFrame.FCTL_I) != 0
-        saddr_present = (fctl & HeymacFrame.FCTL_S) != 0
-        is_mhop = (fctl & HeymacFrame.FCTL_M) != 0
-        has_pending = (fctl & HeymacFrame.FCTL_P) != 0
-        if long_addrs:
-            addr_sz = 8
-        else:
-            addr_sz = 2
 
         # Format of Extended frame is not defined by Heymac
         # so everything after PID, Fctl is payload
-        if is_extended:
+        if frame._is_extended():
             frame.set_field(HeymacFrame.FLD_PAYLD, frame_bytes[offset:])
             offset = len(frame)
 
         # Parse a regular Heymac frame
         else:
-            if netid_present:
+            if frame._is_netid_present():
                 frame.set_field(HeymacFrame.FLD_NETID, frame_bytes[offset:offset + 2])
                 offset += 2
 
-            if daddr_present:
+            if frame._is_daddr_present():
                 frame.set_field(HeymacFrame.FLD_DADDR, frame_bytes[offset:offset + addr_sz])
                 offset += addr_sz
 
             # TODO: parse IEs
 
-            if saddr_present:
+            if frame._is_saddr_present():
                 frame.set_field(HeymacFrame.FLD_SADDR, frame_bytes[offset:offset + addr_sz])
                 offset += addr_sz
 
@@ -194,7 +171,7 @@ class HeymacFrame(object):
             # TODO: determine MIC size from IEs
             mic_sz = 0
 
-            if is_mhop:
+            if frame._is_mhop():
                 mhop_sz = 1 + addr_sz
             else:
                 mhop_sz = 0
@@ -205,7 +182,7 @@ class HeymacFrame(object):
 
             # TODO: parse MIC
 
-            if is_mhop:
+            if frame._is_mhop():
                 frame.set_field(HeymacFrame.FLD_HOPS, frame_bytes[offset])
                 offset += 1
                 frame.set_field(HeymacFrame.FLD_PAYLD, frame_bytes[offset:offset + addr_sz])
@@ -259,22 +236,7 @@ class HeymacFrame(object):
             #HeymacFrame.FLD_MIC,   # MICs are not yet supported
             HeymacFrame.FLD_HOPS,
             HeymacFrame.FLD_TADDR,
-        )
-
-        # Convert Fctl bits to friendly names
-        fctl = self.field["fctl"]
-        is_extended = (fctl & HeymacFrame.FCTL_X) != 0
-        long_addrs = (fctl & HeymacFrame.FCTL_L) != 0
-        netid_present = (fctl & HeymacFrame.FCTL_N) != 0
-        daddr_present = (fctl & HeymacFrame.FCTL_D) != 0
-        ies_present = (fctl & HeymacFrame.FCTL_I) != 0
-        saddr_present = (fctl & HeymacFrame.FCTL_S) != 0
-        is_mhop = (fctl & HeymacFrame.FCTL_M) != 0
-        has_pending = (fctl & HeymacFrame.FCTL_P) != 0
-        if long_addrs:
-            addr_sz = 8
-        else:
-            addr_sz = 2
+        ), "Field '{}' cannot be set by set_field()".format(fld_nm)
 
         # Validate address field is of the correct size
         if fld_nm in (
@@ -282,15 +244,27 @@ class HeymacFrame(object):
             HeymacFrame.FLD_SADDR,
             HeymacFrame.FLD_TADDR,
         ):
-            assert len(value) == addr_sz
+            assert len(value) == self._get_addr_sz()
 
         # Validate the Fctl bit is set for the given field
-        if fld_nm == HeymacFrame.FLD_NETID: assert netid_present
-        elif fld_nm == HeymacFrame.FLD_DADDR: assert daddr_present
-        elif fld_nm == HeymacFrame.FLD_IES: assert ies_present
-        elif fld_nm == HeymacFrame.FLD_SADDR: assert saddr_present
-        elif fld_nm == HeymacFrame.FLD_HOPS: assert is_mhop
-        elif fld_nm == HeymacFrame.FLD_TADDR: assert is_mhop
+        if fld_nm == HeymacFrame.FLD_NETID: assert self._is_netid_present()
+        elif fld_nm == HeymacFrame.FLD_DADDR: assert self._is_daddr_present()
+        elif fld_nm == HeymacFrame.FLD_IES: assert self._is_ies_present()
+        elif fld_nm == HeymacFrame.FLD_SADDR: assert self._is_saddr_present()
+        elif fld_nm == HeymacFrame.FLD_HOPS: assert self._is_mhop()
+        elif fld_nm == HeymacFrame.FLD_TADDR: assert self._is_mhop()
 
         # Store the field
         self.field[fld_nm] = value
+
+#### Private interface
+
+    def _is_extended(self,): return 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_X)
+    def _is_long_addrs(self,): return 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_L)
+    def _is_netid_present(self,): return 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_N)
+    def _is_daddr_present(self,): return 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_D)
+    def _is_ies_present(self,): return 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_I)
+    def _is_saddr_present(self,): return 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_S)
+    def _is_mhop(self,): return 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_M)
+    def _is_has_pending(self,): return 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_P)
+    def _get_addr_sz(self,): return (2,8)[self._is_long_addrs()]
