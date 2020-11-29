@@ -300,8 +300,14 @@ class PhySX127xAhsm(farc.Ahsm):
                 rx_stngs = self._dflt_rx_stngs
                 self._rx_clbk = self._dflt_rx_clbk
 
+            # Convert given settings to a mutable list
+            if rx_stngs:
+                stngs = list(rx_stngs)
+            else:
+                # Accept "None" as an argument for rx_stngs
+                stngs = []
+
             # Combine and write RX settings
-            stngs = list(rx_stngs)
             stngs.extend((("FLD_RDO_DIO0", 0),  # _DIO_RX_DONE
                           ("FLD_RDO_DIO1", 0),  # _DIO_RX_TMOUT
                           ("FLD_RDO_DIO3", 1))) # _DIO_VALID_HDR
@@ -429,9 +435,15 @@ class PhySX127xAhsm(farc.Ahsm):
             assert tx_action[0] == "tx", "Mutation between top() and pop()"
             (_, tx_stngs, tx_bytes) = tx_action
 
+            # Convert given settings to a mutable list
+            if tx_stngs:
+                stngs = list(tx_stngs)
+            else:
+                # Accept "None" as an argument for tx_stngs
+                stngs = []
+
             # Write TX settings from higher layer and
             # one setting needed for this PHY operation
-            stngs = list(tx_stngs)
             stngs.append(("FLD_RDO_DIO0", 1))   # _DIO_TX_DONE
             self.sx127x.set_flds(stngs)
             self.sx127x.write_stngs(False)

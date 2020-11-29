@@ -35,6 +35,86 @@ phy_sx127x.py
     and GPIO interfaces for the Semtec SX127x family of digital radio transceivers.
 
 
+Public Interface
+----------------
+
+This section describes the public interface of the PHY layer,
+which is the set of methods and arguments available to the entity
+that instantiates the PHY layer.
+
+======================  ================================================
+Callable                Description
+======================  ================================================
+``PhySX127xAhsm()``     The constructor accepts one argument.
+
+                        - *lstn_by_dflt* selects the default behavior
+                          when the device is not doing anything else.
+                          If lstn_by_dflt is ``True``, then the device turns
+                          on its receiver; if it is ``False``, the device
+                          is put into low-power sleep mode.
+----------------------  ------------------------------------------------
+``post_rx_action()``    Puts a receive action into the action queue
+                        of the PHY state machine.  The action will be
+                        serviced based on the given ``rx_time``.
+
+                        - ``rx_time`` farc.Framework absolute time value
+                          of when the enable the receiver.
+
+                        - ``rx_stngs`` is a sequence of ``(name, value)``
+                          pairs specifically for receiving.
+                          If you have no rx-specific settings,
+                          pass None or an empty sequence.
+                          See `Settings`_ for more details.
+
+                        - ``rx_durxn`` farc.Framework delta time value
+                          after which the receiver is disabled.
+
+                        - ``rx_clbk`` the callback method to call
+                          if a frame is received.
+----------------------  ------------------------------------------------
+``post_tx_action()``    Puts a transmit action into the action queue
+                        of the PHY state machine.  The action will be
+                        serviced based on the given tx_time.
+
+                        - ``tx_time`` A number representing the time
+                          to perform the transmit.  This is either an
+                          absolute value for time (using the same time as
+                          ``farc.Framework._event_loop.time()``); or it is
+                          a special value:
+
+                          * ``PhySX127xAhsm.TM_NOW``
+                          * ``PhySX127xAhsm.TM_IMMEDIATELY``
+
+                          ``TM_NOW`` uses the current ``time()`` and
+                          inserts this transmission into queue (where there
+                          may be other, potentially delayed payloads waiting).
+                          ``TM_IMMEDIATELY`` bypasses the normal queue
+                          and puts the payload in an immediate queue.
+                          The immediate queue is exhausted before the
+                          normal queue may transmit.  Use ``TM_IMMEDIATELY``
+                          sparingly.
+
+                        - ``tx_stngs`` is a sequence of ``(name, value)``
+                          pairs specifically for transmitting.
+                          If you have no tx-specific settings,
+                          pass None or an empty sequence.
+                          See `Settings`_ for more details.
+
+                        - ``tx_bytes`` The Python ``bytes`` object
+                          containing the literal payload to transmit.
+----------------------  ------------------------------------------------
+``set_dflt_stngs()``    Sets the default PHY settings.
+
+                        - *dflt_stngs* is a sequence of ``(name, value)``
+                          pairs.  This should be called once before the
+                          state machine is started.  See `Settings`_
+                          for more details.
+----------------------  ------------------------------------------------
+``start_stack()``       Starts the PHY layer state machine with the
+                        given ``farc.Ahsm`` priority.
+======================  ================================================
+
+
 State Machine
 -------------
 
@@ -71,82 +151,6 @@ Likewise, the diagram below shows the important aspects of the
 SM, but it does not capture all details.
 
 .. image:: docs/PhySX127xAhsm.png
-
-
-Public Interface
-----------------
-
-This section describes the public interface of the PHY layer,
-which is the set of methods and arguments available to the entity
-that instantiates the PHY layer.
-
-======================  ================================================
-Method                  Description
-======================  ================================================
-``PhySX127xAhsm()``     The constructor accepts one argument.
-
-                        - *lstn_by_dflt* selects the default behavior
-                          when the device is not doing anything else.
-                          If lstn_by_dflt is ``True``, then the device turns
-                          on its receiver; if it is ``False``, the device
-                          is put into low-power sleep mode.
-----------------------  ------------------------------------------------
-``post_rx_action()``    Puts a receive action into the action queue
-                        of the PHY state machine.  The action will be
-                        serviced based on the given ``rx_time``.
-
-                        - ``rx_time`` farc.Framework absolute time value
-                          of when the enable the receiver.
-
-                        - ``rx_stngs`` is a sequence of ``(name, value)``
-                          pairs specifically for receiving.
-                          See `Settings`_ for more details.
-
-                        - `` rx_durxn`` farc.Framework delta time value
-                          after which the receiver is disabled.
-
-                        - `` rx_clbk`` the callback method to call
-                          if a frame is received.
-----------------------  ------------------------------------------------
-``post_tx_action()``    Puts a transmit action into the action queue
-                        of the PHY state machine.  The action will be
-                        serviced based on the given tx_time.
-
-                        - ``tx_time`` A number representing the time
-                          to perform the transmit.  This is either an
-                          absolute value for time (using the same time as
-                          ``farc.Framework._event_loop.time()``); or it is
-                          a special value:
-
-                          * ``PhySX127xAhsm.TM_NOW``
-                          * ``PhySX127xAhsm.TM_IMMEDIATELY``
-
-                          ``TM_NOW`` uses the current ``time()`` and
-                          inserts this transmission into queue (where there
-                          may be other, potentially delayed payloads waiting).
-                          ``TM_IMMEDIATELY`` bypasses the normal queue
-                          and puts the payload in an immediate queue.
-                          The immediate queue is exhausted before the
-                          normal queue may transmit.  Use ``TM_IMMEDIATELY``
-                          sparingly.
-
-                        - ``tx_stngs`` is a sequence of ``(name, value)``
-                          pairs specifically for transmitting.
-                          See `Settings`_ for more details.
-
-                        - ``tx_bytes`` The Python ``bytes`` object
-                          containing the literal payload to transmit.
-----------------------  ------------------------------------------------
-``set_dflt_stngs()``    Sets the default PHY settings.
-
-                        - *dflt_stngs* is a sequence of ``(name, value)``
-                          pairs.  This should be called once before the
-                          state machine is started.  See `Settings`_
-                          for more details.
-----------------------  ------------------------------------------------
-``start_stack()``       Starts the PHY layer state machine with the
-                        given ``farc.Ahsm`` priority.
-======================  ================================================
 
 
 Settings
