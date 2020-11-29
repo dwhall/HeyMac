@@ -533,9 +533,8 @@ class PhySX127xAhsm(farc.Ahsm):
 
 
     def _pop_soon_action(self,):
-        """Returns the next (time, action) pair from the queue
-        and removes it if the time happens soon.
-        Otherwise returns None.
+        """If the time happens soon, returns the next (time, action) pair
+        from the queue and removes it.  Otherwise returns None.
         """
         if self._im_queue:
             tm = farc.Framework._event_loop.time()
@@ -553,9 +552,8 @@ class PhySX127xAhsm(farc.Ahsm):
 
 
     def _top_soon_action(self,):
-        """Returns the next (time, action) pair from the queue
-        without removing it if the time happens soon.
-        Otherwise returns None.
+        """If the time happens soon, returns the next (time, action) pair
+        from the queue without removing it.  Otherwise returns None.
         """
         if self._im_queue:
             tm = PhySX127xAhsm.TM_IMMEDIATE
@@ -569,4 +567,3 @@ class PhySX127xAhsm(farc.Ahsm):
                 action = self._tm_queue[tm]
                 return (tm, action)
         return None
-

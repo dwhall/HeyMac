@@ -211,7 +211,7 @@ class PhySX127x(object):
     def clear_irq_flags(self,):
         """Writes the IRQ flags reg back to itself to clear the flags
         """
-        reg = self._read(SX127x.REG_LORA_IRQ_FLAGS)[0]
+        reg = self._read(PhySX127x.REG_LORA_IRQ_FLAGS)[0]
         self._write(PhySX127x.REG_LORA_IRQ_FLAGS, reg)
 
 

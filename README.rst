@@ -91,7 +91,7 @@ Method                  Description
                           on its receiver; if it is ``False``, the device
                           is put into low-power sleep mode.
 ----------------------  ------------------------------------------------
-``post_rx_action()``    Puts a receive action into the transfer queue
+``post_rx_action()``    Puts a receive action into the action queue
                         of the PHY state machine.  The action will be
                         serviced based on the given ``rx_time``.
 
@@ -108,7 +108,7 @@ Method                  Description
                         - `` rx_clbk`` the callback method to call
                           if a frame is received.
 ----------------------  ------------------------------------------------
-``post_tx_action()``    Puts a transmit action into the transfer queue
+``post_tx_action()``    Puts a transmit action into the action queue
                         of the PHY state machine.  The action will be
                         serviced based on the given tx_time.
 
