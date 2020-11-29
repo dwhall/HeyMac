@@ -27,10 +27,12 @@ Software
 lnk_heymac_ahsm.py
     Contains LnkHeymacAhsm, the LNK layer state machine.
 
+lnk_frame.py
+    Contains HeymacFrame, which has methods to build or parse a link layer frame.
+
 
 State Machine
 -------------
-
 
 .. image:: docs/LnkHeymacAhsm.png
 

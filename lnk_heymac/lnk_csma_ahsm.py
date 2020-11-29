@@ -13,8 +13,6 @@ import logging
 import farc
 import phy_sx127x
 
-#from . import lnk_csma_data
-#from . import lnk_cmds
 from . import lnk_frame
 
 
@@ -61,6 +59,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
         # Instantiate the lower layer
         self.phy_ahsm = phy_sx127x.PhySX127xAhsm(True)
         self.phy_ahsm.set_dflt_stngs(LnkHeymac._PHY_STNGS_DFLT)
+        self.phy_ahsm.set_dflt_rx_clbk(self._phy_rx_clbk)
 
         # TODO: these go in mac data?
         self._lnk_addr = lnk_addr
@@ -83,7 +82,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
     @farc.Hsm.state
     def _initial(self, event):
-        """Pseudostate: LnkHeymacCsmaAhsm:_initial
+        """PseudoState: _initial
         State machine framework initialization
         """
         # Self-signaling
@@ -101,7 +100,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
     @farc.Hsm.state
     def _initializing(self, event):
-        """State: LnkHeymacCsmaAhsm:_initializing
+        """State: _initializing
         Application initialization.
         Initializes LNK data and the pkt queue.
         Always transitions to the _lurking state.
@@ -130,7 +129,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
     @farc.Hsm.state
     def _running(self, event):
-        """State: LnkHeymacCsmaAhsm:_running
+        """State: _running
         Receives continuously for two beacon periods
         - any tx-packet request is enqueued (no transmissions at this level)
         - accepts GPS NMEA events to get position information
@@ -143,6 +142,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
         elif sig == farc.Signal.EXIT:
             logging.debug("LNK._running @EXIT")
+            # TODO: request phy_sleep
             return self.handled(event)
 
         return self.super(self.top)
@@ -150,7 +150,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
     @farc.Hsm.state
     def _lurking(self, event):
-        """State: LnkHeymacCsmaAhsm:_running:_lurking
+        """State: _running:_lurking
         Waits for a fixed period with the receiver enabled
         then transitions to the _beaconing state
         """
@@ -172,7 +172,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
     @farc.Hsm.state
     def _beaconing(self, event):
-        """State: LnkHeymacCsmaAhsm:_running:_beaconing
+        """State: _running:_beaconing
         - periodically transmits a beacon
         - transitions to _networking state when bidirectional path discovered
         """
@@ -197,7 +197,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
     @farc.Hsm.state
     def _networking(self, event):
-        """State: LnkHeymacCsmaAhsm:_running:_beaconing:_networking
+        """State: _running:_beaconing:_networking
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
@@ -217,4 +217,14 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
             lnk_frame.HeymacFrame.FCTL_L | lnk_frame.HeymacFrame.FCTL_S)
         frame.set_field(lnk_frame.HeymacFrame.FLD_SADDR, self._lnk_addr)
         frame.set_field(lnk_frame.HeymacFrame.FLD_PAYLD, b"BEACON BEACON BEACON BEACON") #lnk_cmds.HeyMacCmdCbcn( caps=0, status=0 ))
-        self.phy_ahsm.enqueue_tx(self.phy_ahsm.ENQ_TM_NOW, LnkHeymac._PHY_STNGS_TX, bytes(frame))
+        self.phy_ahsm.post_tx_action(self.phy_ahsm.TM_NOW, LnkHeymac._PHY_STNGS_TX, bytes(frame))
+
+
+    def _phy_rx_clbk(self, rx_time, rx_bytes, rx_rssi, rx_snr):
+        """A method given to the PHY layer as a callback.
+        The PHY calls this method with these arguments
+        when it receives a frame with no errors.
+        This method puts the arguments in a container
+        and posts a _LNK_RX_FROM_PHY to this state machine.
+        """
+        logging.debug("LNK:_phy_rx_clbk")
