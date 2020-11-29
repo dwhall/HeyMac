@@ -273,12 +273,12 @@ class PhySX127x(object):
                       | PhySX127x.IRQ_FLAGS_RXDONE
                       | PhySX127x.IRQ_FLAGS_PAYLDCRCERROR
                       | PhySX127x.IRQ_FLAGS_VALIDHEADER )
-        self._write(REG_IRQ_FLAGS, flags)
+        self._write(PhySX127x.REG_LORA_IRQ_FLAGS, flags)
 
         # Determine rx status from flags
-        good_rx = bool(flags & IRQFLAGS_RXDONE_MASK)
-        flags &= ( PhySX127x.IRQ_FLAGS_RXTIMEOUT_MASK
-                 | PhySX127x.IRQ_FLAGS_PAYLOADCRCERROR_MASK)
+        good_rx = bool(flags & PhySX127x.IRQ_FLAGS_RXDONE)
+        flags &= ( PhySX127x.IRQ_FLAGS_RXTIMEOUT
+                 | PhySX127x.IRQ_FLAGS_PAYLDCRCERROR)
         if flags:
             good_rx = False
 

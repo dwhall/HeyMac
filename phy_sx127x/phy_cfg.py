@@ -2,7 +2,7 @@
 Copyright 2020 Dean Hall.  See LICENSE for details.
 
 Physical layer configuration used by phy_sx127x.py
-Defines the SPI settings and Raspberry Pi (BCM GPIO) numbers 
+Defines the SPI settings and Raspberry Pi (BCM GPIO) numbers
 that connect to the SX127x device.
 
 Configuration items are things that are hard-wired or

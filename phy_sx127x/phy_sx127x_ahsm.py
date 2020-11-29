@@ -274,7 +274,7 @@ class PhySX127xAhsm(farc.Ahsm):
             # Changing modes from rx or sleep to STBY is
             # "near instantaneous" per SX127x datasheet
             # so don't bother awaiting a _DIO_MODE_RDY
-            self.sx127x.write_opmode(phy_sx127x.PhySX127x.OPMODE_STBY, False)
+            self.sx127x.write_opmode(self.sx127x.OPMODE_STBY, False)
             return self.handled(event)
 
         return self.super(self.top)
@@ -316,15 +316,15 @@ class PhySX127xAhsm(farc.Ahsm):
 
             # Prep interrupts for RX
             self.sx127x.write_lora_irq_mask(
-                phy_sx127x.PhySX127x.IRQ_FLAGS_ALL,
-                phy_sx127x.PhySX127x.IRQ_FLAGS_RXDONE |
-                phy_sx127x.PhySX127x.IRQ_FLAGS_PAYLDCRCERROR |
-                phy_sx127x.PhySX127x.IRQ_FLAGS_VALIDHEADER
+                self.sx127x.IRQ_FLAGS_ALL,
+                self.sx127x.IRQ_FLAGS_RXDONE |
+                self.sx127x.IRQ_FLAGS_PAYLDCRCERROR |
+                self.sx127x.IRQ_FLAGS_VALIDHEADER
             )
             self.sx127x.write_lora_irq_flags(
-                phy_sx127x.PhySX127x.IRQ_FLAGS_RXDONE |
-                phy_sx127x.PhySX127x.IRQ_FLAGS_PAYLDCRCERROR |
-                phy_sx127x.PhySX127x.IRQ_FLAGS_VALIDHEADER
+                self.sx127x.IRQ_FLAGS_RXDONE |
+                self.sx127x.IRQ_FLAGS_PAYLDCRCERROR |
+                self.sx127x.IRQ_FLAGS_VALIDHEADER
             )
             self.sx127x.write_fifo_ptr(0x00)
 
@@ -333,7 +333,7 @@ class PhySX127xAhsm(farc.Ahsm):
 
             # No action means listen-by-default; receive-continuosly
             if not action:
-                self.sx127x.write_opmode(phy_sx127x.PhySX127x.OPMODE_RXCONT, False)
+                self.sx127x.write_opmode(self.sx127x.OPMODE_RXCONT, False)
 
             # An explicit action means do a receive-once
             else:
@@ -346,7 +346,7 @@ class PhySX127xAhsm(farc.Ahsm):
                     tiny_sleep = PhySX127xAhsm._TM_BLOCKING_MAX
                 if tiny_sleep > PhySX127xAhsm._TM_BLOCKING_MIN:
                     time.sleep(tiny_sleep)
-                self.sx127x.write_opmode(phy_sx127x.PhySX127x.OPMODE_RXONCE, False)
+                self.sx127x.write_opmode(self.sx127x.OPMODE_RXONCE, False)
                 # Start the rx duration timer
                 self.tmout_evt.post_in(self, rx_durxn)
             return self.handled(event)
@@ -413,7 +413,7 @@ class PhySX127xAhsm(farc.Ahsm):
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             logging.debug("PHY._lingering._sleeping")
-            self.sx127x.write_opmode(phy_sx127x.PhySX127x.OPMODE_SLEEP, False)
+            self.sx127x.write_opmode(self.sx127x.OPMODE_SLEEP, False)
             return self.handled(event)
 
         return self.super(self._lingering)
@@ -450,8 +450,8 @@ class PhySX127xAhsm(farc.Ahsm):
 
             # Prep interrupts for TX
             self.sx127x.write_lora_irq_mask(
-                phy_sx127x.PhySX127x.IRQ_FLAGS_ALL,     # disable these
-                phy_sx127x.PhySX127x.IRQ_FLAGS_TXDONE   # enable these
+                self.sx127x.IRQ_FLAGS_ALL,     # disable these
+                self.sx127x.IRQ_FLAGS_TXDONE   # enable these
             )
 
             # Write payload into radio's FIFO
@@ -471,7 +471,7 @@ class PhySX127xAhsm(farc.Ahsm):
             self.tmout_evt.post_in(self, 1.0) # TODO: calc soft timeout delta
 
             # Start transmission and await DIO_TX_DONE
-            self.sx127x.write_opmode(phy_sx127x.PhySX127x.OPMODE_TX, False)
+            self.sx127x.write_opmode(self.sx127x.OPMODE_TX, False)
             return self.handled(event)
 
         elif sig == farc.Signal._DIO_TX_DONE:
@@ -489,7 +489,7 @@ class PhySX127xAhsm(farc.Ahsm):
             # Use DIO5/ModeReady here so we don't transition
             # to _scheduling before the chip is in STBY mode.
             # Await _DIO_MODE_RDY
-            self.sx127x.write_opmode(phy_sx127x.PhySX127x.OPMODE_STBY, True)
+            self.sx127x.write_opmode(self.sx127x.OPMODE_STBY, True)
             return self.handled(event)
 
         elif sig == farc.Signal._DIO_MODE_RDY:
@@ -537,11 +537,11 @@ class PhySX127xAhsm(farc.Ahsm):
             self._rx_clbk(self._rxd_hdr_time, frame_bytes, rssi, snr)
 
         else:
-            if flags & PhySX127x.IRQ_FLAGS_RXTIMEOUT_MASK:
+            if flags & self.sx127x.IRQ_FLAGS_RXTIMEOUT:
                 # TODO: incr phy_data stats rx tmout
                 pass
 
-            if flags & PhySX127x.IRQ_FLAGS_PAYLOADCRCERROR_MASK:
+            if flags & self.sx127x.IRQ_FLAGS_PAYLDCRCERROR:
                 # TODO: incr phy_data stats rx payld crc err
                 pass
 
