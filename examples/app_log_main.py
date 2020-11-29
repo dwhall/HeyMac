@@ -13,7 +13,6 @@ import sys
 import farc
 import farc.SimpleSpy
 import heymac
-#from heymac import utl
 import lnk_heymac
 
 
@@ -26,9 +25,9 @@ def main():
             format = "%(asctime)s %(message)s",
             level = logging.DEBUG)
 
-    lnk_addr = heymac.utl.get_long_mac_addr("KC4KSU")
-    # The hostname is the station ID
-    station_id = socket.gethostname().encode()
+    # Compute the long address from host credentials
+    station_id = socket.gethostname()
+    lnk_addr = heymac.utl.get_long_addr(station_id)
 
     # Instantiate state machines
     lnk_ahsm = lnk_heymac.LnkHeymacCsmaAhsm(lnk_addr, station_id)
