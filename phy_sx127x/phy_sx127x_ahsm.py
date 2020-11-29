@@ -519,17 +519,19 @@ class PhySX127xAhsm(farc.Ahsm):
         Checks and logs any errors.
         Passes the rx_data to the next layer higher via callback.
         """
-        frame_bytes, rssi, snr = self.sx127x.read_lora_rxd()
-        # TODO: check sx127x for any rx errors
-        if True: # no errors
-            logging.debug("PHY:_on_lora_rx_done()")
+        frame_bytes, rssi, snr, flags = self.sx127x.read_lora_rxd()
+        if flags == 0:
             # TODO: incr phy_data stats rx done
             self._rx_clbk(self._rxd_hdr_time, frame_bytes, rssi, snr)
 
-        else: # errors
-            # TODO: log err_type
-            # TODO: incr phy_data stats rx err
-            pass
+        else:
+            if flags & PhySX127x.IRQ_FLAGS_RXTIMEOUT_MASK:
+                # TODO: incr phy_data stats rx tmout
+                pass
+
+            if flags & PhySX127x.IRQ_FLAGS_PAYLOADCRCERROR_MASK:
+                # TODO: incr phy_data stats rx payld crc err
+                pass
 
 
     def _pop_soon_action(self,):

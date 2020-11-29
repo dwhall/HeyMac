@@ -233,6 +233,7 @@ class PhySX127x(object):
         dio_isr_lut = (self._dio0_isr, self._dio1_isr, self._dio2_isr, self._dio3_isr, self._dio4_isr, self._dio5_isr)
         self._dio_isr_clbk = dio_isr_clbk
 
+        GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
 
         self.reset_rdo()
@@ -260,19 +261,26 @@ class PhySX127x(object):
 
 
     def read_lora_rxd(self,):
-        """Returns a tuple of: (payld, rssi, snr)
+        """Returns a tuple of: (payld, rssi, snr, flags)
         payld is a bytearray.
         rssi is an integer [dBm].
         snr is a float [dB].
+        flags is 0 if rx is good, otherwise it is bitwise combo of IRQ_FLAGS_*.
         """
-        # Read the index into the FIFO of where the pkt starts
-        # and the length of the data received
-        pkt_start, _, _, nbytes = self._read(PhySX127x.REG_LORA_FIFO_CURR_ADDR, 4)
-        assert pkt_start == 0, "rxd pkt_start was not at 0"
+        # Clear rx-related IRQ flags in the reg
+        reg = self._read(PhySX127x.REG_LORA_IRQ_FLAGS)[0]
+        flags = reg & ( PhySX127x.IRQ_FLAGS_RXTIMEOUT
+                      | PhySX127x.IRQ_FLAGS_RXDONE
+                      | PhySX127x.IRQ_FLAGS_PAYLDCRCERROR
+                      | PhySX127x.IRQ_FLAGS_VALIDHEADER )
+        self._write(REG_IRQ_FLAGS, flags)
 
-        # Read the payload
-        self._write(PhySX127x.REG_LORA_FIFO_ADDR_PTR, pkt_start)
-        payld = self._read(PhySX127x.REG_RDO_FIFO, nbytes)
+        # Determine rx status from flags
+        good_rx = bool(flags & IRQFLAGS_RXDONE_MASK)
+        flags &= ( PhySX127x.IRQ_FLAGS_RXTIMEOUT_MASK
+                 | PhySX127x.IRQ_FLAGS_PAYLOADCRCERROR_MASK)
+        if flags:
+            good_rx = False
 
         # Read the packet SNR and RSSI (2 consecutive regs)
         # and calculate RSSI [dBm] and SNR [dB]
@@ -280,7 +288,19 @@ class PhySX127x(object):
         rssi = -157 + rssi
         snr = snr / 4.0
 
-        return (bytes(payld), rssi, snr)
+        if good_rx:
+            # Read the index into the FIFO of where the pkt starts
+            # and the length of the data received
+            pkt_start, _, _, nbytes = self._read(PhySX127x.REG_LORA_FIFO_CURR_ADDR, 4)
+            assert pkt_start == 0, "rxd pkt_start was not at 0"
+
+            # Read the payload
+            self._write(PhySX127x.REG_LORA_FIFO_ADDR_PTR, pkt_start)
+            payld = self._read(PhySX127x.REG_RDO_FIFO, nbytes)
+        else:
+            payld = b""
+
+        return (bytes(payld), rssi, snr, flags)
 
 
     def read_opmode(self,):
