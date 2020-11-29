@@ -27,130 +27,137 @@
      </state_glyph>
     </state>
     <state name="_scheduling">
-     <entry brief="write_opmode(STBY)"/>
+     <entry brief="post_fifo(_ALWAYS)"/>
      <tran trig="_ALWAYS">
       <choice target="../../../3">
-       <choice_glyph conn="36,40,5,3,8">
+       <choice_glyph conn="36,40,5,3,6,-8,2">
         <action box="1,0,10,2"/>
        </choice_glyph>
       </choice>
-      <choice>
-       <choice target="../../../../5/1">
-        <choice_glyph conn="36,50,4,0,14">
-         <action box="1,0,10,2"/>
-        </choice_glyph>
-       </choice>
-       <choice target="../../../../5/2">
-        <choice_glyph conn="36,50,5,0,14,14">
-         <action box="1,0,10,2"/>
-        </choice_glyph>
-       </choice>
-       <choice_glyph conn="36,40,4,-1,10">
+      <choice target="../../../4/2">
+       <choice_glyph conn="36,40,4,0,6,18,8">
+        <action box="1,0,10,2"/>
+       </choice_glyph>
+      </choice>
+      <choice target="../../../4/3">
+       <choice_glyph conn="36,40,5,0,-10,14">
         <action box="1,0,10,2"/>
        </choice_glyph>
       </choice>
       <tran_glyph conn="20,36,3,-1,16,4">
-       <action box="0,-2,15,2"/>
+       <action box="0,-2,10,2"/>
       </tran_glyph>
      </tran>
-     <state_glyph node="20,28,20,24">
+     <tran trig="_PHY_RQST">
+      <tran_glyph conn="20,38,3,-1,12">
+       <action box="0,-2,10,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="20,28,20,16">
       <entry box="1,2,18,2"/>
      </state_glyph>
     </state>
     <state name="_txing">
      <entry brief="write_opmode(TX)"/>
-     <tran trig="_DIO_TX_DONE" target="../../2">
-      <tran_glyph conn="44,44,3,1,24,-12,-28">
-       <action box="0,-2,18,2"/>
-      </tran_glyph>
-     </tran>
-     <tran trig="_PHY_TMOUT" target="../../2">
-      <tran_glyph conn="44,46,3,1,24,-14,-28">
-       <action box="0,-2,12,2"/>
-      </tran_glyph>
-     </tran>
-     <state_glyph node="44,36,18,12">
-      <entry box="1,2,16,2"/>
-     </state_glyph>
-    </state>
-    <state name="_rxing">
-     <entry brief="tmout_evt.post_in(1.0)"/>
      <exit brief="tmout_evt.disarm()"/>
-     <tran trig="_DIO_RX_DONE" target="../../2">
-      <tran_glyph conn="20,106,3,1,48,-74,-28">
-       <action box="0,-2,18,2"/>
-      </tran_glyph>
-     </tran>
-     <tran trig="_DIO_RX_TMOUT" target="../../2">
-      <tran_glyph conn="20,104,3,1,48,-72,-28">
-       <action box="0,-2,18,2"/>
-      </tran_glyph>
-     </tran>
-     <tran trig="_DIO_PAYLD_CRC_ERR" target="../../2">
-      <tran_glyph conn="20,102,3,1,48,-70,-28">
+     <tran trig="_DIO_TX_DONE" target="../../2">
+      <tran_glyph conn="44,36,3,0,24,-10,-30,2">
        <action box="0,-2,18,2"/>
       </tran_glyph>
      </tran>
      <tran trig="_PHY_TMOUT">
-      <tran_glyph conn="20,108,3,-1,16">
-       <action box="0,-2,10,2"/>
+      <tran_glyph conn="44,40,3,-1,14">
+       <action box="0,-2,12,2"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="_PHY_RQST">
+      <tran_glyph conn="44,38,3,-1,14">
+       <action box="0,-2,12,2"/>
       </tran_glyph>
      </tran>
      <tran trig="_DIO_MODE_RDY" target="../../2">
-      <tran_glyph conn="20,110,3,1,48,-78,-28">
+      <tran_glyph conn="44,42,3,0,24,-16,-30,2">
        <action box="0,-2,16,2"/>
       </tran_glyph>
      </tran>
-     <state_glyph node="20,92,20,20">
-      <entry box="1,2,19,2"/>
-      <exit box="1,4,18,3"/>
+     <state_glyph node="44,28,18,16">
+      <entry box="1,2,16,2"/>
+      <exit box="1,4,16,2"/>
      </state_glyph>
     </state>
     <state name="_lingering">
      <exit brief="write_opmode(STBY)"/>
-     <tran trig="_RESCHEDULE" target="../../2">
-      <tran_glyph conn="18,88,3,1,50,-56,-28">
-       <action box="0,-2,14,2"/>
+     <tran trig="_PHY_RQST">
+      <choice target="../../../2">
+       <guard brief="_default_action"/>
+       <choice_glyph conn="34,94,5,0,34,-68,-30,2">
+        <action box="1,-2,13,2"/>
+       </choice_glyph>
+      </choice>
+      <choice>
+       <guard brief="else"/>
+       <choice_glyph conn="34,94,4,-1,2,8">
+        <action box="1,0,10,2"/>
+       </choice_glyph>
+      </choice>
+      <tran_glyph conn="20,94,3,-1,14">
+       <action box="0,-2,12,2"/>
       </tran_glyph>
      </tran>
+     <tran trig="_PHY_TMOUT" target="../../2">
+      <tran_glyph conn="20,98,3,0,48,-72,-30,2">
+       <action box="0,-2,12,2"/>
+      </tran_glyph>
+     </tran>
+     <state name="_sleeping">
+      <state_glyph node="50,54,10,8"/>
+     </state>
      <state name="_listening">
       <entry brief="prdc_evt.post_every()"/>
       <exit brief="prdc_evt.disarm()"/>
-      <tran trig="_DIO_VALID_HDR" target="../../../4">
-       <tran_glyph conn="20,82,3,0,16,10">
+      <tran trig="_DIO_VALID_HDR" target="../4">
+       <tran_glyph conn="22,66,3,0,20,2">
         <action box="0,-2,18,2"/>
        </tran_glyph>
       </tran>
       <tran trig="_PHY_PRDC">
        <action brief="updt_rng()"/>
-       <tran_glyph conn="20,74,3,-1,18">
+       <tran_glyph conn="22,64,3,-1,20">
         <action box="0,-2,20,2"/>
        </tran_glyph>
       </tran>
       <tran trig="_DIO_PAYLD_CRC_ERR" target="../../../2">
-       <tran_glyph conn="20,78,3,1,48,-46,-28">
+       <tran_glyph conn="22,86,3,0,46,-60,-30,2">
         <action box="0,-2,18,2"/>
        </tran_glyph>
       </tran>
       <tran trig="_DIO_RX_TMOUT" target="../../../2">
-       <tran_glyph conn="20,80,3,1,48,-48,-28">
+       <tran_glyph conn="22,88,3,0,46,-62,-30,2">
         <action box="0,-2,14,2"/>
        </tran_glyph>
       </tran>
-      <tran trig="_PHY_TMOUT" target="../../../2">
-       <tran_glyph conn="20,76,3,1,48,-44,-28">
-        <action box="0,-2,12,2"/>
-       </tran_glyph>
-      </tran>
-      <state_glyph node="20,64,20,20">
+      <state name="_rxing">
+       <exit brief="tmout_evt.disarm()"/>
+       <tran trig="_DIO_RX_DONE" target="../../../../2">
+        <tran_glyph conn="24,76,3,0,44,-50,-30,2">
+         <action box="0,-2,18,2"/>
+        </tran_glyph>
+       </tran>
+       <tran trig="_PHY_RQST">
+        <tran_glyph conn="24,78,3,-1,18">
+         <action box="0,-2,10,2"/>
+        </tran_glyph>
+       </tran>
+       <state_glyph node="24,68,22,14">
+        <exit box="1,2,19,2"/>
+       </state_glyph>
+      </state>
+      <state_glyph node="22,54,26,36">
        <entry box="1,2,19,2"/>
        <exit box="1,4,17,2"/>
       </state_glyph>
      </state>
-     <state name="_sleeping">
-      <state_glyph node="44,64,18,8"/>
-     </state>
-     <state_glyph node="18,56,46,34">
+     <state_glyph node="20,48,42,54">
       <exit box="1,2,17,2"/>
      </state_glyph>
     </state>

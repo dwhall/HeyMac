@@ -21,6 +21,7 @@ from . import phy_cfg
 class PhySX127x(object):
     """The PHY layer SPI operations, settings management and GPIO
     interfaces for the Semtec SX127x family of digital radio transceivers.
+    For now, this library only supports LoRa mode.
     """
 
     # SX127X Oscillator frequency
@@ -210,8 +211,8 @@ class PhySX127x(object):
     def clear_irq_flags(self,):
         """Writes the IRQ flags reg back to itself to clear the flags
         """
-        reg = self._read(SX127xREG_LORA_IRQ_FLAGS)[0]
-        self._write(REG_LORA_IRQ_FLAGS, reg)
+        reg = self._read(SX127x.REG_LORA_IRQ_FLAGS)[0]
+        self._write(PhySX127x.REG_LORA_IRQ_FLAGS, reg)
 
 
     def close(self,):
@@ -266,16 +267,16 @@ class PhySX127x(object):
         """
         # Read the index into the FIFO of where the pkt starts
         # and the length of the data received
-        pkt_start, _, _, nbytes = self._read(REG_RX_CURRENT_ADDR, 4)
+        pkt_start, _, _, nbytes = self._read(PhySX127x.REG_LORA_FIFO_CURR_ADDR, 4)
         assert pkt_start == 0, "rxd pkt_start was not at 0"
 
         # Read the payload
-        self._write(REG_LORA_FIFO_ADDR_PTR, pkt_start)
-        payld = self._read(REG_RDO_FIFO, nbytes)
+        self._write(PhySX127x.REG_LORA_FIFO_ADDR_PTR, pkt_start)
+        payld = self._read(PhySX127x.REG_RDO_FIFO, nbytes)
 
         # Read the packet SNR and RSSI (2 consecutive regs)
         # and calculate RSSI [dBm] and SNR [dB]
-        snr, rssi = self._read(REG_LORA_PKT_SNR, 2)
+        snr, rssi = self._read(PhySX127x.REG_LORA_PKT_SNR, 2)
         rssi = -157 + rssi
         snr = snr / 4.0
 

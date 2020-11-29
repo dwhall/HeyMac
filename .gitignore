@@ -2,3 +2,5 @@
 /dist/*
 /phy_sx127x/__pycache__/*
 /phy_sx127x.egg-info/*
+/.vscode/*
+/*.code-*

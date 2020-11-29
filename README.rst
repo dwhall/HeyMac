@@ -41,15 +41,18 @@ State Machine
 After initialization, the behavior of the state machine (SM) is
 to run in a loop that applies settings and then performs an action.
 The action is to transmit, listen or sleep.
-The SM maintains a transmit queue and a boolean variable
+The SM maintains a action queue and a boolean variable
 that it uses decide what action to take.
-If the transmit queue is empty, the variable determines
-whether to listen or sleep.
-If the queue is not empty, the next item in the queue
-will be transmitted.  After the transmission, operation proceeds
-to the Setting state and the entire process repeats.
-But the Sleeping and Listening states are slightly different.
-The SM remains sleeping or listening until some event arrives
+If the action queue is empty, the variable determines
+which default action to take, listen or sleep.
+If the action queue is not empty, the next item in the queue
+will be performed (transmit, rx-once, etc.).
+After the action, operation proceeds to the Scheduling state
+and the entire process repeats.
+
+The Sleeping and Listening states are slightly different.
+If the SM is sleeping or listening as the default action,
+the SM remains sleeping or listening until some event arrives
 that requires attention (for example, a new item in the transmit
 queue or a new setting needs to be applied).
 
@@ -59,7 +62,7 @@ header will cause the transition to the Rxing state.
 The Rxing state exists to keep the radio in receive
 mode until reception is done or there is a timeout.
 We wouldn't want, for example, the arrival of a new item
-in the transmit queue to cause a state transition that
+in the action queue to cause a state transition that
 would turn off the receiver in the middle of a reception.
 
 There are many more details to the SM's operation.
@@ -88,7 +91,7 @@ Method                  Description
                           on its receiver; if it is ``False``, the device
                           is put into low-power sleep mode.
 ----------------------  ------------------------------------------------
-``enqueue_rx()``        Puts a receive action into the transfer queue
+``post_rx_action()``    Puts a receive action into the transfer queue
                         of the PHY state machine.  The action will be
                         serviced based on the given ``rx_time``.
 
@@ -105,7 +108,7 @@ Method                  Description
                         - `` rx_clbk`` the callback method to call
                           if a frame is received.
 ----------------------  ------------------------------------------------
-``enqueue_tx()``        Puts a transmit action into the transfer queue
+``post_tx_action()``    Puts a transmit action into the transfer queue
                         of the PHY state machine.  The action will be
                         serviced based on the given tx_time.
 
@@ -115,16 +118,16 @@ Method                  Description
                           ``farc.Framework._event_loop.time()``); or it is
                           a special value:
 
-                          * ``PhySX127xAhsm.ENQ_TM_NOW``
-                          * ``PhySX127xAhsm.ENQ_TM_IMMEDIATELY``
+                          * ``PhySX127xAhsm.TM_NOW``
+                          * ``PhySX127xAhsm.TM_IMMEDIATELY``
 
-                          ``ENQ_TM_NOW`` uses the current ``time()`` and
+                          ``TM_NOW`` uses the current ``time()`` and
                           inserts this transmission into queue (where there
                           may be other, potentially delayed payloads waiting).
-                          ``ENQ_TM_IMMEDIATELY`` bypasses the normal queue
+                          ``TM_IMMEDIATELY`` bypasses the normal queue
                           and puts the payload in an immediate queue.
                           The immediate queue is exhausted before the
-                          normal queue may transmit.  Use ``ENQ_TM_IMMEDIATELY``
+                          normal queue may transmit.  Use ``TM_IMMEDIATELY``
                           sparingly.
 
                         - ``tx_stngs`` is a sequence of ``(name, value)``
