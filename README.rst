@@ -31,12 +31,6 @@ lnk_frame.py
     Contains HeymacFrame, which has methods to build or parse a link layer frame.
 
 
-State Machine
--------------
-
-.. image:: docs/LnkHeymacAhsm.png
-
-
 Public Interface
 ----------------
 
@@ -45,13 +39,23 @@ which is the set of methods and arguments available to the entity
 that instantiates the LNK layer.
 
 ======================  ================================================
-Method                  Description
+Callable                Description
 ======================  ================================================
-``LnkHeymacAhsm()``     The constructor accepts one argument.
+``LnkHeymacAhsm()``     Constructor for the state machine
+                        accepts one argument.
 
                         - *arg* tbd
 ----------------------  ------------------------------------------------
+``HeymacFrame()``       Constructor for a class that helps build a
+                        link layer frame object or
+                        parse bytes into a frame object.
 ======================  ================================================
+
+
+State Machine
+-------------
+
+.. image:: docs/LnkHeymacAhsm.png
 
 
 Settings

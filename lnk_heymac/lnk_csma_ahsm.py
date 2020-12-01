@@ -61,7 +61,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
         self.phy_ahsm.set_dflt_stngs(LnkHeymac._PHY_STNGS_DFLT)
         self.phy_ahsm.set_dflt_rx_clbk(self._phy_rx_clbk)
 
-        # TODO: these go in mac data?
+        # TODO: these go in lnk data?
         self._lnk_addr = lnk_addr
         self._station_id = station_id # UNUSED
 
@@ -130,10 +130,8 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
     @farc.Hsm.state
     def _running(self, event):
         """State: _running
-        Receives continuously for two beacon periods
-        - any tx-packet request is enqueued (no transmissions at this level)
-        - accepts GPS NMEA events to get position information
-        - accepts SIGTERM event to force an exit
+        Parent state to implement shared behavior
+        among _lurking, _beaconing and _networking
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
@@ -204,7 +202,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
             logging.debug("LNK._networking")
             return self.handled(event)
 
-        return self.super(self._running)
+        return self.super(self._beaconing)
 
 
 #### Private methods
