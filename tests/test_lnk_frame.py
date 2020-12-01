@@ -21,12 +21,12 @@ class TestHeyMacFrame(unittest.TestCase):
         f = HeymacFrame.parse(b)
         self.assertTrue(f.is_heymac())
         self.assertEqual(f.get_field(HeymacFrame.FLD_FCTL), 0)
-        self.assertEqual(f.get_field(HeymacFrame.FLD_NETID), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_DADDR), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_SADDR), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_PAYLD), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_HOPS), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_TADDR), b"")
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_NETID))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_DADDR))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_SADDR))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_PAYLD))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_HOPS))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_TADDR))
 
 
     def test_not_mac(self,):
@@ -46,12 +46,12 @@ class TestHeyMacFrame(unittest.TestCase):
         # Parse and test
         f = HeymacFrame.parse(b)
         self.assertEqual(f.get_field(HeymacFrame.FLD_FCTL), 0x00)
-        self.assertEqual(f.get_field(HeymacFrame.FLD_NETID), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_DADDR), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_SADDR), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_PAYLD), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_HOPS), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_TADDR), b"")
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_NETID))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_DADDR))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_SADDR))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_PAYLD))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_HOPS))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_TADDR))
 
 
     def test_min_payld(self,):
@@ -65,12 +65,12 @@ class TestHeyMacFrame(unittest.TestCase):
         # Parse and test
         f = HeymacFrame.parse(b)
         self.assertEqual(f.get_field(HeymacFrame.FLD_FCTL), 0)
-        self.assertEqual(f.get_field(HeymacFrame.FLD_NETID), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_DADDR), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_SADDR), b"")
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_NETID))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_DADDR))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_SADDR))
         self.assertEqual(f.get_field(HeymacFrame.FLD_PAYLD), b"ABCD")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_HOPS), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_TADDR), b"")
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_HOPS))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_TADDR))
 
 
     def test_saddr64b(self,):
@@ -84,12 +84,12 @@ class TestHeyMacFrame(unittest.TestCase):
         # Parse and test
         f = HeymacFrame.parse(b)
         self.assertEqual(f.get_field(HeymacFrame.FLD_FCTL), 0x44)
-        self.assertEqual(f.get_field(HeymacFrame.FLD_NETID), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_DADDR), b"")
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_NETID))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_DADDR))
         self.assertEqual(f.get_field(HeymacFrame.FLD_SADDR), b"\x01\x02\x03\x04\x05\x06\x07\x08")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_PAYLD), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_HOPS), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_TADDR), b"")
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_PAYLD))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_HOPS))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_TADDR))
 
 
     """
@@ -113,16 +113,9 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(b, b"\xE4\x04\x11\x12\x81\xf5\x02\x03\x04\x00\x00\x00\x2a\x00\x00\x00\x00\x00\x00\x00\x00")
         # Parse and test
         f = HeymacFrame.parse(b)
-        self.assertEqual(f.get_field(HeymacFrame.FLD_FCTL) & HeymacFrame.FCTL_X, 0)
-        self.assertEqual(f.fctl_l, 0)
-        self.assertEqual(f.fctl_n, 0)
-        self.assertEqual(f.fctl_d, 0)
-        self.assertEqual(f.fctl_i, 0)
-        self.assertEqual(f.fctl_s, 1)
-        self.assertEqual(f.fctl_m, 0)
-        self.assertEqual(f.fctl_p, 0)
-        self.assertEqual(f.get_field(HeymacFrame.FLD_NETID), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_DADDR), b"")
+        self.assertEqual(f.get_field(HeymacFrame.FLD_FCTL) & HeymacFrame.FCTL_X, 0x04)
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_NETID))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_DADDR))
         self.assertEqual(f.get_field(HeymacFrame.FLD_SADDR), b"\x11\x12")
         self.assertEqual(type(f.payld), heymac.mac_cmds.HeyMacCmdSbcn)
         self.assertEqual(f.payld.bcn_en, 1)
@@ -132,8 +125,8 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(f.payld.caps, 3)
         self.assertEqual(f.payld.status, 4)
         self.assertEqual(f.payld.asn, 42)
-        self.assertEqual(f.get_field(HeymacFrame.FLD_HOPS), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_TADDR), b"")
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_HOPS))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_TADDR))
     """
 
     def test_saddr64b_daddr64b(self,):
@@ -149,12 +142,12 @@ class TestHeyMacFrame(unittest.TestCase):
         # Parse and test
         f = HeymacFrame.parse(b)
         self.assertEqual(f.get_field(HeymacFrame.FLD_FCTL), 0x54)
-        self.assertEqual(f.get_field(HeymacFrame.FLD_NETID), b"")
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_NETID))
         self.assertEqual(f.get_field(HeymacFrame.FLD_DADDR), b"\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8")
         self.assertEqual(f.get_field(HeymacFrame.FLD_SADDR), b"\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8")
         self.assertEqual(f.get_field(HeymacFrame.FLD_PAYLD), b"hi")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_HOPS), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_TADDR), b"")
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_HOPS))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_TADDR))
 
 
     def test_saddr16b_daddr16b(self,):
@@ -170,12 +163,12 @@ class TestHeyMacFrame(unittest.TestCase):
         # Parse and test
         f = HeymacFrame.parse(b)
         self.assertEqual(f.get_field(HeymacFrame.FLD_FCTL), 0x14)
-        self.assertEqual(f.get_field(HeymacFrame.FLD_NETID), b"")
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_NETID))
         self.assertEqual(f.get_field(HeymacFrame.FLD_DADDR), b"\xd1\xd2")
         self.assertEqual(f.get_field(HeymacFrame.FLD_SADDR), b"\xc1\xc2")
         self.assertEqual(f.get_field(HeymacFrame.FLD_PAYLD), b"hello world")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_HOPS), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_TADDR), b"")
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_HOPS))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_TADDR))
 
 
     """
@@ -190,13 +183,13 @@ class TestHeyMacFrame(unittest.TestCase):
         # Parse and test
         f = HeymacFrame.parse(b)
         self.assertEqual(f.get_field(HeymacFrame.FLD_FCTL), 0)
-        self.assertEqual(f.get_field(HeymacFrame.FLD_NETID), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_DADDR), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_SADDR), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_HOPS), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_TADDR), b"")
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_NETID))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_DADDR))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_SADDR))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_HOPS))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_TADDR))
         self.assertEqual(type(f.payld), heymac.APv6Frame)
-        """
+    """
 
 
     def test_netid_daddr(self,):
@@ -214,10 +207,10 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(f.get_field(HeymacFrame.FLD_FCTL), 0x30)
         self.assertEqual(f.get_field(HeymacFrame.FLD_NETID), b"\x80\xA5")
         self.assertEqual(f.get_field(HeymacFrame.FLD_DADDR), b"\xd1\xd2")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_SADDR), b"")
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_SADDR))
         self.assertEqual(f.get_field(HeymacFrame.FLD_PAYLD), b"data")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_HOPS), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_TADDR), b"")
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_HOPS))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_TADDR))
 
 
     """
@@ -232,20 +225,13 @@ class TestHeyMacFrame(unittest.TestCase):
         # Parse and test
         f = HeymacFrameCsmaV0(b)
         self.assertEqual(f.pid, 0xE4)
-        self.assertEqual(f.get_field(HeymacFrame.FLD_FCTL) & HeymacFrame.FCTL_X, 0)
-        self.assertEqual(f.fctl_l, 0)
-        self.assertEqual(f.fctl_n, 0)
-        self.assertEqual(f.fctl_d, 0)
-        self.assertEqual(f.fctl_i, 0)
-        self.assertEqual(f.fctl_s, 0)
-        self.assertEqual(f.fctl_m, 0)
-        self.assertEqual(f.fctl_p, 0)
-        self.assertEqual(f.get_field(HeymacFrame.FLD_NETID), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_DADDR), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_SADDR), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_PAYLD), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_HOPS), b"")
-        self.assertEqual(f.get_field(HeymacFrame.FLD_TADDR), b"")
+        self.assertEqual(f.get_field(HeymacFrame.FLD_FCTL), 0x00)
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_NETID))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_DADDR))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_SADDR))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_PAYLD))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_HOPS))
+        self.assertIsNone(f.get_field(HeymacFrame.FLD_TADDR))
     """
 
 if __name__ == '__main__':

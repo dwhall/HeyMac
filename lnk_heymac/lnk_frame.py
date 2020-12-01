@@ -148,7 +148,7 @@ class HeymacFrame(object):
         # so everything after PID, Fctl is payload
         if frame._is_extended():
             frame.set_field(HeymacFrame.FLD_PAYLD, frame_bytes[offset:])
-            offset = len(frame)
+            offset = len(frame_bytes)
 
         # Parse a regular Heymac frame
         else:
@@ -176,9 +176,11 @@ class HeymacFrame(object):
             else:
                 mhop_sz = 0
 
-            paylod_sz = len(frame_bytes) - offset - mic_sz - mhop_sz
-            frame.set_field(HeymacFrame.FLD_PAYLD, frame_bytes[offset:offset + paylod_sz])
-            offset += paylod_sz
+            payld_sz = len(frame_bytes) - offset - mic_sz - mhop_sz
+            assert payld_sz >= 0
+            if payld_sz > 0:
+                frame.set_field(HeymacFrame.FLD_PAYLD, frame_bytes[offset:offset + payld_sz])
+                offset += payld_sz
 
             # TODO: parse MIC
 
@@ -194,10 +196,8 @@ class HeymacFrame(object):
 
 
     def get_field(self, fld_nm):
-        """Returns the field value.
-        If the field is not present,
-        returns b"" for single-byte fields
-        and b"" for multi-byte fields
+        """Returns the field value if it is present.
+        Returns None if the field is not present.
         """
         assert fld_nm in (
             HeymacFrame.FLD_PID,
@@ -211,12 +211,12 @@ class HeymacFrame(object):
             HeymacFrame.FLD_HOPS,
             HeymacFrame.FLD_TADDR,
         )
-        return self.field.get(fld_nm, b"")
+        return self.field.get(fld_nm, None)
 
 
     def is_heymac(self,):
         """Returns True if the PID Ident subfield indicates Heymac protocol.
-        Note, this only checks the first four bytes and does not check
+        Note, this only checks the first four bits and does not check
         the rest of the frame for validity.
         """
         return self.field[HeymacFrame.FLD_PID] & HeymacFrame.PID_IDENT_MASK == HeymacFrame.PID_IDENT_HEYMAC
@@ -257,8 +257,10 @@ class HeymacFrame(object):
         # Store the field
         self.field[fld_nm] = value
 
+
 #### Private interface
 
+    # Helpers
     def _is_extended(self,): return 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_X)
     def _is_long_addrs(self,): return 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_L)
     def _is_netid_present(self,): return 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_N)
@@ -266,5 +268,5 @@ class HeymacFrame(object):
     def _is_ies_present(self,): return 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_I)
     def _is_saddr_present(self,): return 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_S)
     def _is_mhop(self,): return 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_M)
-    def _is_has_pending(self,): return 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_P)
+    def _is_pending_set(self,): return 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_P)
     def _get_addr_sz(self,): return (2,8)[self._is_long_addrs()]
