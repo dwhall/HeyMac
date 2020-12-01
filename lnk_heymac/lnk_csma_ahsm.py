@@ -87,6 +87,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
         """
         # Self-signaling
         farc.Signal.register("_ALWAYS")
+        farc.Signal.register("_LNK_RXD_FROM_PHY")
 
         # Self-signaling events
         self._evt_always = farc.Event(farc.Signal._ALWAYS, None)
@@ -136,6 +137,10 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             logging.debug("LNK._running")
+            return self.handled(event)
+
+        elif sig == farc.Signal._LNK_RXD_FROM_PHY:
+            self._proc_rxd_frame(event.value)
             return self.handled(event)
 
         elif sig == farc.Signal.EXIT:
@@ -222,7 +227,34 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
         """A method given to the PHY layer as a callback.
         The PHY calls this method with these arguments
         when it receives a frame with no errors.
-        This method puts the arguments in a container
-        and posts a _LNK_RX_FROM_PHY to this state machine.
+        This method collects the arguments in a container
+        and posts an event to this state machine.
         """
         logging.debug("LNK:_phy_rx_clbk")
+        rxd_data = (rx_time, rx_bytes, rx_rssi, rx_snr)
+        self.post_fifo(farc.Event(farc.Signal._LNK_RXD_FROM_PHY, rxd_data))
+
+
+    def _proc_rxd_frame(self, rxd_data):
+        """Begins processing of a received frame.
+        """
+        try:
+            rx_time, rx_bytes, rx_rssi, rx_snr = rxd_data
+            frame = lnk_frame.HeymacFrame.parse(rx_bytes)
+            frame.rx_time = rx_time
+            frame.rx_rssi = rx_rssi
+            frame.rx_snr = rx_snr
+            # TODO: assert frame.is_valid_heymac()
+        except AssertionError:
+            logging.info("LNK:rxd frame is not valid Heymac")
+            # TODO: lnk stats incr rxd frame is not Heymac
+            return
+
+        # TODO:
+        # If payld is Heymac command
+            # If this frame is meant for this node (addressed, broadcasted or multicasted)
+                # Process Heymac command
+                    # If response frame, transmit it
+            # If this node should re-transmit the frame
+        # elif payld is NET layer
+            # Pass frame to NET layer
