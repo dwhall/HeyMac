@@ -13,3 +13,4 @@ def setup(pin, dir, pull_up_down=0, initial=0): pass
 def add_event_detect(pin, edge, callback): pass
 def remove_event_detect(pin): pass
 def output(pin, dir): pass
+def setwarnings(warn): pass

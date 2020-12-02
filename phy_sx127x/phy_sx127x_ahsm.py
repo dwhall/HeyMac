@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Copyright 2020 Dean Hall.  See LICENSE for details.
 """
@@ -12,13 +11,14 @@ from . import phy_sx127x
 
 
 class PhySX127xAhsm(farc.Ahsm):
-    """The physical layer (PHY) state machine that automates
-    the behavior of the Semtech SX127x family of radio transceivers.
-    For now, all behavior is geared towards operation LoRa mode.
+    """The physical layer (PHY) state machine for a Semtech SX127x device.
+
+    Automates the behavior of the Semtech SX127x family of radio transceivers.
+    For now, all behavior and operations are for LoRa mode.
     """
     # Special time values to use when posting an action
-    TM_NOW = 0  # Use normally for "do it now"
-    TM_IMMEDIATE = -1 # Use sparingly to jump the queue
+    TM_NOW = 0          # Use normally for "do it now"
+    TM_IMMEDIATE = -1   # Use sparingly to jump the queue
 
     # The margin within which the Ahsm will transition to
     # the action's state if there is an entry in the action queue;
@@ -30,7 +30,7 @@ class PhySX127xAhsm(farc.Ahsm):
     # This is used so we can set a timer to exit _lingering
     # and make it to the deisred state before the designated time.
     _TM_SVC_MARGIN = 0.020
-#    assert _TM_SVC_MARGIN < _TM_SOON
+    # assert _TM_SVC_MARGIN < _TM_SOON
 
     # Blocking times are used around the time.sleep() operation
     # to obtain more accurate tx/rx execution times on Linux.
@@ -39,6 +39,7 @@ class PhySX127xAhsm(farc.Ahsm):
 
     def __init__(self, lstn_by_dflt):
         """Class intialization
+
         Listen by default means the radio enters
         continuous-rx mode when it is not doing anything else.
         If lstn_by_dflt is False, the radio enters sleep mode
@@ -51,13 +52,16 @@ class PhySX127xAhsm(farc.Ahsm):
         self._dflt_rx_stngs = ()
 
 
-#### Public interface
+# Public interface
+
 
     def post_rx_action(self, rx_time, rx_stngs, rx_durxn, rx_clbk):
         """Posts the _PHY_RQST event to this state machine
         with the container-ized arguments as the value.
         """
-        assert not self._lstn_by_dflt, "post_rx_action() should not be used when the PHY is listen-by-default.  Use set_dflt_rx_clbk() once, instead."
+        assert not self._lstn_by_dflt, \
+            """post_rx_action() should not be used when the PHY is
+            listen-by-default.  Use set_dflt_rx_clbk() once, instead."""
         # Convert NOW to an actual time
         if rx_time == PhySX127xAhsm.TM_NOW:
             rx_time = farc.Framework._event_loop.time()
@@ -81,17 +85,22 @@ class PhySX127xAhsm(farc.Ahsm):
 
     def set_dflt_rx_clbk(self, rx_clbk):
         """Stores the default RX callback for the PHY.
+
         The default RX callback is used when this state machine is
         initialized with listen-by-default set to True.
         This state machine calls the default RX callback
         when a frame is received and there are no reception errors.
         """
-        assert self._lstn_by_dflt,  "set_dflt_rx_clbk() should not be used when the PHY is sleep-by-default.  Pass a callback in post_rx_action() instead."
+        assert self._lstn_by_dflt, \
+            """set_dflt_rx_clbk() should not be used when the PHY is
+            sleep-by-default.  Pass a callback in post_rx_action() instead.
+            """
         self._dflt_rx_clbk = rx_clbk
 
 
     def set_dflt_stngs(self, dflt_stngs):
         """Stores the default settings for the PHY.
+
         This must be called before start() so they
         can be written to the device during initilizing.
         """
@@ -99,17 +108,16 @@ class PhySX127xAhsm(farc.Ahsm):
 
 
     def start_stack(self, ahsm_prio):
-        """PHY is the bottom of the protocol stack,
-        so just start this Ahsm
-        """
+        """PHY is the bottom of the protocol stack, so just start this Ahsm"""
         self.start(ahsm_prio)
 
 
-#### Private interface
+# Private interface
+
 
     def _dio_isr_clbk(self, dio):
-        """A callback that is given to phy_sx127x
-        for when a DIO pin event occurs.
+        """A callback given to the PHY for when a DIO pin event occurs.
+
         The Rpi.GPIO's thread calls this procedure (like an interrupt).
         This procedure posts an Event to this state machine
         corresponding to the DIO pin that transitioned.
@@ -119,11 +127,13 @@ class PhySX127xAhsm(farc.Ahsm):
         self.post_fifo(farc.Event(self._dio_sig_lut[dio], now))
 
 
-#### State machine
+# State machine
+
 
     @farc.Hsm.state
     def _initial(self, event):
         """Pseudostate: _initial
+
         State machine framework initialization
         """
         # Self-signaling
@@ -159,6 +169,7 @@ class PhySX127xAhsm(farc.Ahsm):
     @farc.Hsm.state
     def _initializing(self, event):
         """"State: _initializing
+
         Application initialization.
         Opens and verifies the SPI driver.
         Sets default application values.
@@ -183,7 +194,8 @@ class PhySX127xAhsm(farc.Ahsm):
 
         elif sig == farc.Signal._PHY_TMOUT:
             if self.sx127x.open(self._dio_isr_clbk):
-                assert len(self._dflt_stngs) > 0, "Default settings must be set before initializing"
+                assert len(self._dflt_stngs) > 0, \
+                    "Default settings must be set before initializing"
                 self.sx127x.set_flds(self._dflt_stngs)
                 self.sx127x.write_stngs(False)
                 return self.tran(self._scheduling)
@@ -202,13 +214,15 @@ class PhySX127xAhsm(farc.Ahsm):
     @farc.Hsm.state
     def _scheduling(self, event):
         """"State: _scheduling
+
         Writes any outstanding settings and always
         transitions to _txing, _sleeping or _listening
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             logging.debug("PHY._scheduling")
-            assert self.sx127x.OPMODE_STBY == self.sx127x.read_opmode() # TODO: remove unecessary read once sm design is proven
+            # TODO: remove unecessary read once sm design is proven
+            assert self.sx127x.OPMODE_STBY == self.sx127x.read_opmode()
             self.post_fifo(farc.Event(farc.Signal._ALWAYS, None))
             return self.handled(event)
 
@@ -245,6 +259,7 @@ class PhySX127xAhsm(farc.Ahsm):
     @farc.Hsm.state
     def _lingering(self, event):
         """"State: _scheduling
+
         This state is for shared behavior
         between the _listening and _sleeping states.
         On entry, optionally starts a timer for when
@@ -283,6 +298,7 @@ class PhySX127xAhsm(farc.Ahsm):
     @farc.Hsm.state
     def _listening(self, event):
         """"State: _lingering:_listening
+
         Puts the device into receive mode
         either because of a receive action or listen-by-default.
         Transitions to _rxing if a valid header is received.
@@ -308,9 +324,9 @@ class PhySX127xAhsm(farc.Ahsm):
                 stngs = []
 
             # Combine and write RX settings
-            stngs.extend((("FLD_RDO_DIO0", 0),  # _DIO_RX_DONE
-                          ("FLD_RDO_DIO1", 0),  # _DIO_RX_TMOUT
-                          ("FLD_RDO_DIO3", 1))) # _DIO_VALID_HDR
+            stngs.extend((("FLD_RDO_DIO0", 0),      # _DIO_RX_DONE
+                          ("FLD_RDO_DIO1", 0),      # _DIO_RX_TMOUT
+                          ("FLD_RDO_DIO3", 1)))     # _DIO_VALID_HDR
             self.sx127x.set_flds(stngs)
             self.sx127x.write_stngs(True)
 
@@ -341,7 +357,8 @@ class PhySX127xAhsm(farc.Ahsm):
                 # to obtain more accurate rx execution time on Linux.
                 now = farc.Framework._event_loop.time()
                 tiny_sleep = rx_time - now
-                assert tiny_sleep > 0.0, "didn't beat action time, need to increase _TM_SVC_MARGIN"
+                assert tiny_sleep > 0.0, \
+                    "didn't beat action time, need to increase _TM_SVC_MARGIN"
                 if tiny_sleep > PhySX127xAhsm._TM_BLOCKING_MAX:
                     tiny_sleep = PhySX127xAhsm._TM_BLOCKING_MAX
                 if tiny_sleep > PhySX127xAhsm._TM_BLOCKING_MIN:
@@ -379,6 +396,7 @@ class PhySX127xAhsm(farc.Ahsm):
     @farc.Hsm.state
     def _rxing(self, event):
         """"State: _lingering:_listening:_rxing
+
         Continues a reception in progress.
         Protects reception by NOT transitioning upon a _PHY_RQST event.
         Transitions to _scheduling after reception ends.
@@ -406,6 +424,7 @@ class PhySX127xAhsm(farc.Ahsm):
     @farc.Hsm.state
     def _sleeping(self, event):
         """"State: _lingering:_sleeping
+
         Puts the device into sleep mode.
         Timer and timeout handling is performed
         by the parent state, _lingering()
@@ -422,6 +441,7 @@ class PhySX127xAhsm(farc.Ahsm):
     @farc.Hsm.state
     def _txing(self, event):
         """"State: _txing
+
         Prepares for transmission, transmits,
         awaits DIO_TX_DONE event from radio,
         then transitions to the _scheduling state.
@@ -461,14 +481,13 @@ class PhySX127xAhsm(farc.Ahsm):
             # Blocking sleep until tx_time (assuming a short amount)
             now = farc.Framework._event_loop.time()
             tiny_sleep = tx_time - now
-            #assert tiny_sleep > 0.0, "didn't beat action time, need to increase _TM_SVC_MARGIN"
             if tiny_sleep > PhySX127xAhsm._TM_BLOCKING_MAX:
                 tiny_sleep = PhySX127xAhsm._TM_BLOCKING_MAX
             if tiny_sleep > 0.001:
                 time.sleep(tiny_sleep)
 
             # Start software timer for backstop
-            self.tmout_evt.post_in(self, 1.0) # TODO: calc soft timeout delta
+            self.tmout_evt.post_in(self, 1.0)   # TODO: calc soft timeout delta
 
             # Start transmission and await DIO_TX_DONE
             self.sx127x.write_opmode(self.sx127x.OPMODE_TX, False)
@@ -502,11 +521,11 @@ class PhySX127xAhsm(farc.Ahsm):
         return self.super(self.top)
 
 
-#### Private methods
+# Private methods
+
 
     def _enqueue_action(self, tm, action_args):
-        """Enqueues the action at the given time
-        """
+        """Enqueues the action at the given time"""
         IOTA = 0.000_000_1  # a small amount of time
 
         # IMMEDIATELY means this frame jumps to the front of the line
@@ -528,6 +547,7 @@ class PhySX127xAhsm(farc.Ahsm):
 
     def _on_lora_rx_done(self,):
         """Reads received bytes and meta data from the radio.
+
         Checks and logs any errors.
         Passes the rx_data to the next layer higher via callback.
         """
@@ -547,8 +567,9 @@ class PhySX127xAhsm(farc.Ahsm):
 
 
     def _pop_soon_action(self,):
-        """If the time happens soon, returns the next (time, action) pair
-        from the queue and removes it.  Otherwise returns None.
+        """Returns the next (time, action) pair from the queue and removes it.
+
+        Returns None if the queue is empty.
         """
         if self._im_queue:
             tm = farc.Framework._event_loop.time()
@@ -566,8 +587,9 @@ class PhySX127xAhsm(farc.Ahsm):
 
 
     def _top_soon_action(self,):
-        """If the time happens soon, returns the next (time, action) pair
-        from the queue without removing it.  Otherwise returns None.
+        """Returns the next (time, action) pair from the queue without removal.
+
+        Returns None if the queue is empty.
         """
         if self._im_queue:
             tm = PhySX127xAhsm.TM_IMMEDIATE

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Copyright 2020 Dean Hall.  See LICENSE for details.
 """
@@ -8,11 +7,11 @@ import time
 
 try:
     import spidev
-except:
+except ImportError:
     from . import mock_spidev as spidev
 try:
     import RPi.GPIO as GPIO
-except:
+except ImportError:
     from . import mock_gpio as GPIO
 
 from . import phy_cfg
@@ -25,14 +24,15 @@ class PhySX127x(object):
     """
 
     # SX127X Oscillator frequency
-    SX127X_OSC_FREQ = 32e6 # Hz
+    SX127X_OSC_FREQ = 32e6  # Hz
 
     # SPI clock frequency
-    SPI_FREQ_MIN =   100000 # arbitrary (slowish)
+    SPI_FREQ_MIN = 100000  # arbitrary (slowish)
     SPI_FREQ_MAX = 20000000
 
     # SX127x DIOs (DO NOT CHANGE VALUES)
-    # This table is dual maintenance with  mac_sx127x_ahsm.PhySX127xAhsm._dio_sig_lut
+    # This table is dual maintenance with
+    # mac_sx127x_ahsm.PhySX127xAhsm._dio_sig_lut
     DIO_MODE_RDY = 0
     DIO_CAD_DETECTED = 1
     DIO_CAD_DONE = 2
@@ -63,9 +63,9 @@ class PhySX127x(object):
     REG_LORA_IRQ_MASK = 0x11
     REG_LORA_IRQ_FLAGS = 0x12
     REG_LORA_RX_CNT = 0x13
-    REG_LORA_RX_HDR_CNT = 0x14 # MSB first. [2]
+    REG_LORA_RX_HDR_CNT = 0x14      # MSB first. [2]
     REG_LORA_RX_HDR_CNT_LSB = 0x15
-    REG_LORA_RX_PKT_CNT = 0x16 # MSB first. [2]
+    REG_LORA_RX_PKT_CNT = 0x16      # MSB first. [2]
     REG_LORA_RX_PKT_CNT_LSB = 0x17
     REG_LORA_MODEM_STAT = 0x18
     REG_LORA_PKT_SNR = 0x19
@@ -94,7 +94,7 @@ class PhySX127x(object):
     IRQ_FLAGS_ALL                 = 0xFF
 
     # Radio Frequency limits [Hz]
-    STNG_RF_FREQ_MIN =  137000000
+    STNG_RF_FREQ_MIN = 137000000
     STNG_RF_FREQ_MAX = 1020000000
 
     # LoRa Bandwidth options
@@ -146,7 +146,10 @@ class PhySX127x(object):
     OPMODE_CAD = 7
 
     # Field info named tuple
-    FldInfo = collections.namedtuple("FldInfo",  "lora_mode reg_start reg_cnt bit_start bit_cnt val_min val_max val_reset")
+    FldInfo = collections.namedtuple(
+        "FldInfo",
+        "lora_mode reg_start reg_cnt bit_start "
+        "bit_cnt val_min val_max val_reset")
 
     # Field info table
     _fld_info = {
