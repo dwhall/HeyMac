@@ -36,9 +36,9 @@ class LnkHeymac(object):
         ("FLD_RDO_FREQ", 432_550_000),
         ("FLD_RDO_MAX_PWR", 7),
         ("FLD_RDO_PA_BOOST", 1),
-        ("FLD_LORA_BW", 8), # phy_sx127x.PhySX127x.STNG_LORA_BW_250K
-        ("FLD_LORA_SF", 7), # phy_sx127x.PhySX127x.STNG_LORA_SF_128_CPS
-        ("FLD_LORA_CR", 2), # phy_sx127x.PhySX127x.STNG_LORA_CR_4TO6
+        ("FLD_LORA_BW", 8),     # phy_sx127x.PhySX127x.STNG_LORA_BW_250K
+        ("FLD_LORA_SF", 7),     # phy_sx127x.PhySX127x.STNG_LORA_SF_128_CPS
+        ("FLD_LORA_CR", 2),     # phy_sx127x.PhySX127x.STNG_LORA_CR_4TO6
         ("FLD_LORA_CRC_EN", 1),
         ("FLD_LORA_SYNC_WORD", _HEYMAC_SYNC_WORD),
     )
@@ -63,22 +63,25 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
         # TODO: these go in lnk data?
         self._lnk_addr = lnk_addr
-        self._station_id = station_id # UNUSED
+        self._station_id = station_id   # UNUSED
 
 
-#### Public interface
+# Public interface
+
 
     def start_stack(self, ahsm_prio, delta_prio=10):
         """Starts the lower layer giving it a higher priority (lower number)
         and then starts this Ahsm
         """
-        assert delta_prio > 0, "Lower layer must have higher priority (lower number)"
+        assert delta_prio > 0, \
+            "Lower layer must have higher priority (lower number)"
         assert ahsm_prio - delta_prio > 0, "Priorty must not go below zero"
         self.phy_ahsm.start_stack(ahsm_prio - delta_prio)
         self.start(ahsm_prio)
 
 
-#### State machine
+# State machine
+
 
     @farc.Hsm.state
     def _initial(self, event):
@@ -111,7 +114,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
             logging.debug("LNK._initializing")
 
             # Data Link Layer data
-            #self.lnk_data = lnk_csma_data.LnkData()
+            # self.lnk_data = lnk_csma_data.LnkData()
 
             # Transmit queue
             self.mac_txq = []
@@ -187,7 +190,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
             return self.handled(event)
 
         elif sig == farc.Signal._LNK_BCN_TMOUT:
-            logging.debug("LNK._beaconing@TMOUT")
+            logging.debug("LNK._beaconing@BCN_TMOUT")
             self._tx_bcn()
             return self.handled(event)
 
@@ -210,17 +213,24 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
         return self.super(self._beaconing)
 
 
-#### Private methods
+# Private methods
+
 
     def _tx_bcn(self,):
         """Builds a Heymac CsmaBeacon and passes it to the PHY for transmit.
         """
         frame = lnk_frame.HeymacFrame(
-            lnk_frame.HeymacFrame.PID_IDENT_HEYMAC | lnk_frame.HeymacFrame.PID_TYPE_CSMA,
-            lnk_frame.HeymacFrame.FCTL_L | lnk_frame.HeymacFrame.FCTL_S)
+            lnk_frame.HeymacFrame.PID_IDENT_HEYMAC
+            | lnk_frame.HeymacFrame.PID_TYPE_CSMA,
+            lnk_frame.HeymacFrame.FCTL_L
+            | lnk_frame.HeymacFrame.FCTL_S)
         frame.set_field(lnk_frame.HeymacFrame.FLD_SADDR, self._lnk_addr)
-        frame.set_field(lnk_frame.HeymacFrame.FLD_PAYLD, b"BEACON BEACON BEACON BEACON") #lnk_cmds.HeyMacCmdCbcn( caps=0, status=0 ))
-        self.phy_ahsm.post_tx_action(self.phy_ahsm.TM_NOW, LnkHeymac._PHY_STNGS_TX, bytes(frame))
+        frame.set_field(  # lnk_cmds.HeyMacCmdCbcn( caps=0, status=0 ))
+            lnk_frame.HeymacFrame.FLD_PAYLD, b"BEACON BEACON BEACON BEACON")
+        self.phy_ahsm.post_tx_action(
+            self.phy_ahsm.TM_NOW,
+            LnkHeymac._PHY_STNGS_TX,
+            bytes(frame))
 
 
     def _phy_rx_clbk(self, rx_time, rx_bytes, rx_rssi, rx_snr):
@@ -252,7 +262,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
         # TODO:
         # If payld is Heymac command
-            # If this frame is meant for this node (addressed, broadcasted or multicasted)
+            # If this frame is meant for this node (addr, bcast or mcast)
                 # Process Heymac command
                     # If response frame, transmit it
             # If this node should re-transmit the frame
