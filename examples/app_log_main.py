@@ -21,9 +21,9 @@ def main():
         farc.Spy.enable_spy(farc.SimpleSpy)
     else:
         logging.basicConfig(
-            stream = sys.stdout,
-            format = "%(asctime)s %(message)s",
-            level = logging.DEBUG)
+            stream=sys.stdout,
+            format="%(asctime)s %(message)s",
+            level=logging.DEBUG)
 
     # Compute the long address from host credentials
     station_id = socket.gethostname()
