@@ -11,7 +11,7 @@
      </initial_glyph>
     </initial>
     <state name="_initializing">
-     <tran trig="_ALWAYS" target="../../2/1">
+     <tran trig="_ALWAYS" target="../../2/2">
       <tran_glyph conn="22,20,3,0,8,14">
        <action box="0,-2,10,2"/>
       </tran_glyph>
@@ -19,6 +19,11 @@
      <state_glyph node="22,10,28,12"/>
     </state>
     <state name="_running">
+     <tran trig="_LNK_RXD_FROM_PHY">
+      <tran_glyph conn="20,60,3,-1,20">
+       <action box="0,-2,20,2"/>
+      </tran_glyph>
+     </tran>
      <state name="_beaconing">
       <entry brief="bcn_evt.post_every(_BCN_PRD)">Picks beacon slot, sets timer for next Tslot</entry>
       <exit brief="bcn_evt.disarm()"/>
@@ -40,7 +45,7 @@
       <documentation>ex_prep()</documentation>
       <entry brief="tm_evt.post_in(_BCN_PRD)"/>
       <exit brief="tm_evt.disarm()"/>
-      <tran trig="_LNK_TMOUT" target="../../0">
+      <tran trig="_LNK_TMOUT" target="../../1">
        <tran_glyph conn="22,44,3,3,30,-6,4">
         <action box="0,-2,14,2"/>
        </tran_glyph>

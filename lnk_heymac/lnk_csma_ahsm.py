@@ -26,7 +26,7 @@ class LnkHeymac(object):
     # The LoRa Sync Word is a SX127x register setting
     # that lets the hardware discriminate for frames
     # that have like Sync Words.
-    # This value is differs from power-up and LoRaWAN values,
+    # This value differs from power-up and LoRaWAN values,
     # but is otherwise an arbitrary choice: ASCII 'H'
     _HEYMAC_SYNC_WORD = 0x48
 
@@ -240,7 +240,6 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
         This method collects the arguments in a container
         and posts an event to this state machine.
         """
-        logging.debug("LNK:_phy_rx_clbk")
         rxd_data = (rx_time, rx_bytes, rx_rssi, rx_snr)
         self.post_fifo(farc.Event(farc.Signal._LNK_RXD_FROM_PHY, rxd_data))
 
@@ -256,7 +255,8 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
             frame.rx_snr = rx_snr
             # TODO: assert frame.is_valid_heymac()
         except AssertionError:
-            logging.info("LNK:rxd frame is not valid Heymac")
+            logging.info(
+                "LNK:rxd frame is not valid Heymac\n\t{}".format(rx_bytes))
             # TODO: lnk stats incr rxd frame is not Heymac
             return
 
