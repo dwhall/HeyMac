@@ -365,7 +365,8 @@ class PhySX127xAhsm(farc.Ahsm):
                     time.sleep(tiny_sleep)
                 self.sx127x.write_opmode(self.sx127x.OPMODE_RXONCE, False)
                 # Start the rx duration timer
-                self.tmout_evt.post_in(self, rx_durxn)
+                if rx_durxn > 0:
+                    self.tmout_evt.post_in(self, rx_durxn)
             return self.handled(event)
 
         elif sig == farc.Signal._PHY_PRDC:
@@ -404,7 +405,6 @@ class PhySX127xAhsm(farc.Ahsm):
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             logging.debug("PHY._rxing")
-            # Start software timer for backstop
             return self.handled(event)
 
         elif sig == farc.Signal._DIO_RX_DONE:
@@ -556,14 +556,13 @@ class PhySX127xAhsm(farc.Ahsm):
             # TODO: incr phy_data stats rx done
             self._rx_clbk(self._rxd_hdr_time, frame_bytes, rssi, snr)
 
-        else:
-            if flags & self.sx127x.IRQ_FLAGS_RXTIMEOUT:
-                # TODO: incr phy_data stats rx tmout
-                pass
+        elif flags & self.sx127x.IRQ_FLAGS_RXTIMEOUT:
+            logging.info("PHY._rxing@RXTMOUT")
+            # TODO: incr phy_data stats rx tmout
 
-            if flags & self.sx127x.IRQ_FLAGS_PAYLDCRCERROR:
-                # TODO: incr phy_data stats rx payld crc err
-                pass
+        elif flags & self.sx127x.IRQ_FLAGS_PAYLDCRCERROR:
+            logging.info("PHY._rxing@CRCERR")
+            # TODO: incr phy_data stats rx payld crc err
 
 
     def _pop_soon_action(self,):
