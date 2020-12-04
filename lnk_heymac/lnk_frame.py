@@ -5,6 +5,10 @@ Link-layer Heymac frame parsing, building and serializing.
 """
 
 
+class HeymacFrameError(Exception):
+    pass
+
+
 class HeymacFrame(object):
     """Heymac frame definition
     [PID,Fctl,NetId,DstAddr,IEs,SrcAddr,Payld,MIC,Hops,TxAddr]
@@ -96,16 +100,14 @@ class HeymacFrame(object):
 
 
     def __init__(self, pid, fctl):
-        """Creates a HeymacFrame starting from
-        the given pid and fctl fields
-        """
+        """Creates a HeymacFrame starting with the given PID and Fctl."""
         # Validate arguments
-        assert (pid & HeymacFrame.PID_IDENT_MASK) \
-            == HeymacFrame.PID_IDENT_HEYMAC, \
-            "PID field is not Heymac"
-        assert (pid & HeymacFrame.PID_TYPE_MASK) in \
-            (HeymacFrame.PID_TYPE_TDMA, HeymacFrame.PID_TYPE_CSMA), \
-            "Heymac protocol type not supported"
+        if (pid & HeymacFrame.PID_IDENT_MASK) != HeymacFrame.PID_IDENT_HEYMAC:
+            raise HeymacFrameError("PID field is not Heymac")
+        if (pid & HeymacFrame.PID_TYPE_MASK) not in \
+                (HeymacFrame.PID_TYPE_TDMA, HeymacFrame.PID_TYPE_CSMA):
+            raise HeymacFrameError("Heymac protocol type not supported")
+
         self.field = {}
         self.field["pid"] = pid
         self.field["fctl"] = fctl
@@ -115,8 +117,13 @@ class HeymacFrame(object):
 
 
     def __bytes__(self,):
-        """Returns the HeymacFrame serialized into a bytes object
+        """Returns the HeymacFrame serialized into a bytes object.
+
+        Raises a HeymacFrameError if some bits and fields
+        are not set properly.
         """
+        self._validate_fctl_and_fields()
+
         frame = bytearray()
         frame.append(self.field["pid"])
         frame.append(self.field["fctl"])
@@ -139,13 +146,17 @@ class HeymacFrame(object):
                 frame.append(self.field["hops"])
                 frame.extend(self.field["taddr"])
 
-        assert len(frame) <= 256
+        if len(frame) > 256:
+            raise HeymacFrameError("Serialized frame is too large.")
         return bytes(frame)
 
 
     @staticmethod
     def parse(frame_bytes):
-        """Parses the given frame_bytes and returns a HeymacFrame
+        """Parses the given frame_bytes and returns a HeymacFrame.
+
+        Raises a HeymacFrameError if some bits and fields
+        are not set properly.
         """
         assert 0 <= max(frame_bytes) <= 255, \
             "frame_bytes must be a sequence of bytes"
@@ -211,8 +222,10 @@ class HeymacFrame(object):
                     frame_bytes[offset:offset + addr_sz])
                 offset += addr_sz
 
-        # Amount parsed must match the frame size
+        # Expected the amount parsed to match the frame size
         assert offset == len(frame_bytes)
+
+        frame._validate_fctl_and_fields()
         return frame
 
 
@@ -289,6 +302,9 @@ class HeymacFrame(object):
 # Private interface
 
 
+    def _get_addr_sz(self,):
+        return (2, 8)[self._is_long_addrs()]
+
     def _is_extended(self,):
         return 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_X)
 
@@ -313,5 +329,56 @@ class HeymacFrame(object):
     def _is_pending_set(self,):
         return 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_P)
 
-    def _get_addr_sz(self,):
-        return (2, 8)[self._is_long_addrs()]
+    def _validate_fctl_and_fields(self,):
+        """Validates this HeymacFrame
+
+        Always returns None.  Raises a HeymacFrameError if
+        Fctl bits indicate a field is needed, but it's not present;
+        or a field is present, but the Fctl bit is not set.
+        """
+        err_msg = None
+        if not err_msg and HeymacFrame.FLD_PID not in self.field:
+            err_msg = "PID value is missing"
+        if not err_msg and HeymacFrame.FLD_FCTL not in self.field:
+            err_msg = "Fctl value is missing"
+
+        # Check that if the bit is set in Fctl,
+        # the data field exists and vice versa
+        if not err_msg:
+            fctl = self.field[HeymacFrame.FLD_FCTL]
+            for bit, field_nm in (
+                    (HeymacFrame.FCTL_N, HeymacFrame.FLD_NETID),
+                    (HeymacFrame.FCTL_D, HeymacFrame.FLD_DADDR),
+                    # (HeymacFrame.FCTL_I, HeymacFrame.FLD_IES), # TODO: IEs
+                    (HeymacFrame.FCTL_S, HeymacFrame.FLD_SADDR),
+                    (HeymacFrame.FCTL_M, HeymacFrame.FLD_HOPS),
+                    (HeymacFrame.FCTL_M, HeymacFrame.FLD_TADDR),):
+                if (bit & fctl and field_nm not in self.field) or \
+                   ((bit & fctl) == 0 and field_nm in self.field):
+                    err_msg = "Fctl bit/value missing for Fctl bit 0x{:x} " \
+                              "and field '{}'".format(bit, field_nm)
+                    break
+
+        # Special cases
+        # If FCTL_L is set, at least one address field must exist
+        if not err_msg and (HeymacFrame.FCTL_L & fctl
+                and HeymacFrame.FLD_DADDR not in self.field
+                and HeymacFrame.FLD_SADDR not in self.field
+                and HeymacFrame.FLD_TADDR not in self.field):
+            err_msg = "Long address selected, but no address field is present"
+
+        # If FCTL_X is set, only the payload should exist
+        if not err_msg and HeymacFrame.FCTL_X & fctl:
+            for field_nm in (HeymacFrame.FLD_NETID,
+                             HeymacFrame.FLD_DADDR,
+                             HeymacFrame.FLD_IES,
+                             HeymacFrame.FLD_SADDR,
+                             HeymacFrame.FLD_MIC,
+                             HeymacFrame.FLD_HOPS,
+                             HeymacFrame.FLD_TADDR,):
+                if field_nm in self.field:
+                    err_msg = "Extended frame has field other than {}" \
+                              .format(HeymacFrame.FLD_PAYLD)
+                    break
+        if err_msg:
+            raise HeymacFrameError(err_msg)

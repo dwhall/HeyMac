@@ -210,10 +210,9 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
             frame.rx_time = rx_time
             frame.rx_rssi = rx_rssi
             frame.rx_snr = rx_snr
-            # TODO: assert frame.is_valid_heymac()
-        except AssertionError:
-            logging.info(
-                "LNK:rxd frame is not valid Heymac\n\t{}".format(rx_bytes))
+        except lnk_frame.HeymacFrameError:
+            logging.info("LNK:rxd frame is not valid Heymac\n\t{}"
+                         .format(rx_bytes))
             # TODO: lnk stats incr rxd frame is not Heymac
             return
 

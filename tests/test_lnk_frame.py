@@ -3,7 +3,7 @@
 
 import unittest
 
-from lnk_heymac import HeymacFrame
+from lnk_heymac import HeymacFrame, HeymacFrameError
 
 
 class TestHeyMacFrame(unittest.TestCase):
@@ -32,8 +32,8 @@ class TestHeyMacFrame(unittest.TestCase):
     def test_not_mac(self,):
         b = b"\x00\x00"
         # Parse and test
-        # expect that parser raises exception due to invalid frame header
-        self.assertRaises(AssertionError, HeymacFrame.parse, b)
+        # expect that parser raises an exception due to invalid frame header
+        self.assertRaises(HeymacFrameError, HeymacFrame.parse, b)
 
 
     def test_csma(self,):
