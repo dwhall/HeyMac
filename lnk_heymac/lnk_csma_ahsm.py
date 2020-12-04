@@ -3,8 +3,9 @@
 Copyright 2019 Dean Hall.  See LICENSE for details.
 
 Data Link Layer (LNK) state machine for Carrier-Sense Multiple Access (CSMA)
-- listens for beacons and maintains a neighbors list
-- periodically transmits a beacon frame and an extended beacon frame
+radio operations using Heymac frame protocol.
+- listens for beacons and maintains a neighbors list with link stats
+- periodically transmits a beacon frame
 """
 
 
@@ -17,8 +18,7 @@ from . import lnk_frame
 
 
 class LnkHeymac(object):
-    """HeyMac link layer (LNK) protocol values.
-    """
+    """Heymac link layer (LNK) protocol values."""
     # The number of seconds between each emission of a beacon.
     # This value also affects the time a node spends lurking.
     _BCN_PRD = 32
@@ -47,8 +47,9 @@ class LnkHeymac(object):
 
 
 class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
-    """The link layer (LNK) state machine automates
-    medium access and frame I/O processing.
+    """The link layer (LNK) state machine.
+
+    Automates beaconing and frame processing.
     """
 
     def __init__(self, lnk_addr, station_id):
@@ -70,8 +71,11 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
 
     def start_stack(self, ahsm_prio, delta_prio=10):
-        """Starts the lower layer giving it a higher priority (lower number)
-        and then starts this Ahsm
+        """Starts this layer of the network stack.
+
+        This layer must start the lower layer,
+        giving it a higher priority (lower number)
+        and then starts this layer's state machine.
         """
         assert delta_prio > 0, \
             "Lower layer must have higher priority (lower number)"
@@ -86,6 +90,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
     @farc.Hsm.state
     def _initial(self, event):
         """PseudoState: _initial
+
         State machine framework initialization
         """
         # Self-signaling
@@ -96,8 +101,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
         self._evt_always = farc.Event(farc.Signal._ALWAYS, None)
 
         # Timer events
-        self.bcn_evt = farc.TimeEvent("_LNK_BCN_TMOUT")
-        self.tm_evt = farc.TimeEvent("_LNK_TMOUT")
+        self._bcn_evt = farc.TimeEvent("_LNK_BCN_TMOUT")
 
         return self.tran(self._initializing)
 
@@ -105,6 +109,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
     @farc.Hsm.state
     def _initializing(self, event):
         """State: _initializing
+
         Application initialization.
         Initializes LNK data and the pkt queue.
         Always transitions to the _lurking state.
@@ -132,79 +137,61 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
 
     @farc.Hsm.state
-    def _running(self, event):
-        """State: _running
-        Parent state to implement shared behavior
-        among _lurking, _beaconing and _networking
+    def _lurking(self, event):
+        """State: _lurking
+
+        Waits for a fixed period with the receiver enabled,
+        processes any received frames, and then
+        transitions to the _beaconing state
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
-            logging.debug("LNK._running")
+            logging.debug("LNK._lurking")
+            self._bcn_evt.post_in(self, 2 * LnkHeymac._BCN_PRD)
             return self.handled(event)
 
+        elif sig == farc.Signal._LNK_BCN_TMOUT:
+            return self.tran(self._beaconing)
+
         elif sig == farc.Signal._LNK_RXD_FROM_PHY:
-            self._proc_rxd_frame(event.value)
+            self._on_rxd_from_phy(event.value)
             return self.handled(event)
 
         elif sig == farc.Signal.EXIT:
-            logging.debug("LNK._running @EXIT")
-            # TODO: request phy_sleep
+            self._bcn_evt.disarm()
             return self.handled(event)
 
         return self.super(self.top)
 
 
     @farc.Hsm.state
-    def _lurking(self, event):
-        """State: _running:_lurking
-        Waits for a fixed period with the receiver enabled
-        then transitions to the _beaconing state
-        """
-        sig = event.signal
-        if sig == farc.Signal.ENTRY:
-            logging.debug("LNK._lurking")
-            self.tm_evt.post_in(self, LnkHeymac._BCN_PRD)
-            return self.handled(event)
-
-        elif sig == farc.Signal._LNK_TMOUT:
-            return self.tran(self._beaconing)
-
-        elif sig == farc.Signal.EXIT:
-            self.tm_evt.disarm()
-            return self.handled(event)
-
-        return self.super(self._running)
-
-
-    @farc.Hsm.state
     def _beaconing(self, event):
-        """State: _running:_beaconing
-        - periodically transmits a beacon
-        - transitions to _networking state when bidirectional path discovered
+        """State: _lurking:_beaconing
+
+        Periodically transmits a beacon
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             logging.debug("LNK._beaconing")
-            self.bcn_evt.post_every(self, LnkHeymac._BCN_PRD)
-            self._tx_bcn()
+            self._bcn_evt.post_every(self, LnkHeymac._BCN_PRD)
+            self._post_bcn()
             return self.handled(event)
 
         elif sig == farc.Signal._LNK_BCN_TMOUT:
             logging.debug("LNK._beaconing@BCN_TMOUT")
-            self._tx_bcn()
+            self._post_bcn()
             return self.handled(event)
 
         elif sig == farc.Signal.EXIT:
-            self.bcn_evt.disarm()
+            self._bcn_evt.disarm()
             return self.handled(event)
 
-        return self.super(self._running)
+        return self.super(self._lurking)
 
 
     @farc.Hsm.state
     def _networking(self, event):
-        """State: _running:_beaconing:_networking
-        """
+        """State: _lurking:_beaconing:_networking"""
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             logging.debug("LNK._networking")
@@ -215,38 +202,8 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
 # Private methods
 
-
-    def _tx_bcn(self,):
-        """Builds a Heymac CsmaBeacon and passes it to the PHY for transmit.
-        """
-        frame = lnk_frame.HeymacFrame(
-            lnk_frame.HeymacFrame.PID_IDENT_HEYMAC
-            | lnk_frame.HeymacFrame.PID_TYPE_CSMA,
-            lnk_frame.HeymacFrame.FCTL_L
-            | lnk_frame.HeymacFrame.FCTL_S)
-        frame.set_field(lnk_frame.HeymacFrame.FLD_SADDR, self._lnk_addr)
-        frame.set_field(  # lnk_cmds.HeyMacCmdCbcn( caps=0, status=0 ))
-            lnk_frame.HeymacFrame.FLD_PAYLD, b"BEACON BEACON BEACON BEACON")
-        self.phy_ahsm.post_tx_action(
-            self.phy_ahsm.TM_NOW,
-            LnkHeymac._PHY_STNGS_TX,
-            bytes(frame))
-
-
-    def _phy_rx_clbk(self, rx_time, rx_bytes, rx_rssi, rx_snr):
-        """A method given to the PHY layer as a callback.
-        The PHY calls this method with these arguments
-        when it receives a frame with no errors.
-        This method collects the arguments in a container
-        and posts an event to this state machine.
-        """
-        rxd_data = (rx_time, rx_bytes, rx_rssi, rx_snr)
-        self.post_fifo(farc.Event(farc.Signal._LNK_RXD_FROM_PHY, rxd_data))
-
-
-    def _proc_rxd_frame(self, rxd_data):
-        """Begins processing of a received frame.
-        """
+    def _on_rxd_from_phy(self, rxd_data):
+        """Processes a frame received from the PHY."""
         try:
             rx_time, rx_bytes, rx_rssi, rx_snr = rxd_data
             frame = lnk_frame.HeymacFrame.parse(rx_bytes)
@@ -268,3 +225,31 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
             # If this node should re-transmit the frame
         # elif payld is NET layer
             # Pass frame to NET layer
+
+
+    def _phy_rx_clbk(self, rx_time, rx_bytes, rx_rssi, rx_snr):
+        """A method given to the PHY layer as a callback.
+
+        The PHY calls this method with these arguments
+        when it receives a frame with no errors.
+        This method collects the arguments in a container
+        and posts an event to this state machine.
+        """
+        rxd_data = (rx_time, rx_bytes, rx_rssi, rx_snr)
+        self.post_fifo(farc.Event(farc.Signal._LNK_RXD_FROM_PHY, rxd_data))
+
+
+    def _post_bcn(self,):
+        """Builds a Heymac CsmaBeacon and posts it to the PHY for transmit."""
+        frame = lnk_frame.HeymacFrame(
+            lnk_frame.HeymacFrame.PID_IDENT_HEYMAC
+            | lnk_frame.HeymacFrame.PID_TYPE_CSMA,
+            lnk_frame.HeymacFrame.FCTL_L
+            | lnk_frame.HeymacFrame.FCTL_S)
+        frame.set_field(lnk_frame.HeymacFrame.FLD_SADDR, self._lnk_addr)
+        frame.set_field(  # lnk_cmds.HeyMacCmdCbcn( caps=0, status=0 ))
+            lnk_frame.HeymacFrame.FLD_PAYLD, b"BEACON BEACON BEACON BEACON")
+        self.phy_ahsm.post_tx_action(
+            self.phy_ahsm.TM_NOW,
+            LnkHeymac._PHY_STNGS_TX,
+            bytes(frame))

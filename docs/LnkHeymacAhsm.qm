@@ -6,21 +6,39 @@
    <attribute name="tmEvnt" type="QTimeEvt" visibility="0x02" properties="0x00"/>
    <statechart properties="0x01">
     <initial target="../1">
-     <initial_glyph conn="26,4,5,0,4,6">
+     <initial_glyph conn="28,4,5,0,4,6">
       <action box="0,-2,10,2"/>
      </initial_glyph>
     </initial>
     <state name="_initializing">
-     <tran trig="_ALWAYS" target="../../2/2">
-      <tran_glyph conn="22,20,3,0,8,14">
+     <tran trig="_ALWAYS" target="../../2">
+      <tran_glyph conn="22,20,3,0,10,6">
        <action box="0,-2,10,2"/>
       </tran_glyph>
      </tran>
      <state_glyph node="22,10,28,12"/>
     </state>
-    <state name="_running">
+    <state name="_lurking">
+     <documentation>ex_prep()</documentation>
+     <entry brief="bcn_evt.post_in(2 * _BCN_PRD)"/>
+     <exit brief="bcn_evt.disarm()"/>
+     <tran trig="_LNK_BCN_TMOUT" target="../2">
+      <tran_glyph conn="22,36,3,0,26,2">
+       <action box="0,-2,16,2"/>
+      </tran_glyph>
+     </tran>
      <tran trig="_LNK_RXD_FROM_PHY">
-      <tran_glyph conn="20,60,3,-1,20">
+      <choice target="../../2/1">
+       <choice_glyph conn="48,70,4,2,-6">
+        <action box="0,-4,10,2"/>
+       </choice_glyph>
+      </choice>
+      <choice>
+       <choice_glyph conn="48,70,5,-1,4">
+        <action box="1,0,10,2"/>
+       </choice_glyph>
+      </choice>
+      <tran_glyph conn="22,70,3,-1,26">
        <action box="0,-2,20,2"/>
       </tran_glyph>
      </tran>
@@ -29,33 +47,22 @@
       <exit brief="bcn_evt.disarm()"/>
       <tran trig="_LNK_BCN_TMOUT">
        <action brief="_tx_bcn()"/>
-       <tran_glyph conn="56,44,3,-1,28">
+       <tran_glyph conn="24,48,3,-1,24">
         <action box="0,-2,24,2"/>
        </tran_glyph>
       </tran>
-      <state name="_networking">
-       <state_glyph node="58,48,32,12"/>
+      <state name="_linking">
+       <state_glyph node="26,50,32,14"/>
       </state>
-      <state_glyph node="56,34,36,28">
+      <state_glyph node="24,38,36,28">
        <entry box="1,2,29,2"/>
        <exit box="1,4,29,2"/>
       </state_glyph>
      </state>
-     <state name="_lurking">
-      <documentation>ex_prep()</documentation>
-      <entry brief="tm_evt.post_in(_BCN_PRD)"/>
-      <exit brief="tm_evt.disarm()"/>
-      <tran trig="_LNK_TMOUT" target="../../1">
-       <tran_glyph conn="22,44,3,3,30,-6,4">
-        <action box="0,-2,14,2"/>
-       </tran_glyph>
-      </tran>
-      <state_glyph node="22,34,28,14">
-       <entry box="1,2,25,2"/>
-       <exit box="1,4,25,2"/>
-      </state_glyph>
-     </state>
-     <state_glyph node="20,28,74,36"/>
+     <state_glyph node="22,26,40,46">
+      <entry box="1,2,25,2"/>
+      <exit box="1,4,25,2"/>
+     </state_glyph>
     </state>
     <state_diagram size="113,109"/>
    </statechart>
