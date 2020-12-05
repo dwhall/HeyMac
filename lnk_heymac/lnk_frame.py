@@ -109,8 +109,8 @@ class HeymacFrame(object):
             raise HeymacFrameError("Heymac protocol type not supported")
 
         self.field = {}
-        self.field["pid"] = pid
-        self.field["fctl"] = fctl
+        self.field[HeymacFrame.FLD_PID] = pid
+        self.field[HeymacFrame.FLD_FCTL] = fctl
 
 
 # Public interface
@@ -125,26 +125,26 @@ class HeymacFrame(object):
         self._validate_fctl_and_fields()
 
         frame = bytearray()
-        frame.append(self.field["pid"])
-        frame.append(self.field["fctl"])
+        frame.append(self.field[HeymacFrame.FLD_PID])
+        frame.append(self.field[HeymacFrame.FLD_FCTL])
 
         if self._is_extended():
-            if "payld" in self.field:
-                frame.extend(self.field["payld"])
+            if Heymac.FLD_PAYLD in self.field:
+                frame.extend(self.field[HeymacFrame.FLD_PAYLD])
         else:
             if self._is_netid_present():
-                frame.extend(self.field["netid"])
+                frame.extend(self.field[HeymacFrame.FLD_NETID])
             if self._is_daddr_present():
-                frame.extend(self.field["daddr"])
+                frame.extend(self.field[HeymacFrame.FLD_DADDR])
             # TODO: add IEs
             if self._is_saddr_present():
-                frame.extend(self.field["saddr"])
-            if "payld" in self.field:
-                frame.extend(self.field["payld"])
+                frame.extend(self.field[HeymacFrame.FLD_SADDR])
+            if Heymac.FLD_PAYLD in self.field:
+                frame.extend(self.field[HeymacFrame.FLD_PAYLD])
             # TODO: add MICs
             if self._is_mhop():
-                frame.append(self.field["hops"])
-                frame.extend(self.field["taddr"])
+                frame.append(self.field[HeymacFrame.FLD_HOPS])
+                frame.extend(self.field[HeymacFrame.FLD_TADDR])
 
         if len(frame) > 256:
             raise HeymacFrameError("Serialized frame is too large.")
