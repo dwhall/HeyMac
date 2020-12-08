@@ -160,6 +160,9 @@ class HeymacFrame(object):
         """
         assert 0 <= max(frame_bytes) <= 255, \
             "frame_bytes must be a sequence of bytes"
+
+        if len(frame_bytes) < 2:
+            raise HeymacFrameError("Frame must be 2 or more bytes in length")
         pid = frame_bytes[0]
         fctl = frame_bytes[1]
         frame = HeymacFrame(pid, fctl)
