@@ -53,8 +53,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
     """
 
     def __init__(self, lnk_addr, station_id):
-        """Class intialization
-        """
+        """Class intialization"""
         super().__init__()
 
         # Instantiate the lower layer
@@ -202,20 +201,10 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
 # Private methods
 
-    def _on_rxd_from_phy(self, rxd_data):
-        """Processes a frame received from the PHY."""
-        try:
-            rx_time, rx_bytes, rx_rssi, rx_snr = rxd_data
-            frame = lnk_frame.HeymacFrame.parse(rx_bytes)
-            frame.rx_time = rx_time
-            frame.rx_rssi = rx_rssi
-            frame.rx_snr = rx_snr
-        except lnk_frame.HeymacFrameError:
-            logging.info("LNK:rxd frame is not valid Heymac\n\t{}"
-                         .format(rx_bytes))
-            # TODO: lnk stats incr rxd frame is not Heymac
-            return
 
+    def _on_rxd_from_phy(self, frame):
+        """Processes a frame received from the PHY."""
+        pass
         # TODO:
         # If payld is Heymac command
             # If this frame is meant for this node (addr, bcast or mcast)
@@ -234,8 +223,19 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
         This method collects the arguments in a container
         and posts an event to this state machine.
         """
-        rxd_data = (rx_time, rx_bytes, rx_rssi, rx_snr)
-        self.post_fifo(farc.Event(farc.Signal._LNK_RXD_FROM_PHY, rxd_data))
+        # Parse the bytes into a frame
+        # and store reception meta-data
+        try:
+            frame = lnk_frame.HeymacFrame.parse(rx_bytes)
+            frame.rx_meta = (rx_time, rx_rssi, rx_snr)
+        except lnk_frame.HeymacFrameError:
+            logging.info("LNK:rxd frame is not valid Heymac\n\t{}"
+                         .format(rx_bytes))
+            # TODO: lnk stats incr rxd frame is not Heymac
+            return
+
+        # The frame is valid, post it to the state machine
+        self.post_fifo(farc.Event(farc.Signal._LNK_RXD_FROM_PHY, frame))
 
 
     def _post_bcn(self,):
