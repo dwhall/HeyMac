@@ -24,8 +24,8 @@ and is not operational on its own.
 Software
 --------
 
-lnk_heymac_ahsm.py
-    Contains LnkHeymacAhsm, the LNK layer state machine.
+lnk_csma_ahsm.py
+    Contains LnkHeymacAhsm, the link layer state machine.
 
 lnk_frame.py
     Contains HeymacFrame, which has methods to build or parse a link layer frame.
@@ -49,6 +49,10 @@ Callable                Description
 ``HeymacFrame()``       Constructor for a class that helps build a
                         link layer frame object or
                         parse bytes into a frame object.
+----------------------  ------------------------------------------------
+``HeymacFrameError``    An exception thrown when a HeymacFrame is parsed
+                        via parse() or serialized via bytes() and the
+                        Fctl bits and data fields are mismatched
 ======================  ================================================
 
 

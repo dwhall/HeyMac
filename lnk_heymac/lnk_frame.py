@@ -129,7 +129,7 @@ class HeymacFrame(object):
         frame.append(self.field[HeymacFrame.FLD_FCTL])
 
         if self._is_extended():
-            if Heymac.FLD_PAYLD in self.field:
+            if HeymacFrame.FLD_PAYLD in self.field:
                 frame.extend(self.field[HeymacFrame.FLD_PAYLD])
         else:
             if self._is_netid_present():
@@ -139,7 +139,7 @@ class HeymacFrame(object):
             # TODO: add IEs
             if self._is_saddr_present():
                 frame.extend(self.field[HeymacFrame.FLD_SADDR])
-            if Heymac.FLD_PAYLD in self.field:
+            if HeymacFrame.FLD_PAYLD in self.field:
                 frame.extend(self.field[HeymacFrame.FLD_PAYLD])
             # TODO: add MICs
             if self._is_mhop():
