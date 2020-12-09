@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Copyright 2019 Dean Hall.  See LICENSE for details.
 
@@ -15,6 +14,7 @@ import farc
 import phy_sx127x
 
 from . import lnk_frame
+from . import lnk_heymac_cmd
 
 
 class LnkHeymac(object):
@@ -141,7 +141,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
         Waits for a fixed period with the receiver enabled,
         processes any received frames, and then
-        transitions to the _beaconing state
+        transitions to the _beaconing state.
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
@@ -167,7 +167,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
     def _beaconing(self, event):
         """State: _lurking:_beaconing
 
-        Periodically transmits a beacon
+        Periodically transmits a beacon.
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
@@ -204,15 +204,21 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
     def _on_rxd_from_phy(self, frame):
         """Processes a frame received from the PHY."""
-        pass
-        # TODO:
-        # If payld is Heymac command
+        try:
+            cmd = lnk_heymac_cmd.HeymacCmd(
+                frame.get_field(lnk_frame.HeymacFrame.FLD_PAYLD))
+        except HeymacCmdError:
+            cmd = None
+
+        if cmd:
+            pass
             # If this frame is meant for this node (addr, bcast or mcast)
                 # Process Heymac command
                     # If response frame, transmit it
             # If this node should re-transmit the frame
-        # elif payld is NET layer
+        else:
             # Pass frame to NET layer
+            pass
 
 
     def _phy_rx_clbk(self, rx_time, rx_bytes, rx_rssi, rx_snr):
@@ -240,14 +246,19 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
     def _post_bcn(self,):
         """Builds a Heymac CsmaBeacon and posts it to the PHY for transmit."""
+        bcn = lnk_heymac_cmd.HeymacCmdCsmaBcn(
+            # TODO: Fill with real data
+            b"\x00\x00",    # caps
+            b"\x00\x00",    # status
+            b"\x00",        # nets
+            b"\x00")        # ngbrs
         frame = lnk_frame.HeymacFrame(
             lnk_frame.HeymacFrame.PID_IDENT_HEYMAC
             | lnk_frame.HeymacFrame.PID_TYPE_CSMA,
             lnk_frame.HeymacFrame.FCTL_L
             | lnk_frame.HeymacFrame.FCTL_S)
         frame.set_field(lnk_frame.HeymacFrame.FLD_SADDR, self._lnk_addr)
-        frame.set_field(  # lnk_cmds.HeyMacCmdCbcn( caps=0, status=0 ))
-            lnk_frame.HeymacFrame.FLD_PAYLD, b"BEACON BEACON BEACON BEACON")
+        frame.set_field(lnk_frame.HeymacFrame.FLD_PAYLD, bytes(bcn))
         self.phy_ahsm.post_tx_action(
             self.phy_ahsm.TM_NOW,
             LnkHeymac._PHY_STNGS_TX,
