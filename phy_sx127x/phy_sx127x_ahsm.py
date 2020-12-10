@@ -477,6 +477,7 @@ class PhySX127xAhsm(farc.Ahsm):
             # Write payload into radio's FIFO
             self.sx127x.write_fifo_ptr(0x00)
             self.sx127x.write_fifo(tx_bytes)
+            self.sx127x.write_lora_payld_len(len(tx_bytes))
 
             # Blocking sleep until tx_time (assuming a short amount)
             now = farc.Framework._event_loop.time()

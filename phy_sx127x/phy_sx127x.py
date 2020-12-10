@@ -76,6 +76,7 @@ class PhySX127x(object):
     REG_LORA_RX_SYM_TMOUT = 0x1F
     REG_LORA_PREAMBLE_LEN = 0x20
     REG_LORA_PREAMBLE_LEN_LSB = 0x21
+    REG_LORA_PAYLD_LEN = 0x22
     REG_LORA_CFG3 = 0x26
     REG_LORA_RSSI_WB = 0x2C
     REG_LORA_IF_FREQ_2 = 0x2F
@@ -410,6 +411,10 @@ class PhySX127x(object):
         reg |= (disable_these & 0xFF)
         reg &= (~enable_these & 0xFF)
         self._write(PhySX127x.REG_LORA_IRQ_MASK, reg)
+
+
+    def write_lora_payld_len(self, payld_len):
+        self._write(PhySX127x.REG_LORA_PAYLD_LEN, payld_len)
 
 
     def write_opmode(self, opmode, en_mode_rdy=False):
