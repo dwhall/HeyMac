@@ -23,7 +23,7 @@ class HeymacCmd(object):
 
 
     def __init__(self, cmd_id):
-        if cmd_id & ~HeymacCmd.PREFIX_MASK:
+        if cmd_id & ~HeymacCmd.CMD_MASK:
             raise HeymacCmdError("Command ID exceeds allowed bitfield")
         self.cmd_id = cmd_id
 
@@ -57,6 +57,7 @@ class HeymacCmdTxt(HeymacCmd):
     CMD_ID = 3
 
     def __init__(self, msg):
+        super().__init__(HeymacCmdTxt.CMD_ID)
         assert type(msg) is bytes
         self.data = msg
 
@@ -72,6 +73,7 @@ class HeymacCmdCsmaBcn(HeymacCmd):
     CMD_ID = 4
 
     def __init__(self, caps, status, nets, ngbrs):
+        super().__init__(HeymacCmdCsmaBcn.CMD_ID)
         assert type(caps) is bytes and len(caps) == 2
         assert type(status) is bytes and len(status) == 2
         assert type(nets) is bytes

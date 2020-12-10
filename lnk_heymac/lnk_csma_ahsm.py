@@ -36,9 +36,10 @@ class LnkHeymac(object):
         ("FLD_RDO_FREQ", 432_550_000),
         ("FLD_RDO_MAX_PWR", 7),
         ("FLD_RDO_PA_BOOST", 1),
+        ("FLD_LORA_IMPLCT_HDR_MODE", 0),
+        ("FLD_LORA_CR", 2),     # phy_sx127x.PhySX127x.STNG_LORA_CR_4TO6
         ("FLD_LORA_BW", 8),     # phy_sx127x.PhySX127x.STNG_LORA_BW_250K
         ("FLD_LORA_SF", 7),     # phy_sx127x.PhySX127x.STNG_LORA_SF_128_CPS
-        ("FLD_LORA_CR", 2),     # phy_sx127x.PhySX127x.STNG_LORA_CR_4TO6
         ("FLD_LORA_CRC_EN", 1),
         ("FLD_LORA_SYNC_WORD", _HEYMAC_SYNC_WORD),
     )
@@ -205,9 +206,9 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
     def _on_rxd_from_phy(self, frame):
         """Processes a frame received from the PHY."""
         try:
-            cmd = lnk_heymac_cmd.HeymacCmd(
+            cmd = lnk_heymac_cmd.HeymacCmd.parse(
                 frame.get_field(lnk_frame.HeymacFrame.FLD_PAYLD))
-        except HeymacCmdError:
+        except lnk_heymac_cmd.HeymacCmdError:
             cmd = None
 
         if cmd:
