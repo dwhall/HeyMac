@@ -13,12 +13,17 @@ import logging
 import farc
 import phy_sx127x
 
+from . import lnk_data
 from . import lnk_frame
 from . import lnk_heymac_cmd
 
 
 class LnkHeymac(object):
     """Heymac link layer (LNK) protocol values."""
+    # Link addresses are 8 octets in size
+    # Heymac uses its long-address mode to convey a link address
+    LNK_ADDR_SZ = 8
+
     # The number of seconds between each emission of a beacon.
     # This value also affects the time a node spends lurking.
     _BCN_PRD = 32
@@ -62,9 +67,12 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
         self.phy_ahsm.set_dflt_rx_clbk(self._phy_rx_clbk)
 
         # TODO: these go in lnk data?
+        assert type(lnk_addr) is bytes
+        assert len(lnk_addr) is LnkHeymac.LNK_ADDR_SZ
         self._lnk_addr = lnk_addr
         self._station_id = station_id   # UNUSED
 
+        self._lnk_data = lnk_data.LnkData()
 
 
     def start_stack(self, ahsm_prio, delta_prio=10):
@@ -207,20 +215,20 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
     def _on_rxd_from_phy(self, frame):
         """Processes a frame received from the PHY."""
+        # Attach the Heymac command, if present
         try:
             cmd = lnk_heymac_cmd.HeymacCmd.parse(
                 frame.get_field(lnk_frame.HeymacFrame.FLD_PAYLD))
         except lnk_heymac_cmd.HeymacCmdError:
             cmd = None
+        frame.cmd = cmd
 
-        if cmd:
-            pass
-            # If this frame is meant for this node (addr, bcast or mcast)
-                # Process Heymac command
-                    # If response frame, transmit it
-            # If this node should re-transmit the frame
+        # Process process a command for link data, etc.
+        if frame.cmd:
+            self._process_cmd(frame)
+
+        # TODO: See if the NET layer wants to process the frame
         else:
-            # Pass frame to NET layer
             pass
 
 
@@ -266,3 +274,18 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
             self.phy_ahsm.TM_NOW,
             LnkHeymac._PHY_STNGS_TX,
             bytes(frame))
+
+
+    def _post_frame(self, frame):
+        """Posts the frame to the PHY for transmit."""
+        assert type(frame) is lnk_frame.HeymacFrame
+        self.phy_ahsm.post_tx_action(
+            self.phy_ahsm.TM_NOW,
+            LnkHeymac._PHY_STNGS_TX,
+            bytes(frame))
+
+
+    def _process_cmd(self, frame):
+        """Process the Heymac command in the frame."""
+        if type(frame.cmd) is lnk_heymac_cmd.HeymacCmdCsmaBcn:
+            self._lnk_data.process_bcn(frame)
