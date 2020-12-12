@@ -52,7 +52,6 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
     Automates beaconing and frame processing.
     """
-
     def __init__(self, lnk_addr, station_id):
         """Class intialization"""
         super().__init__()
@@ -66,8 +65,6 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
         self._lnk_addr = lnk_addr
         self._station_id = station_id   # UNUSED
 
-
-# Public interface
 
 
     def start_stack(self, ahsm_prio, delta_prio=10):
@@ -190,17 +187,22 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
 
     @farc.Hsm.state
-    def _networking(self, event):
-        """State: _lurking:_beaconing:_networking"""
+    def _linking(self, event):
+        """State: _lurking:_beaconing:_linking
+
+        There is no significant difference between this state
+        and _beaconing at this layer.  This state indicates
+        to the higher layer that a link is available.
+        """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
-            logging.debug("LNK._networking")
+            logging.debug("LNK._linking")
             return self.handled(event)
 
         return self.super(self._beaconing)
 
 
-# Private methods
+# Private
 
 
     def _on_rxd_from_phy(self, frame):

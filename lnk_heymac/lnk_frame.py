@@ -66,15 +66,10 @@ class HeymacFrame(object):
     or a bytearray() or bytes() object for multi-byte fields.
     Multi-byte fields MUST be in Network Order (big-endian).
     """
-    # PID masks
-    PID_IDENT_MASK = 0b11110000
-    PID_TYPE_MASK = 0b00001111
-    # PID values
+    # PID values (combine bit-wise)
     PID_IDENT_HEYMAC = 0b11100000
     PID_TYPE_TDMA = 0b00000000
     PID_TYPE_CSMA = 0b00000100
-
-    SUPPORTED_CSMA_VRSNS = (0,)
 
     # Frame Control (Fctl) subfields
     FCTL_X = 0b10000000     # eXtended frame (none of the other bits apply)
@@ -102,18 +97,15 @@ class HeymacFrame(object):
     def __init__(self, pid, fctl):
         """Creates a HeymacFrame starting with the given PID and Fctl."""
         # Validate arguments
-        if (pid & HeymacFrame.PID_IDENT_MASK) != HeymacFrame.PID_IDENT_HEYMAC:
+        if (pid & HeymacFrame._PID_IDENT_MASK) != HeymacFrame.PID_IDENT_HEYMAC:
             raise HeymacFrameError("PID field is not Heymac")
-        if (pid & HeymacFrame.PID_TYPE_MASK) not in \
+        if (pid & HeymacFrame._PID_TYPE_MASK) not in \
                 (HeymacFrame.PID_TYPE_TDMA, HeymacFrame.PID_TYPE_CSMA):
             raise HeymacFrameError("Heymac protocol type not supported")
 
         self.field = {}
         self.field[HeymacFrame.FLD_PID] = pid
         self.field[HeymacFrame.FLD_FCTL] = fctl
-
-
-# Public interface
 
 
     def __bytes__(self,):
@@ -256,7 +248,7 @@ class HeymacFrame(object):
         Note, this only checks the first four bits and does not check
         the rest of the frame for validity.
         """
-        return (self.field[HeymacFrame.FLD_PID] & HeymacFrame.PID_IDENT_MASK
+        return (self.field[HeymacFrame.FLD_PID] & HeymacFrame._PID_IDENT_MASK
                 == HeymacFrame.PID_IDENT_HEYMAC)
 
 
@@ -302,7 +294,15 @@ class HeymacFrame(object):
         self.field[fld_nm] = value
 
 
-# Private interface
+# Private
+
+
+    # PID masks
+    _PID_IDENT_MASK = 0b11110000
+    _PID_TYPE_MASK = 0b00001111
+
+    # TODO: verify CSMA version
+    # _SUPPORTED_CSMA_VRSNS = (0,)
 
 
     def _get_addr_sz(self,):
