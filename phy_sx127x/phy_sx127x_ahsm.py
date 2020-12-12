@@ -20,22 +20,6 @@ class PhySX127xAhsm(farc.Ahsm):
     TM_NOW = 0          # Use normally for "do it now"
     TM_IMMEDIATE = -1   # Use sparingly to jump the queue
 
-    # The margin within which the Ahsm will transition to
-    # the action's state if there is an entry in the action queue;
-    # otherwise, transitions to the default state, listening or sleeping.
-    _TM_SOON = 0.040
-
-    # The amount of time it takes to get from the _lingering state
-    # through _scheduling and to the next action's state.
-    # This is used so we can set a timer to exit _lingering
-    # and make it to the deisred state before the designated time.
-    _TM_SVC_MARGIN = 0.020
-    # assert _TM_SVC_MARGIN < _TM_SOON
-
-    # Blocking times are used around the time.sleep() operation
-    # to obtain more accurate tx/rx execution times on Linux.
-    _TM_BLOCKING_MAX = 0.100
-    _TM_BLOCKING_MIN = 0.001
 
     def __init__(self, lstn_by_dflt):
         """Class intialization
@@ -50,9 +34,6 @@ class PhySX127xAhsm(farc.Ahsm):
         self._lstn_by_dflt = lstn_by_dflt
         self._dflt_stngs = ()
         self._dflt_rx_stngs = ()
-
-
-# Public interface
 
 
     def post_rx_action(self, rx_time, rx_stngs, rx_durxn, rx_clbk):
@@ -110,21 +91,6 @@ class PhySX127xAhsm(farc.Ahsm):
     def start_stack(self, ahsm_prio):
         """PHY is the bottom of the protocol stack, so just start this Ahsm"""
         self.start(ahsm_prio)
-
-
-# Private interface
-
-
-    def _dio_isr_clbk(self, dio):
-        """A callback given to the PHY for when a DIO pin event occurs.
-
-        The Rpi.GPIO's thread calls this procedure (like an interrupt).
-        This procedure posts an Event to this state machine
-        corresponding to the DIO pin that transitioned.
-        The pin edge's arrival time is the value of the Event.
-        """
-        now = farc.Framework._event_loop.time()
-        self.post_fifo(farc.Event(self._dio_sig_lut[dio], now))
 
 
 # State machine
@@ -522,7 +488,37 @@ class PhySX127xAhsm(farc.Ahsm):
         return self.super(self.top)
 
 
-# Private methods
+# Private
+
+
+    # The margin within which the Ahsm will transition to
+    # the action's state if there is an entry in the action queue;
+    # otherwise, transitions to the default state, listening or sleeping.
+    _TM_SOON = 0.040
+
+    # The amount of time it takes to get from the _lingering state
+    # through _scheduling and to the next action's state.
+    # This is used so we can set a timer to exit _lingering
+    # and make it to the deisred state before the designated time.
+    _TM_SVC_MARGIN = 0.020
+    # assert _TM_SVC_MARGIN < _TM_SOON
+
+    # Blocking times are used around the time.sleep() operation
+    # to obtain more accurate tx/rx execution times on Linux.
+    _TM_BLOCKING_MAX = 0.100
+    _TM_BLOCKING_MIN = 0.001
+
+
+    def _dio_isr_clbk(self, dio):
+        """A callback given to the PHY for when a DIO pin event occurs.
+
+        The Rpi.GPIO's thread calls this procedure (like an interrupt).
+        This procedure posts an Event to this state machine
+        corresponding to the DIO pin that transitioned.
+        The pin edge's arrival time is the value of the Event.
+        """
+        now = farc.Framework._event_loop.time()
+        self.post_fifo(farc.Event(self._dio_sig_lut[dio], now))
 
 
     def _enqueue_action(self, tm, action_args):
