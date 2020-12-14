@@ -25,16 +25,16 @@ class TestHeyMacCmd(unittest.TestCase):
         c = HeymacCmdCsmaBcn(
             FLD_CAPS=0x0102,
             FLD_STATUS=0x0304,
-            FLD_NETS=(),
+            FLD_NETS=((0x0001, b"\xfdnetroot"),),
             FLD_NGBRS=(b"\xfd2345678",))
         b = bytes(c)
-        self.assertEqual(b, b"\x84\x01\x02\x03\x04\x00\x01\xfd2345678")
+        self.assertEqual(b, b"\x84\x01\x02\x03\x04\x01\x00\x01\xfdnetroot\x01\xfd2345678")
         # Parse and test
         c = HeymacCmd.parse(b)
         self.assertIs(type(c), HeymacCmdCsmaBcn)
         self.assertEqual(c.get_field(HeymacCmd.FLD_CAPS), 0x0102)
         self.assertEqual(c.get_field(HeymacCmd.FLD_STATUS), 0x0304)
-        self.assertEqual(c.get_field(HeymacCmd.FLD_NETS), ())
+        self.assertEqual(c.get_field(HeymacCmd.FLD_NETS), (0x0001, b"\xfdnetroot"))
         self.assertEqual(c.get_field(HeymacCmd.FLD_NGBRS), (b"\xfd2345678",))
 
 

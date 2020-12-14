@@ -125,7 +125,8 @@ class HeymacCmdCsmaBcn(HeymacCmd):
         # FIXME: nets have structure: (net_id, root_lnk_addr)
         b.append(len(self.field[HeymacCmd.FLD_NETS]))
         for net in self.field[HeymacCmd.FLD_NETS]:
-            b.extend(net)
+            b.extend(struct.pack("!H", net[0]))
+            b.extend(struct.pack("8s", net[1]))
         # Ngbrs
         b.append(len(self.field[HeymacCmd.FLD_NGBRS]))
         for lnk_addr in self.field[HeymacCmd.FLD_NGBRS]:
@@ -141,14 +142,15 @@ class HeymacCmdCsmaBcn(HeymacCmd):
         field[HeymacCmd.FLD_CAPS] = struct.unpack("!H", cmd_bytes[1:3])[0]
         field[HeymacCmd.FLD_STATUS] = struct.unpack("!H", cmd_bytes[3:5])[0]
         # Nets
-        # FIXME: parse nets structure (net_id, root_lnk_addr)
         nets_cnt = cmd_bytes[5]
-        assert nets_cnt == 0  # Temporary
-        field[HeymacCmd.FLD_NETS] = ()
+        fmt = "!" + "H8s" * nets_cnt
+        nets_sz = struct.calcsize(fmt)
+        field[HeymacCmd.FLD_NETS] = struct.unpack(fmt, cmd_bytes[6:6 + nets_sz])
+        offset = 6 + nets_sz
         # Ngbrs
-        ngbrs_cnt = cmd_bytes[6]
+        ngbrs_cnt = cmd_bytes[offset]
         fmt = "!" + "8s" * ngbrs_cnt
-        field[HeymacCmd.FLD_NGBRS] = struct.unpack(fmt, cmd_bytes[7:])
+        field[HeymacCmd.FLD_NGBRS] = struct.unpack(fmt, cmd_bytes[offset + 1:])
         return HeymacCmdCsmaBcn(HeymacCmdCsmaBcn.CMD_ID, **field)
 
 
