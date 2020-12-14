@@ -28,16 +28,6 @@
       </tran_glyph>
      </tran>
      <tran trig="_LNK_RXD_FROM_PHY">
-      <choice target="../../2/1">
-       <choice_glyph conn="48,70,4,2,-6">
-        <action box="0,-4,10,2"/>
-       </choice_glyph>
-      </choice>
-      <choice>
-       <choice_glyph conn="48,70,5,-1,4">
-        <action box="1,0,10,2"/>
-       </choice_glyph>
-      </choice>
       <tran_glyph conn="22,70,3,-1,26">
        <action box="0,-2,20,2"/>
       </tran_glyph>
@@ -51,8 +41,32 @@
         <action box="0,-2,24,2"/>
        </tran_glyph>
       </tran>
+      <tran trig="_LNK_RXD_FROM_PHY">
+       <choice target="../../2">
+        <guard brief="ngbr_hears_me()"/>
+        <choice_glyph conn="46,50,4,0,4">
+         <action box="1,0,15,2"/>
+        </choice_glyph>
+       </choice>
+       <choice>
+        <choice_glyph conn="46,50,5,-1,2">
+         <action box="1,0,10,2"/>
+        </choice_glyph>
+       </choice>
+       <tran_glyph conn="24,50,3,-1,22">
+        <action box="0,-2,20,2"/>
+       </tran_glyph>
+      </tran>
       <state name="_linking">
-       <state_glyph node="26,50,32,14"/>
+       <entry brief="_tm_evt.post_every(_LNK_UPDT_PRD)"/>
+       <tran trig="_LNK_TMOUT">
+        <tran_glyph conn="26,62,3,-1,22">
+         <action box="0,-2,20,2"/>
+        </tran_glyph>
+       </tran>
+       <state_glyph node="26,54,32,10">
+        <entry box="1,2,31,2"/>
+       </state_glyph>
       </state>
       <state_glyph node="24,38,36,28">
        <entry box="1,2,29,2"/>
@@ -64,7 +78,7 @@
       <exit box="1,4,25,2"/>
      </state_glyph>
     </state>
-    <state_diagram size="113,109"/>
+    <state_diagram size="84,80"/>
    </statechart>
   </class>
  </package>

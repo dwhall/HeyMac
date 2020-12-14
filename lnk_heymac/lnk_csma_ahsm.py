@@ -24,9 +24,20 @@ class LnkHeymac(object):
     # Heymac uses its long-address mode to convey a link address
     LNK_ADDR_SZ = 8
 
+    # Link layer node capabilities (16 bit field).
+    # These are bit flags used in the beacon's capabilities field.
+    LNK_CAP_PWR = 0x0001        # Node has surplus power
+    LNK_CAP_RXCONT = 0x0002     # Node is able to listen continuously
+    LNK_CAP_CRYPTO = 0          # Node is capable of cryptographic routines
+    # LNK_CAP_ROOT # No, this is net layer cap
+    # LNK_CAP_NVSTO # Node has non-volatile storage (KBs? MBs? GBs?)
+
     # The number of seconds between each emission of a beacon.
     # This value also affects the time a node spends lurking.
     _BCN_PRD = 32
+
+    # The number of seconds between each link update period in _linking()
+    _LNK_UPDT_PRD = 4
 
     # The LoRa Sync Word is a SX127x register setting
     # that lets the hardware discriminate for frames
@@ -72,7 +83,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
         self._lnk_addr = lnk_addr
         self._station_id = station_id   # UNUSED
 
-        self._lnk_data = lnk_data.LnkData()
+        self._lnk_data = lnk_data.LnkData(lnk_addr)
 
 
     def start_stack(self, ahsm_prio, delta_prio=10):
@@ -107,6 +118,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
         # Timer events
         self._bcn_evt = farc.TimeEvent("_LNK_BCN_TMOUT")
+        self._tm_evt = farc.TimeEvent("_LNK_TMOUT")
 
         return self.tran(self._initializing)
 
@@ -124,7 +136,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
             logging.debug("LNK._initializing")
 
             # Data Link Layer data
-            # self.lnk_data = lnk_csma_data.LnkData()
+            # self._lnk_data = lnk_csma_data.LnkData()
 
             # Transmit queue
             self.mac_txq = []
@@ -187,6 +199,12 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
             self._post_bcn()
             return self.handled(event)
 
+        elif sig == farc.Signal._LNK_RXD_FROM_PHY:
+            self._on_rxd_from_phy(event.value)
+            if self._lnk_data.ngbr_hears_me():
+                return self.tran(self._linking)
+            return self.handled(event)
+
         elif sig == farc.Signal.EXIT:
             self._bcn_evt.disarm()
             return self.handled(event)
@@ -198,13 +216,24 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
     def _linking(self, event):
         """State: _lurking:_beaconing:_linking
 
-        There is no significant difference between this state
-        and _beaconing at this layer.  This state indicates
-        to the higher layer that a link is available.
+        Indicates at least one neighbor has this node in its neighbor's list.
+        This state starts a periodic timer used to perform updates
+        on the link data (such as prune the neighbor list).
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             logging.debug("LNK._linking")
+            self._tm_evt.post_every(self, LnkHeymac._LNK_UPDT_PRD)
+            return self.handled(event)
+
+        elif sig == farc.Signal._LNK_TMOUT:
+            self._lnk_data.update()
+            if not self._lnk_data.ngbr_hears_me():
+                return self.tran(self._beaconing)
+            return self.handled(event)
+
+        elif sig == farc.Signal.EXIT:
+            self._tm_evt.disarm()
             return self.handled(event)
 
         return self.super(self._beaconing)
@@ -259,10 +288,10 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
         """Builds a Heymac CsmaBeacon and posts it to the PHY for transmit."""
         bcn = lnk_heymac_cmd.HeymacCmdCsmaBcn(
             # TODO: Fill with real data
-            b"\x00\x00",    # caps
-            b"\x00\x00",    # status
-            b"\x00",        # nets
-            b"\x00")        # ngbrs
+            FLD_CAPS=LnkHeymac.LNK_CAP_RXCONT,
+            FLD_STATUS=0,
+            FLD_NETS=(),
+            FLD_NGBRS=self._lnk_data.get_ngbrs_lnk_addrs())
         frame = lnk_frame.HeymacFrame(
             lnk_frame.HeymacFrame.PID_IDENT_HEYMAC
             | lnk_frame.HeymacFrame.PID_TYPE_CSMA,
