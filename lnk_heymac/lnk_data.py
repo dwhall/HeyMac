@@ -25,20 +25,22 @@ class LnkData(object):
 
 
     def get_ngbrs_lnk_addrs(self,):
-        """Returns a list of neighbors' link addresses"""
+        """Returns a list of neighbors' link addresses."""
         return self._ngbr_list.keys()
 
 
-    def process_bcn(self, frame):
-        """Process a Heymac beacon and keeps relevant link data."""
-        addr = frame.get_field(lnk_frame.HeymacFrame.FLD_SADDR)
-        if addr not in self._ngbr_list:
-            self._ngbr_list[addr] = {"BCN_CNT": 0}
-        # TODO: create and use _NGBR_FLD_* names
-        self._ngbr_list[addr]["BCN_FRAME"] = frame
-        self._ngbr_list[addr]["BCN_CNT"] += 1
+    def get_ngbrs_nets(self,):
+        """Returns a list of neighbors' net data.
 
-        # TODO: process nets[] to build list of known nets
+        Net data is a tuple of the net_id as a bytes object
+        and the link address of the network's root (also a bytes object).
+        """
+        nets = set()
+        for data in self._ngbr_list.values():
+            frame = data["BCN_FRAME"]
+            for net in frame.get_field(HeymacCmd.FLD_NETS):
+                nets.add(net)
+        return list(nets)
 
 
     def ngbr_hears_me(self,):
@@ -55,6 +57,18 @@ class LnkData(object):
             ngbrs = bcn.get_field(lnk_heymac_cmd.HeymacCmd.FLD_NGBRS)
             return self._lnk_addr in ngbrs
         return False
+
+
+    def process_frame(self, frame):
+        """Update link data with info from the given frame."""
+        assert type(frame) is lnk_frame.HeymacFrame
+
+        # TODO: update link quality using any frame
+
+        # Process a beacon
+        if frame.cmd and type(frame.cmd) is lnk_heymac_cmd.HeymacCmdCsmaBcn:
+            self._process_bcn(frame)
+
 
     def update(self,):
         """Performs periodic update of the link data."""
@@ -78,3 +92,14 @@ class LnkData(object):
     # FIXME: circular dependency:
     _EXPIRATION_PRD = 4 * 32 # lnk_csma_ahsm.LnkHeymac._BCN_PRD
 
+
+    def _process_bcn(self, frame):
+        """Process a Heymac beacon and keeps relevant link data."""
+        addr = frame.get_field(lnk_frame.HeymacFrame.FLD_SADDR)
+        if addr not in self._ngbr_list:
+            self._ngbr_list[addr] = {"BCN_CNT": 0}
+        # TODO: create and use _NGBR_FLD_* names
+        self._ngbr_list[addr]["BCN_FRAME"] = frame
+        self._ngbr_list[addr]["BCN_CNT"] += 1
+
+        # TODO: process nets[] to build list of known nets

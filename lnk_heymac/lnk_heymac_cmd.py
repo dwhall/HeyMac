@@ -122,7 +122,6 @@ class HeymacCmdCsmaBcn(HeymacCmd):
         b.extend(struct.pack("!H", self.field[HeymacCmd.FLD_CAPS]))
         b.extend(struct.pack("!H", self.field[HeymacCmd.FLD_STATUS]))
         # Nets
-        # FIXME: nets have structure: (net_id, root_lnk_addr)
         b.append(len(self.field[HeymacCmd.FLD_NETS]))
         for net in self.field[HeymacCmd.FLD_NETS]:
             b.extend(struct.pack("!H", net[0]))
@@ -136,7 +135,6 @@ class HeymacCmdCsmaBcn(HeymacCmd):
     @staticmethod
     def parse(cmd_bytes):
         SIZEOF_NET = 2 + 8
-        SIZEOF_NGBR = 0     # FIXME
         assert cmd_bytes[0] == HeymacCmd.PREFIX | HeymacCmdCsmaBcn.CMD_ID
         field = {}
         field[HeymacCmd.FLD_CAPS] = struct.unpack("!H", cmd_bytes[1:3])[0]

@@ -244,6 +244,8 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
     def _on_rxd_from_phy(self, frame):
         """Processes a frame received from the PHY."""
+        assert type(frame) is lnk_frame.HeymacFrame
+
         # Attach the Heymac command, if present
         try:
             cmd = lnk_heymac_cmd.HeymacCmd.parse(
@@ -252,13 +254,10 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
             cmd = None
         frame.cmd = cmd
 
-        # Process process a command for link data, etc.
-        if frame.cmd:
-            self._process_cmd(frame)
+        # Process the frame for link data, etc.
+        self._lnk_data.process_frame(frame)
 
         # TODO: See if the NET layer wants to process the frame
-        else:
-            pass
 
 
     def _phy_rx_clbk(self, rx_time, rx_bytes, rx_rssi, rx_snr):
@@ -305,16 +304,10 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
             bytes(frame))
 
 
-    def _post_frame(self, frame):
+    def _post_frm(self, frame):
         """Posts the frame to the PHY for transmit."""
         assert type(frame) is lnk_frame.HeymacFrame
         self.phy_ahsm.post_tx_action(
             self.phy_ahsm.TM_NOW,
             LnkHeymac._PHY_STNGS_TX,
             bytes(frame))
-
-
-    def _process_cmd(self, frame):
-        """Process the Heymac command in the frame."""
-        if type(frame.cmd) is lnk_heymac_cmd.HeymacCmdCsmaBcn:
-            self._lnk_data.process_bcn(frame)
