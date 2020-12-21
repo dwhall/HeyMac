@@ -92,43 +92,6 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertIsNone(f.get_field(HeymacFrame.FLD_TADDR))
 
 
-    """
-    def test_len_saddr16b_beacon(self,):
-        # Build and serialize
-        f = HeymacFrame(
-                HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
-                HeymacFrame.FCTL_S)
-        f.set_field(HeymacFrame.FLD_SADDR, b"\x11\x12")
-        bcn = heymac.mac_cmds.HeyMacCmdSbcn(
-            bcn_en=1,
-            sf_order=5,
-            eb_order=7,
-            dscpln=2,
-            caps=3,
-            status=4,
-            asn=42,
-        )
-        f.get_field(HeymacFrame.FLD_PAYLD) = bytes(bcn)
-        b = bytes(f)
-        self.assertEqual(b, b"\xE4\x04\x11\x12\x81\xf5\x02\x03\x04\x00\x00\x00\x2a\x00\x00\x00\x00\x00\x00\x00\x00")
-        # Parse and test
-        f = HeymacFrame.parse(b)
-        self.assertEqual(f.get_field(HeymacFrame.FLD_FCTL) & HeymacFrame.FCTL_X, 0x04)
-        self.assertIsNone(f.get_field(HeymacFrame.FLD_NETID))
-        self.assertIsNone(f.get_field(HeymacFrame.FLD_DADDR))
-        self.assertEqual(f.get_field(HeymacFrame.FLD_SADDR), b"\x11\x12")
-        self.assertEqual(type(f.payld), heymac.mac_cmds.HeyMacCmdSbcn)
-        self.assertEqual(f.payld.bcn_en, 1)
-        self.assertEqual(f.payld.sf_order, 5)
-        self.assertEqual(f.payld.eb_order, 7)
-        self.assertEqual(f.payld.dscpln, 2)
-        self.assertEqual(f.payld.caps, 3)
-        self.assertEqual(f.payld.status, 4)
-        self.assertEqual(f.payld.asn, 42)
-        self.assertIsNone(f.get_field(HeymacFrame.FLD_HOPS))
-        self.assertIsNone(f.get_field(HeymacFrame.FLD_TADDR))
-    """
-
     def test_saddr64b_daddr64b(self,):
         # Build and serialize
         f = HeymacFrame(
@@ -171,27 +134,6 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertIsNone(f.get_field(HeymacFrame.FLD_TADDR))
 
 
-    """
-    def test_net_data(self,):
-        # Build and serialize
-        f = HeymacFrame(
-                HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
-                0)
-        f.set_field(HeymacFrame.FLD_PAYLD, heymac.APv6Frame())
-        b = bytes(f)
-        self.assertEqual(b, b"\xE4\x00\xD7")
-        # Parse and test
-        f = HeymacFrame.parse(b)
-        self.assertEqual(f.get_field(HeymacFrame.FLD_FCTL), 0)
-        self.assertIsNone(f.get_field(HeymacFrame.FLD_NETID))
-        self.assertIsNone(f.get_field(HeymacFrame.FLD_DADDR))
-        self.assertIsNone(f.get_field(HeymacFrame.FLD_SADDR))
-        self.assertIsNone(f.get_field(HeymacFrame.FLD_HOPS))
-        self.assertIsNone(f.get_field(HeymacFrame.FLD_TADDR))
-        self.assertEqual(type(f.payld), heymac.APv6Frame)
-    """
-
-
     def test_netid_daddr(self,):
         # Build and serialize
         f = HeymacFrame(
@@ -212,27 +154,6 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertIsNone(f.get_field(HeymacFrame.FLD_HOPS))
         self.assertIsNone(f.get_field(HeymacFrame.FLD_TADDR))
 
-
-    """
-    def test_csma_ver0(self,):
-        # Build and serialize
-        f = HeymacFrameCsmaV0()
-        f.pid_protocol = HeymacFrame.PID_PROTOCOL_HEYMAC
-        f.pid_type = HeymacFrame.PID_TYPE_CSMA
-        f.pid_ver = 0 #HeymacFrame.PID_VER_CSMA
-        b = bytes(f)
-        self.assertEqual(b, b"\xE4\x00")
-        # Parse and test
-        f = HeymacFrameCsmaV0(b)
-        self.assertEqual(f.pid, 0xE4)
-        self.assertEqual(f.get_field(HeymacFrame.FLD_FCTL), 0x00)
-        self.assertIsNone(f.get_field(HeymacFrame.FLD_NETID))
-        self.assertIsNone(f.get_field(HeymacFrame.FLD_DADDR))
-        self.assertIsNone(f.get_field(HeymacFrame.FLD_SADDR))
-        self.assertIsNone(f.get_field(HeymacFrame.FLD_PAYLD))
-        self.assertIsNone(f.get_field(HeymacFrame.FLD_HOPS))
-        self.assertIsNone(f.get_field(HeymacFrame.FLD_TADDR))
-    """
 
 if __name__ == '__main__':
     unittest.main()
