@@ -257,6 +257,17 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
         # Process the frame for link data, etc.
         self._lnk_data.process_frame(frame)
 
+        # If the frame is a multi-hop Heymac command
+        if frame.cmd and frame.is_mhop():
+            hops = frame.get_field(lnk_frame.HeymacFrame.FLD_HOPS)
+            if hops > 1:
+                # Update the hops and re-transmitter fields
+                frame.set_field(lnk_frame.HeymacFrame.FLD_HOPS, hops - 1)
+                frame.set_field(lnk_frame.HeymacFrame.FLD_TADDR,
+                                self._lnk_addr)
+                # Post the frame to PHY for transmission
+                self._post_frm(frame)
+
         # TODO: See if the NET layer wants to process the frame
 
 
