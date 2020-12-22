@@ -147,18 +147,21 @@ class HeymacCmdCsmaBcn(HeymacCmd):
         SIZEOF_NET = 2 + 8
         assert cmd_bytes[0] == HeymacCmd.PREFIX | HeymacCmdCsmaBcn.CMD_ID
         field = {}
-        field[HeymacCmd.FLD_CAPS] = struct.unpack("!H", cmd_bytes[1:3])[0]
-        field[HeymacCmd.FLD_STATUS] = struct.unpack("!H", cmd_bytes[3:5])[0]
+        caps, status = struct.unpack("!HH", cmd_bytes[1:5])
+        field[HeymacCmd.FLD_CAPS] = caps
+        field[HeymacCmd.FLD_STATUS] = status
         # Nets
         nets_cnt = cmd_bytes[5]
         fmt = "!" + "H8s" * nets_cnt
         nets_sz = struct.calcsize(fmt)
-        field[HeymacCmd.FLD_NETS] = struct.unpack(fmt, cmd_bytes[6:6 + nets_sz])
+        nets = struct.unpack(fmt, cmd_bytes[6:6 + nets_sz])
+        field[HeymacCmd.FLD_NETS] = nets
         offset = 6 + nets_sz
         # Ngbrs
         ngbrs_cnt = cmd_bytes[offset]
         fmt = "!" + "8s" * ngbrs_cnt
-        field[HeymacCmd.FLD_NGBRS] = struct.unpack(fmt, cmd_bytes[offset + 1:])
+        ngbrs = struct.unpack(fmt, cmd_bytes[offset + 1:])
+        field[HeymacCmd.FLD_NGBRS] = ngbrs
         return HeymacCmdCsmaBcn(HeymacCmdCsmaBcn.CMD_ID, **field)
 
 
