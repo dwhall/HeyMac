@@ -30,6 +30,8 @@ class HeymacCmd(object):
     FLD_NETS = "FLD_NETS"       # sequence of bytes
     FLD_NGBRS = "FLD_NGBRS"     # sequence of bytes
     FLD_STATUS = "FLD_STATUS"   # int (0..65535)
+    FLD_NET_ID = "FLD_NET_ID"   # int (0..65535)
+    FLD_NET_ADDR = "FLD_NET_ADDR"   # int (0..65535)
 
 
     def __init__(self, *args, **kwargs):
@@ -49,12 +51,17 @@ class HeymacCmd(object):
             assert type(args[0]) is int, "Expecting Command ID int"
             # If keyword arguments, expect certain field names
             for key in kwargs.keys():
-                assert key in self._FLD_LIST, "Illegal field: {}".format(key)
+                if key not in self._FLD_LIST:
+                    raise HeymacCmdError("Unknown field: %s" % key)
             # kwargs become the command's fields
             self.field = kwargs
         else:
-            assert type(args[0]) is bytes, "Expecting serialized bytes"
-            cmd_bytes = args[0]
+            if type(args[0]) is bytes:
+                cmd_bytes = args[0]
+            elif type(args[0]) is int:
+                self.field = {}
+            else:
+                raise TypeError()
 
 
     @staticmethod
@@ -72,7 +79,8 @@ class HeymacCmd(object):
                 cmd = cmd_cls.parse(cmd_bytes)
                 break
         if not cmd:
-            raise HeymacCmdError("Unknown Command ID")
+            raise HeymacCmdError("Unknown CMD_ID: %d"
+                                 % (cmd_bytes[0] & HeymacCmd.CMD_MASK))
         return cmd
 
 
@@ -84,7 +92,7 @@ class HeymacCmd(object):
 class HeymacCmdTxt(HeymacCmd):
     """Heymac Text message: {3, data }"""
     CMD_ID = 3
-    _FLD_LIST = (HeymacCmd.FLD_MSG)
+    _FLD_LIST = (HeymacCmd.FLD_MSG,)
 
     def __init__(self, *args, **kwargs):
         super().__init__(self.CMD_ID, **kwargs)
@@ -110,13 +118,14 @@ class HeymacCmdCsmaBcn(HeymacCmd):
     _FLD_LIST = (
         HeymacCmd.FLD_CAPS,
         HeymacCmd.FLD_STATUS,
-        HeymacCmd.FLD_NGBRS,
-        HeymacCmd.FLD_NETS)
+        HeymacCmd.FLD_NETS,
+        HeymacCmd.FLD_NGBRS)
 
     def __init__(self, *args, **kwargs):
         super().__init__(self.CMD_ID, **kwargs)
 
     def __bytes__(self,):
+        """Serializes the beacon into bytes to send over the air."""
         b = bytearray()
         b.append(HeymacCmd.PREFIX | HeymacCmdCsmaBcn.CMD_ID)
         b.extend(struct.pack("!H", self.field[HeymacCmd.FLD_CAPS]))
@@ -134,6 +143,7 @@ class HeymacCmdCsmaBcn(HeymacCmd):
 
     @staticmethod
     def parse(cmd_bytes):
+        """Parses the bytes into a beacon object."""
         SIZEOF_NET = 2 + 8
         assert cmd_bytes[0] == HeymacCmd.PREFIX | HeymacCmdCsmaBcn.CMD_ID
         field = {}
@@ -153,45 +163,92 @@ class HeymacCmdCsmaBcn(HeymacCmd):
 
 
 class HeymacCmdJoin(HeymacCmd):
-    """Heymac Join: {5, sub_id}"""
+    """Heymac Join: {5, sub_id, ...}
+
+    This class should not be instantiated outside this module.
+    This class serves as a base class for a range of join sub-commands.
+    """
     CMD_ID = 5
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(self.CMD_ID, **kwargs)
+
+    def __bytes__(self,):
+        """Serializes the join-command into bytes."""
+        b = bytearray()
+        b.append(HeymacCmd.PREFIX | self.CMD_ID)
+        b.append(self.SUB_ID)
+        if HeymacCmd.FLD_NET_ID in self.field:
+            b.extend(struct.pack("!H", self.field[HeymacCmd.FLD_NET_ID]))
+        if HeymacCmd.FLD_NET_ADDR in self.field:
+            b.extend(struct.pack("!H", self.field[HeymacCmd.FLD_NET_ADDR]))
+        return bytes(b)
+
+    @staticmethod
+    def parse(cmd_bytes):
+        """Parses the bytes into a join-command object."""
+        assert type(cmd_bytes) is bytes
+        if len(cmd_bytes) < 2:
+            raise HeymacCmdError("Insufficient data")
+        if cmd_bytes[0] != (HeymacCmd.PREFIX | HeymacCmdJoin.CMD_ID):
+            raise HeymacCmdError("Incorrect CMD_ID: %d"
+                                 % (cmd_bytes[0] & HeymacCmd.CMD_MASK))
+        cmd = None
+        for joincmd_cls in HeymacCmdJoin.__subclasses__():
+            if joincmd_cls.SUB_ID == cmd_bytes[1]:
+                try:
+                    if joincmd_cls.SUB_ID in (HeymacCmdJoinRqst.SUB_ID,):
+                        field = {}
+                        net_id = struct.unpack("!H", cmd_bytes[2:])[0]
+                        field[HeymacCmd.FLD_NET_ID] = net_id
+                        cmd = joincmd_cls(HeymacCmdTxt.CMD_ID, **field)
+                        break
+                    elif joincmd_cls.SUB_ID in (HeymacCmdJoinAcpt.SUB_ID,
+                                                HeymacCmdJoinCnfm.SUB_ID):
+                        field = {}
+                        net_id, net_addr = struct.unpack("!HH", cmd_bytes[2:])
+                        field[HeymacCmd.FLD_NET_ID] = net_id
+                        field[HeymacCmd.FLD_NET_ADDR] = net_addr
+                        cmd = joincmd_cls(HeymacCmdTxt.CMD_ID, **field)
+                        break
+                    else:
+                        assert len(cmd_bytes) == 2
+                        cmd = joincmd_cls()
+                        break
+                except struct.error:
+                    raise HeymacCmdError("Incorrect data size")
+                except AssertionError:
+                    raise HeymacCmdError("Incorrect data size")
+        if not cmd:
+            raise HeymacCmdError("Unknown SUB_ID: %d" % cmd_bytes[1])
+        return cmd
 
 
 class HeymacCmdJoinRqst(HeymacCmdJoin):
-    """Heymac Join-Request: {5, 1}"""
+    """Heymac Join-Request: {5, 1, net_id}"""
     SUB_ID = 1
-
-    def __init__(self,):
-        super().__init__(HeymacCmdJoin.CMD_ID, HeymacCmdJoinRqst.SUB_ID)
+    _FLD_LIST = (HeymacCmd.FLD_NET_ID,)
 
 
-class HeymacCmdJoinRspd(HeymacCmdJoin):
-    """Heymac Join-Respond: {5, 2}"""
+class HeymacCmdJoinAcpt(HeymacCmdJoin):
+    """Heymac Join-Accept: {5, 2, net_id, net_addr}"""
     SUB_ID = 2
-
-    def __init__(self,):
-        super().__init__(HeymacCmdJoin.CMD_ID, HeymacCmdJoinRspd.SUB_ID)
+    _FLD_LIST = (HeymacCmd.FLD_NET_ID, HeymacCmd.FLD_NET_ADDR)
 
 
 class HeymacCmdJoinCnfm(HeymacCmdJoin):
-    """Heymac Join-Confirm: {5, 3}"""
+    """Heymac Join-Confirm: {5, 3, net_id, net_addr}"""
     SUB_ID = 3
-
-    def __init__(self,):
-        super().__init__(HeymacCmdJoin.CMD_ID, HeymacCmdJoinCnfm.SUB_ID)
+    _FLD_LIST = (HeymacCmd.FLD_NET_ID, HeymacCmd.FLD_NET_ADDR)
 
 
 class HeymacCmdJoinRjct(HeymacCmdJoin):
-    """Heymac Join-Respond: {5, 4}"""
+    """Heymac Join-Reject: {5, 4}"""
     SUB_ID = 4
-
-    def __init__(self,):
-        super().__init__(HeymacCmdJoin.CMD_ID, HeymacCmdJoinRjct.SUB_ID)
+    _FLD_LIST = ()
 
 
 class HeymacCmdJoinLeav(HeymacCmdJoin):
     """Heymac Join-Leave: {5, 5}"""
     SUB_ID = 5
-
-    def __init__(self,):
-        super().__init__(HeymacCmdJoin.CMD_ID, HeymacCmdJoinLeav.SUB_ID)
+    _FLD_LIST = ()
