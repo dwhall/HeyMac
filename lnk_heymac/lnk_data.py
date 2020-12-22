@@ -12,21 +12,27 @@ from . import lnk_heymac_cmd
 class LnkData(object):
     """Heymac link layer data.
 
-    Keeps neighbor data from received Heymac frames.
-    Neighbor list holds data for each neighbor:
-    - long addr
-    - time of last rx (to know when to drop ngbr)
-    - rx link Q (some func of recent rssi or snr)
-    - latest beacon
+    _ngbr_data is a dict that holds data for each neighbor.
+    The neighbor's link address is the key.  The value is a dict with items:
+
+    ==================  =======================================================
+    Key                 Value
+    ==================  =======================================================
+    "BCN_CNT"           the number of beacons received since link established
+    "BCN_FRAME"         instance of HeymacCmdCsmaBcn
+    "LATEST_RX_TM"      time of latest RX of any valid HeymacFrame from ngbr
+    "LATEST_RX_RSSI"    RSSI of latest RX of any valid HeymacFrame from ngbr
+    "LATEST_RX_SNR"     SNR of latest RX of any valid HeymacFrame from ngbr
+    ==================  =======================================================
     """
     def __init__(self, lnk_addr):
         self._lnk_addr = lnk_addr
-        self._ngbr_list = {}
+        self._ngbr_data = {}
 
 
     def get_ngbrs_lnk_addrs(self,):
         """Returns a list of neighbors' link addresses."""
-        return self._ngbr_list.keys()
+        return self._ngbr_data.keys()
 
 
     def get_ngbrs_nets(self,):
@@ -36,7 +42,7 @@ class LnkData(object):
         and the link address of the network's root (also a bytes object).
         """
         nets = set()
-        for data in self._ngbr_list.values():
+        for data in self._ngbr_data.values():
             frame = data["BCN_FRAME"]
             for net in frame.get_field(HeymacCmd.FLD_NETS):
                 nets.add(net)
@@ -47,10 +53,10 @@ class LnkData(object):
         """Does a neighbor node hear this node.
 
         Returns True if at least one neighbor has this node
-        in its neighbor list.  This proves two-way transmission
+        in its neighbor data.  This proves two-way transmission
         has taken place.
         """
-        for data in self._ngbr_list.values():
+        for data in self._ngbr_data.values():
             frame = data["BCN_FRAME"]
             bcn = frame.cmd
             assert type(bcn) is lnk_heymac_cmd.HeymacCmdCsmaBcn
@@ -63,7 +69,15 @@ class LnkData(object):
         """Update link data with info from the given frame."""
         assert type(frame) is lnk_frame.HeymacFrame
 
-        # TODO: update link quality using any frame
+        # Init space for a new neighbor
+        lnk_addr = frame.get_sender()
+        if lnk_addr not in self._ngbr_data:
+            self._ngbr_data[lnk_addr] = {}
+
+        # Update rx meta data
+        self._ngbr_data[lnk_addr]["LATEST_RX_TM"] = frame.rx_meta[0]
+        self._ngbr_data[lnk_addr]["LATEST_RX_RSSI"] = frame.rx_meta[1]
+        self._ngbr_data[lnk_addr]["LATEST_RX_SNR"] = frame.rx_meta[2]
 
         # Process a beacon
         if frame.cmd and type(frame.cmd) is lnk_heymac_cmd.HeymacCmdCsmaBcn:
@@ -75,13 +89,13 @@ class LnkData(object):
         now = farc.Framework._event_loop.time()
         # Collect and prune expired neighbors
         expired_ngbrs = []
-        for ngbr_addr, data in self._ngbr_list.items():
+        for ngbr_addr, data in self._ngbr_data.items():
             frame = data["BCN_FRAME"]
             rx_time = frame.rx_meta[0]
             if now > rx_time + self._EXPIRATION_PRD:
                 expired_ngbrs.append(ngbr_addr)
         for ngbr_addr in expired_ngbrs:
-            del self._ngbr_list[ngbr_addr]
+            del self._ngbr_data[ngbr_addr]
 
 
 # Private
@@ -95,11 +109,10 @@ class LnkData(object):
 
     def _process_bcn(self, frame):
         """Process a Heymac beacon and keeps relevant link data."""
-        addr = frame.get_field(lnk_frame.HeymacFrame.FLD_SADDR)
-        if addr not in self._ngbr_list:
-            self._ngbr_list[addr] = {"BCN_CNT": 0}
+        lnk_addr = frame.get_sender()
+        self._ngbr_data[lnk_addr] = {"BCN_CNT": 0}
         # TODO: create and use _NGBR_FLD_* names
-        self._ngbr_list[addr]["BCN_FRAME"] = frame
-        self._ngbr_list[addr]["BCN_CNT"] += 1
+        self._ngbr_data[lnk_addr]["BCN_FRAME"] = frame
+        self._ngbr_data[lnk_addr]["BCN_CNT"] += 1
 
         # TODO: process nets[] to build list of known nets

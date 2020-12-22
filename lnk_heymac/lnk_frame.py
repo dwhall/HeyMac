@@ -243,6 +243,15 @@ class HeymacFrame(object):
         return self.field.get(fld_nm, None)
 
 
+    def get_sender(self,):
+        """Returns the sender of the frame (source or re-transmitter)."""
+        if self.is_mhop():
+            sender = self.get_field(HeymacFrame.FLD_TADDR)
+        else:
+            sender = self.get_field(HeymacFrame.FLD_SADDR)
+        return sender
+
+
     def is_heymac(self,):
         """Returns True if the PID Ident subfield indicates Heymac protocol.
         Note, this only checks the first four bits and does not check
