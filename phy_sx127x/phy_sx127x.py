@@ -32,7 +32,7 @@ class PhySX127x(object):
 
     # SX127x DIOs (DO NOT CHANGE VALUES)
     # This table is dual maintenance with
-    # mac_sx127x_ahsm.PhySX127xAhsm._dio_sig_lut
+    # phy_sx127x_ahsm.PhySX127xAhsm._dio_sig_lut
     DIO_MODE_RDY = 0
     DIO_CAD_DETECTED = 1
     DIO_CAD_DONE = 2
@@ -379,7 +379,7 @@ class PhySX127x(object):
         being in sleep mode to be applied.
         At this time, only the LoRa Mode requires sleep mode.
         """
-        return self._rdo_stngs["FLD_RDO_LORA_MODE"] != self._rdo_stngs_applied["FLD_RDO_LORA_MODE"]
+        return self._rdo_stng_changed("FLD_RDO_LORA_MODE")
 
 
     def updt_rng(self,):
@@ -430,8 +430,7 @@ class PhySX127x(object):
         """Writes settings that need the chip to be in sleep mode.
         At this time, only the LoRa Mode requires sleep mode.
         """
-        # If the setting has not changed, skip it
-        if self._rdo_stngs["FLD_RDO_LORA_MODE"] != self._rdo_stngs_applied["FLD_RDO_LORA_MODE"]:
+        if self._rdo_stng_changed("FLD_RDO_LORA_MODE"):
             # RMW to LoRa Mode bit in the OpMode reg
             reg = self.read_opmode()
             if self._rdo_stngs["FLD_RDO_LORA_MODE"]:
@@ -446,9 +445,7 @@ class PhySX127x(object):
     def write_stng(self, fld):
         """Writes one setting to its register(s)
         """
-        assert fld in PhySX127x._fld_info.keys(), "Invalid settings field name"
-
-        if self._rdo_stngs[fld] != self._rdo_stngs_applied[fld]:
+        if self._rdo_stng_changed(fld):
             reg = self._read(PhySX127x._fld_info[fld].reg_start)[0]
             bitf = self._bit_fld(PhySX127x._fld_info[fld].bit_start,
                                  PhySX127x._fld_info[fld].bit_cnt)
@@ -480,8 +477,8 @@ class PhySX127x(object):
                 freq += refection_offset_hz_lut[self._rdo_stngs["FLD_LORA_BW"]]
 
         # If LoRa mode or LoRa BW has changed, apply the errata values to their regs
-        if((self._rdo_stngs["FLD_RDO_LORA_MODE"] != self._rdo_stngs_applied["FLD_RDO_LORA_MODE"]) or
-           (self._rdo_stngs["FLD_LORA_BW"] != self._rdo_stngs_applied["FLD_LORA_BW"])):
+        if(self._rdo_stng_changed("FLD_RDO_LORA_MODE") or
+           self._rdo_stng_changed("FLD_LORA_BW")):
             self._write(PhySX127x.REG_LORA_IF_FREQ_2, reg_if_freq2)
             reg = self._read(PhySX127x.REG_LORA_DTCT_OPTMZ)[0]
             reg &= 0x7F
@@ -574,6 +571,14 @@ class PhySX127x(object):
         assert self._rdo_stngs_applied["FLD_RDO_DIO5"] < len(dio5_to_sig_lut)
         if self._en_dio5_clbk:
             self._dio_isr_clbk(dio5_to_sig_lut[self._rdo_stngs_applied["FLD_RDO_DIO5"]])
+
+
+    def _rdo_stng_changed(self, fld):
+        """Returns True if the setting field differs
+        from the one that's applied.
+        """
+        assert fld in PhySX127x._fld_info.keys(), "Invalid settings field name"
+        return self._rdo_stngs[fld] != self._rdo_stngs_applied[fld]
 
 
     def _read(self, reg_addr, nbytes=1):
