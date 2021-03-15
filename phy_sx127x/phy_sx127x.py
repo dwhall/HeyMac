@@ -94,48 +94,6 @@ class PhySX127x(object):
     IRQ_FLAGS_CADDETECTED         = 0x01
     IRQ_FLAGS_ALL                 = 0xFF
 
-    # Radio Frequency limits [Hz]
-    STNG_RF_FREQ_MIN = 137000000
-    STNG_RF_FREQ_MAX = 1020000000
-
-    # LoRa Bandwidth options
-    # TX and RX stations must use the same setting.
-    STNG_LORA_BW_7K8 = 0    # better sensitivity
-    STNG_LORA_BW_10K4 = 1   #
-    STNG_LORA_BW_15K6 = 2   #
-    STNG_LORA_BW_20K8 = 3   #
-    STNG_LORA_BW_31K25 = 4  #
-    STNG_LORA_BW_41K7 = 5   #
-    STNG_LORA_BW_62K5 = 6   #
-    STNG_LORA_BW_125K = 7   #
-    STNG_LORA_BW_250K = 8   #
-    STNG_LORA_BW_500K = 9   # higher datarate
-    STNG_LORA_BW_MIN = 0
-    STNG_LORA_BW_MAX = 9
-
-    # LoRa Coding Rate options
-    # Included in the PHY's explicit header
-    # so robustness can be modified on the fly.
-    STNG_LORA_CR_4TO5 = 1   # higher datarate
-    STNG_LORA_CR_4TO6 = 2   #
-    STNG_LORA_CR_4TO7 = 3   #
-    STNG_LORA_CR_4TO8 = 4   # better immunity to noise/interference
-    STNG_LORA_CR_MIN = 1
-    STNG_LORA_CR_MAX = 4
-
-    # LoRa Spreading Factor options
-    # TX and RX stations must use the same setting.
-    # Different SF values are orthogonal and may safely occupy the same bands
-    STNG_LORA_SF_64_CPS = 6     # higher datarate
-    STNG_LORA_SF_128_CPS = 7    #
-    STNG_LORA_SF_256_CPS = 8    #
-    STNG_LORA_SF_512_CPS = 9    #
-    STNG_LORA_SF_1024_CPS = 10  #
-    STNG_LORA_SF_2048_CPS = 11  #
-    STNG_LORA_SF_4096_CPS = 12  # better sensitivity == increased range
-    STNG_LORA_SF_MIN = 6
-    STNG_LORA_SF_MAX = 12
-
     # LoRa Modem Operation Mode
     OPMODE_SLEEP = 0
     OPMODE_STBY = 1
@@ -145,44 +103,6 @@ class PhySX127x(object):
     OPMODE_RXCONT = 5
     OPMODE_RXONCE = 6
     OPMODE_CAD = 7
-
-    # Field info named tuple
-    FldInfo = collections.namedtuple(
-        "FldInfo",
-        "lora_mode reg_start reg_cnt bit_start "
-        "bit_cnt val_min val_max val_reset")
-
-    # Field info table
-    _fld_info = {
-        # field                              lora    reg                     reg     bit     bit     val                 val                 val
-        # name                               mode    start                   cnt     start   cnt     min                 max                 reset
-        "FLD_RDO_LF_MODE":          FldInfo( False,  REG_RDO_OPMODE,         1,      3,      1,      0,                  1,                  1                   ),
-        "FLD_RDO_LORA_MODE":        FldInfo( False,  REG_RDO_OPMODE,         1,      7,      1,      0,                  1,                  0                   ),
-        "FLD_RDO_FREQ":             FldInfo( False,  REG_RDO_FREQ_MSB,       3,      0,      8,      STNG_RF_FREQ_MIN,   STNG_RF_FREQ_MAX,   434000000           ),
-        "FLD_RDO_OUT_PWR":          FldInfo( False,  REG_RDO_PA_CFG,         1,      0,      4,      0,                  15,                 0x0F                ),
-        "FLD_RDO_MAX_PWR":          FldInfo( False,  REG_RDO_PA_CFG,         1,      4,      3,      0,                  7,                  0x04                ),
-        "FLD_RDO_PA_BOOST":         FldInfo( False,  REG_RDO_PA_CFG,         1,      7,      1,      0,                  1,                  0                   ),
-        "FLD_RDO_LNA_BOOST_HF":     FldInfo( False,  REG_RDO_LNA,            1,      0,      2,      0,                  3,                  0                   ),
-        "FLD_RDO_LNA_GAIN":         FldInfo( False,  REG_RDO_LNA,            1,      5,      3,      1,                  6,                  0x01                ),
-        "FLD_RDO_DIO0":             FldInfo( False,  REG_RDO_DIOMAP1,        1,      6,      2,      0,                  2,                  0                   ),
-        "FLD_RDO_DIO1":             FldInfo( False,  REG_RDO_DIOMAP1,        1,      4,      2,      0,                  2,                  0                   ),
-        "FLD_RDO_DIO2":             FldInfo( False,  REG_RDO_DIOMAP1,        1,      2,      2,      0,                  2,                  0                   ),
-        "FLD_RDO_DIO3":             FldInfo( False,  REG_RDO_DIOMAP1,        1,      0,      2,      0,                  2,                  0                   ),
-        "FLD_RDO_DIO4":             FldInfo( False,  REG_RDO_DIOMAP2,        1,      6,      2,      0,                  2,                  0                   ),
-        "FLD_RDO_DIO5":             FldInfo( False,  REG_RDO_DIOMAP2,        1,      4,      2,      0,                  2,                  0                   ),
-
-        "FLD_LORA_IMPLCT_HDR_MODE": FldInfo( True,   REG_LORA_CFG1,          1,      0,      1,      0,                  1,                  0                   ),
-        "FLD_LORA_CR":              FldInfo( True,   REG_LORA_CFG1,          1,      1,      3,      STNG_LORA_CR_MIN,   STNG_LORA_CR_MAX,   STNG_LORA_CR_4TO5   ),
-        "FLD_LORA_BW":              FldInfo( True,   REG_LORA_CFG1,          1,      4,      4,      STNG_LORA_BW_MIN,   STNG_LORA_BW_MAX,   STNG_LORA_BW_125K   ),
-        "FLD_LORA_CRC_EN":          FldInfo( True,   REG_LORA_CFG2,          1,      2,      1,      0,                  1,                  0                   ),
-        "FLD_LORA_SF":              FldInfo( True,   REG_LORA_CFG2,          1,      4,      4,      STNG_LORA_SF_MIN,   STNG_LORA_SF_MAX,   STNG_LORA_SF_128_CPS),
-        "FLD_LORA_RX_TMOUT":        FldInfo( True,   REG_LORA_CFG2,          2,      0,      2,      0,                  (1<<10)-1,          0x00                ),
-        "_FLD_LORA_RX_TMOUT_2":     FldInfo( 0,      REG_LORA_RX_SYM_TMOUT,  0,      0,      0,      0,                  0,                  0x64                ),
-        "FLD_LORA_PREAMBLE_LEN":    FldInfo( True,   REG_LORA_PREAMBLE_LEN,  2,      0,      16,     0,                  (1<<16)-1,          0x00                ),
-        "_FLD_LORA_PREAMBLE_LEN_2": FldInfo( 0,      REG_LORA_PREAMBLE_LEN_LSB, 0,   0,      0,      0,                  0,                  0x08                ),
-        "FLD_LORA_AGC_ON":          FldInfo( True,   REG_LORA_CFG3,          1,      2,      1,      0,                  1,                  0                   ),
-        "FLD_LORA_SYNC_WORD":       FldInfo( True,   REG_LORA_SYNC_WORD,     1,      0,      8,      0,                  (1<<8)-1,           0x12                ),
-    }
 
     def __init__(self,):
         """Validates the SPI, DIOx pin and Reset pin config.
@@ -209,8 +129,9 @@ class PhySX127x(object):
         assert 0 <= phy_cfg.reset_cfg <= 48, "Not a valid RPi GPIO number"
         self.reset_cfg = phy_cfg.reset_cfg
 
+        self._stngs = PhySX127xSettings()
 
-#### Public methods
+# Public
 
     def clear_irq_flags(self,):
         """Writes the IRQ flags reg back to itself to clear the flags
@@ -220,7 +141,8 @@ class PhySX127x(object):
 
 
     def close(self,):
-        """Disables GPIO and closes the SPI port.
+        """Closes the SX127X command interface.
+        Disables GPIO and closes the SPI port.
         """
         # TODO: put the radio in standby or sleep
         GPIO.cleanup()
@@ -228,7 +150,8 @@ class PhySX127x(object):
 
 
     def open(self, dio_isr_clbk):
-        """Resets the radio, clears internal settings,
+        """Opens the SX127X command interface.
+        Resets the radio, clears internal settings,
         validates the chip communications,
         puts the modem into LoRa mode
         and initializes callbacks for DIOx pin inputs.
@@ -248,9 +171,9 @@ class PhySX127x(object):
         # This is needed so the state machine receives the ModeReady event
         self.write_opmode(PhySX127x.OPMODE_SLEEP, False)
         self.set_fld("FLD_RDO_LORA_MODE", 1)
-        self.write_sleep_stngs()
+        self.write_sleep_settings()
         self.write_opmode(PhySX127x.OPMODE_STBY, False)
-        self._rdo_stngs_applied["FLD_RDO_LORA_MODE"] = 1
+        self._stngs.apply("FLD_RDO_LORA_MODE")
 
         # Init DIOx pins
         if dio_isr_clbk is not None:
@@ -327,7 +250,7 @@ class PhySX127x(object):
         GPIO.output(self.reset_cfg, GPIO.HIGH)
         time.sleep(0.005) # >5ms
 
-        self._reset_rdo_stngs()
+        self._stngs.reset()
 
 
     def set_fld(self, fld, val):
@@ -336,31 +259,7 @@ class PhySX127x(object):
         Once all the fields have been set, call write_stngs() to write
         all of the settings to the register(s).
         """
-        assert fld in PhySX127x._fld_info.keys(), "Invalid field name"
-        minval = PhySX127x._fld_info[fld].val_min
-        maxval = PhySX127x._fld_info[fld].val_max
-        assert minval <= val <= maxval, "Invalid value"
-
-        # Settings special cases for multi-reg values
-        if fld == "FLD_RDO_FREQ":
-            assert PhySX127x._fld_info[fld].reg_cnt == 3
-            # Errata 2.3: store freq so rejection offset may be applied during write_stngs()
-            self._rdo_stngs_freq = val
-
-        elif fld == "FLD_LORA_RX_TMOUT":
-            assert PhySX127x._fld_info[fld].reg_cnt == 2
-            self._rdo_stngs["FLD_LORA_RX_TMOUT"] = (val >> 8) & 0xFF
-            self._rdo_stngs["_FLD_LORA_RX_TMOUT_2"] = (val >> 0) & 0xFF
-
-        elif fld == "FLD_LORA_PREAMBLE_LEN":
-            assert PhySX127x._fld_info[fld].reg_cnt == 2
-            self._rdo_stngs["FLD_LORA_PREAMBLE_LEN"] = (val >> 8) & 0xFF
-            self._rdo_stngs["_FLD_LORA_PREAMBLE_LEN_2"] = (val >> 0) & 0xFF
-
-        # Settings normal case for single-reg values
-        else:
-            assert PhySX127x._fld_info[fld].reg_cnt == 1
-            self._rdo_stngs[fld] = val & self._bit_fld(0, PhySX127x._fld_info[fld].bit_cnt)
+        self._stngs.set(fld, val)
 
 
     def set_flds(self, stngs):
@@ -379,7 +278,7 @@ class PhySX127x(object):
         being in sleep mode to be applied.
         At this time, only the LoRa Mode requires sleep mode.
         """
-        return self._rdo_stng_changed("FLD_RDO_LORA_MODE")
+        return self._stngs.changed("FLD_RDO_LORA_MODE")
 
 
     def updt_rng(self,):
@@ -426,91 +325,40 @@ class PhySX127x(object):
         self._en_dio5_clbk = en_mode_rdy
 
 
-    def write_sleep_stngs(self,):
+    def write_sleep_settings(self,):
         """Writes settings that need the chip to be in sleep mode.
         At this time, only the LoRa Mode requires sleep mode.
         """
-        if self._rdo_stng_changed("FLD_RDO_LORA_MODE"):
+        if self._stngs.changed("FLD_RDO_LORA_MODE"):
             # RMW to LoRa Mode bit in the OpMode reg
             reg = self.read_opmode()
-            if self._rdo_stngs["FLD_RDO_LORA_MODE"]:
+            if self._stngs.get("FLD_RDO_LORA_MODE"):
                 reg |= 0x80
             else:
                 reg &= 0x7F
             self._write(PhySX127x.REG_RDO_OPMODE, reg)
-            # Record what was written
-            self._rdo_stngs_applied["FLD_RDO_LORA_MODE"] = self._rdo_stngs["FLD_RDO_LORA_MODE"]
+            self._stngs.apply("FLD_RDO_LORA_MODE")
 
 
     def write_stng(self, fld):
-        """Writes one setting to its register(s)
-        """
-        if self._rdo_stng_changed(fld):
-            reg = self._read(PhySX127x._fld_info[fld].reg_start)[0]
-            bitf = self._bit_fld(PhySX127x._fld_info[fld].bit_start,
-                                 PhySX127x._fld_info[fld].bit_cnt)
-            reg &= (~bitf & 0xFF)
-            reg |= (bitf & ( self._rdo_stngs[fld] << PhySX127x._fld_info[fld].bit_start))
-            self._write(PhySX127x._fld_info[fld].reg_start, reg)
-            # Record what was written
-            self._rdo_stngs_applied[fld] = self._rdo_stngs[fld]
+        """Writes one setting to its register(s)"""
+        if self._stngs.changed(fld):
+            reg = self._read(PhySX127xSettings.get_reg(fld))[0]
+            reg = self._stngs.modify(fld, reg)
+            self._write(PhySX127xSettings.get_reg(fld), reg)
+            self._stngs.apply(fld)
 
 
     def write_stngs(self, for_rx):
-        """Writes the settings values that are changed
-        to the proper radio registers
-        """
-        freq = self._rdo_stngs_freq
-        auto_if_on = False  # Errata-recommended value after reset
-        reg_if_freq2 = 0x20  # Reset value
+        """Writes the settings values that are changed to the registers"""
+        assert type(for_rx) is bool
 
-        # Apply Errata 2.3 for LoRa mode receving
-        if for_rx and self._rdo_stngs["FLD_RDO_LORA_MODE"]:
-            if self._rdo_stngs["FLD_LORA_BW"] >= PhySX127x.STNG_LORA_BW_500K:
-                auto_if_on = True
-            else:
-                # Adjust the intermediate freq per errata
-                if_freq2_lut = ( 0x48, 0x44, 0x44, 0x44, 0x44, 0x44, 0x40, 0x40, 0x40, )
-                reg_if_freq2 = if_freq2_lut[self._rdo_stngs["FLD_LORA_BW"]]
-                # Add the offset to the carrier freq and fill the stngs holding array with that
-                refection_offset_hz_lut = ( 7810, 10420, 15620, 20830, 31250, 41670, 0, 0, 0, )
-                freq += refection_offset_hz_lut[self._rdo_stngs["FLD_LORA_BW"]]
-
-        # If LoRa mode or LoRa BW has changed, apply the errata values to their regs
-        if(self._rdo_stng_changed("FLD_RDO_LORA_MODE") or
-           self._rdo_stng_changed("FLD_LORA_BW")):
-            self._write(PhySX127x.REG_LORA_IF_FREQ_2, reg_if_freq2)
-            reg = self._read(PhySX127x.REG_LORA_DTCT_OPTMZ)[0]
-            reg &= 0x7F
-            reg |= (0, 0x80)[auto_if_on]
-            self._write(PhySX127x.REG_LORA_DTCT_OPTMZ, reg)
-
-        # Write outstanding carrier freq to the regs
-        if freq != self._rdo_stngs_freq_applied:
-            # Adjust numerical frequency to register value
-            reg_freq = round(freq * 2**19 / PhySX127x.SX127X_OSC_FREQ)
-            regs = [
-                (reg_freq >> 16) & 0xFF,    # MSB
-                (reg_freq >> 8) & 0xFF,     # MID
-                (reg_freq >> 0) & 0xFF,     # LSB
-            ]
-            self._write(PhySX127x.REG_RDO_FREQ_MSB, regs)
-            self._rdo_stngs_freq_applied = freq
-
-        # RMW typical settings if they have changed
-        for fld in PhySX127x._fld_info.keys():
+        self._write_errata(for_rx)
+        for fld in PhySX127xSettings.get_field_names():
             self.write_stng(fld)
 
 
-#### Private methods
-
-    def _bit_fld(self, ls1, nbits):
-        """Creates a bitfield per
-        https://stackoverflow.com/questions/8774567/c-macro-to-create-a-bit-mask-possible-and-have-i-found-a-gcc-bug
-        """
-        assert nbits <= 8
-        return ((0xFF >> (7 - ((ls1) + (nbits) - 1))) & ~((1 << (ls1)) - 1))
-
+# Private
 
     def _dio0_isr(self, chnl):
         dio0_to_sig_lut = (
@@ -518,8 +366,8 @@ class PhySX127x(object):
             PhySX127x.DIO_TX_DONE,
             PhySX127x.DIO_CAD_DONE,
         )
-        assert self._rdo_stngs_applied["FLD_RDO_DIO0"] < len(dio0_to_sig_lut)
-        self._dio_isr_clbk(dio0_to_sig_lut[self._rdo_stngs_applied["FLD_RDO_DIO0"]])
+        self._dio_isr_clbk(
+                dio0_to_sig_lut[self._stngs.get_applied("FLD_RDO_DIO0")])
 
 
     def _dio1_isr(self, chnl):
@@ -528,8 +376,8 @@ class PhySX127x(object):
             PhySX127x.DIO_FHSS_CHG_CHNL,
             PhySX127x.DIO_CAD_DETECTED,
         )
-        assert self._rdo_stngs_applied["FLD_RDO_DIO1"] < len(dio1_to_sig_lut)
-        self._dio_isr_clbk(dio1_to_sig_lut[self._rdo_stngs_applied["FLD_RDO_DIO1"]])
+        self._dio_isr_clbk(
+                dio1_to_sig_lut[self._stngs.get_applied("FLD_RDO_DIO1")])
 
 
     def _dio2_isr(self, chnl):
@@ -538,8 +386,8 @@ class PhySX127x(object):
             PhySX127x.DIO_FHSS_CHG_CHNL,
             PhySX127x.DIO_FHSS_CHG_CHNL,
         )
-        assert self._rdo_stngs_applied["FLD_RDO_DIO2"] < len(dio2_to_sig_lut)
-        self._dio_isr_clbk(dio2_to_sig_lut[self._rdo_stngs_applied["FLD_RDO_DIO2"]])
+        self._dio_isr_clbk(
+                dio2_to_sig_lut[self._stngs.get_applied("FLD_RDO_DIO2")])
 
 
     def _dio3_isr(self, chnl):
@@ -548,8 +396,8 @@ class PhySX127x(object):
             PhySX127x.DIO_VALID_HDR,
             PhySX127x.DIO_PAYLD_CRC_ERR,
         )
-        assert self._rdo_stngs_applied["FLD_RDO_DIO3"] < len(dio3_to_sig_lut)
-        self._dio_isr_clbk(dio3_to_sig_lut[self._rdo_stngs_applied["FLD_RDO_DIO3"]])
+        self._dio_isr_clbk(
+                dio3_to_sig_lut[self._stngs.get_applied("FLD_RDO_DIO3")])
 
 
     def _dio4_isr(self, chnl):
@@ -558,8 +406,8 @@ class PhySX127x(object):
             PhySX127x.DIO_PLL_LOCK,
             PhySX127x.DIO_PLL_LOCK,
         )
-        assert self._rdo_stngs_applied["FLD_RDO_DIO4"] < len(dio4_to_sig_lut)
-        self._dio_isr_clbk(dio4_to_sig_lut[self._rdo_stngs_applied["FLD_RDO_DIO4"]])
+        self._dio_isr_clbk(
+                dio4_to_sig_lut[self._stngs.get_applied("FLD_RDO_DIO4")])
 
 
     def _dio5_isr(self, chnl):
@@ -568,17 +416,9 @@ class PhySX127x(object):
             PhySX127x.DIO_CLK_OUT,
             PhySX127x.DIO_CLK_OUT,
         )
-        assert self._rdo_stngs_applied["FLD_RDO_DIO5"] < len(dio5_to_sig_lut)
         if self._en_dio5_clbk:
-            self._dio_isr_clbk(dio5_to_sig_lut[self._rdo_stngs_applied["FLD_RDO_DIO5"]])
-
-
-    def _rdo_stng_changed(self, fld):
-        """Returns True if the setting field differs
-        from the one that's applied.
-        """
-        assert fld in PhySX127x._fld_info.keys(), "Invalid settings field name"
-        return self._rdo_stngs[fld] != self._rdo_stngs_applied[fld]
+            self._dio_isr_clbk(
+                    dio5_to_sig_lut[self._stngs.get_applied("FLD_RDO_DIO5")])
 
 
     def _read(self, reg_addr, nbytes=1):
@@ -590,22 +430,6 @@ class PhySX127x(object):
         b = [reg_addr,]
         b.extend([0,] * nbytes)
         return self.spi.xfer2(b)[1:]
-
-
-    def _reset_rdo_stngs(self,):
-        """Sets the internal settings data
-        to the radio register reset values.
-        This should be done after a chip reset
-        so this driver is synchronized with the chip.
-        """
-        self._rdo_stngs = {}
-        self._rdo_stngs_applied = {}
-        self._rdo_stngs_freq_applied = 0
-
-        for fld in PhySX127x._fld_info.keys():
-            val = PhySX127x._fld_info[fld].val_reset
-            self._rdo_stngs[fld] = val
-            self._rdo_stngs_applied[fld] = val
 
 
     def _validate_chip(self,):
@@ -633,3 +457,251 @@ class PhySX127x(object):
             b.extend(data)
 
         return self.spi.xfer2(b)[1:]
+
+
+    def _write_errata(self, for_rx):
+        freq = self._stngs.get("FLD_RDO_FREQ")
+        auto_if_on = False  # Errata-recommended value after reset
+        reg_if_freq2 = 0x20  # Reset value
+
+        # Apply Errata 2.3 for LoRa mode receving
+        if for_rx and bool(self._stngs.get("FLD_RDO_LORA_MODE")):
+            bw = self._stngs.get("FLD_LORA_BW")
+            if bw >= PhySX127xSettings.STNG_LORA_BW_500K:
+                auto_if_on = True
+            else:
+                # Adjust the intermediate freq per errata
+                if_freq2_lut = ( 0x48, 0x44, 0x44, 0x44, 0x44, 0x44, 0x40, 0x40, 0x40, )
+                reg_if_freq2 = if_freq2_lut[bw]
+                # Add the rejection offset to the carrier freq and fill the stngs holding array with that
+                rejection_offset_hz_lut = ( 7810, 10420, 15620, 20830, 31250, 41670, 0, 0, 0, )
+                freq += rejection_offset_hz_lut[bw]
+
+        # If LoRa mode or LoRa BW has changed, apply the errata values to their regs
+        if(self._stngs.changed("FLD_RDO_LORA_MODE") or
+           self._stngs.changed("FLD_LORA_BW")):
+            self._write(PhySX127x.REG_LORA_IF_FREQ_2, reg_if_freq2)
+            reg = self._read(PhySX127x.REG_LORA_DTCT_OPTMZ)[0]
+            reg &= 0x7F
+            reg |= (0, 0x80)[auto_if_on]
+            self._write(PhySX127x.REG_LORA_DTCT_OPTMZ, reg)
+
+        # Write outstanding carrier freq to the regs
+        if freq != self._stngs.get_applied("FLD_RDO_FREQ"):
+            # Adjust numerical frequency to register value
+            reg_freq = round(freq * 2**19 / PhySX127x.SX127X_OSC_FREQ)
+            regs = [
+                (reg_freq >> 16) & 0xFF,    # MSB
+                (reg_freq >> 8) & 0xFF,     # MID
+                (reg_freq >> 0) & 0xFF,     # LSB
+            ]
+            self._write(PhySX127x.REG_RDO_FREQ_MSB, regs)
+            self._stngs_freq_applied = freq
+
+
+class PhySX127xSettings(object):
+    """Tracks the register settings for a SX127x radio.
+    A settings field is one or more bits that come from a SX127x register,
+    but is abstracted out of the register and bit position.  You simply use
+    a "FLD_***_***" string to access the field.  This class takes care of
+    knowing the field's register, the masking and the shifting.
+
+    When setting a value to a field, the value is validated against min/max
+    values.  Also the value is held in a cache of requested field changes
+    so that PhySX127x class can write all modified fields at once
+    when the radio is in a good state to do so.
+    When that mass-write takes place, only modified fields are
+    written and afterward the requested values are considered applied.
+    """
+
+    # Radio Frequency limits [Hz]
+    STNG_RF_FREQ_MIN = 137000000
+    STNG_RF_FREQ_MAX = 1020000000
+
+    # LoRa Bandwidth options
+    # TX and RX stations must use the same setting.
+    STNG_LORA_BW_7K8 = 0    # better sensitivity
+    STNG_LORA_BW_10K4 = 1   #
+    STNG_LORA_BW_15K6 = 2   #
+    STNG_LORA_BW_20K8 = 3   #
+    STNG_LORA_BW_31K25 = 4  #
+    STNG_LORA_BW_41K7 = 5   #
+    STNG_LORA_BW_62K5 = 6   #
+    STNG_LORA_BW_125K = 7   #
+    STNG_LORA_BW_250K = 8   #
+    STNG_LORA_BW_500K = 9   # higher datarate
+    STNG_LORA_BW_MIN = 0
+    STNG_LORA_BW_MAX = 9
+
+    # LoRa Coding Rate options
+    # Included in the PHY's explicit header
+    # so robustness can be modified on the fly.
+    STNG_LORA_CR_4TO5 = 1   # higher datarate
+    STNG_LORA_CR_4TO6 = 2   #
+    STNG_LORA_CR_4TO7 = 3   #
+    STNG_LORA_CR_4TO8 = 4   # better immunity to noise/interference
+    STNG_LORA_CR_MIN = 1
+    STNG_LORA_CR_MAX = 4
+
+    # LoRa Spreading Factor options
+    # TX and RX stations must use the same setting.
+    # Different SF values are orthogonal and may safely occupy the same bands
+    STNG_LORA_SF_64_CPS = 6     # higher datarate
+    STNG_LORA_SF_128_CPS = 7    #
+    STNG_LORA_SF_256_CPS = 8    #
+    STNG_LORA_SF_512_CPS = 9    #
+    STNG_LORA_SF_1024_CPS = 10  #
+    STNG_LORA_SF_2048_CPS = 11  #
+    STNG_LORA_SF_4096_CPS = 12  # better sensitivity == increased range
+    STNG_LORA_SF_MIN = 6
+    STNG_LORA_SF_MAX = 12
+
+    # Field info named tuple
+    FldInfo = collections.namedtuple(
+        "FldInfo",
+        "lora_mode reg_start reg_cnt bit_start "
+        "bit_cnt val_min val_max val_reset")
+
+    # Field info table
+    _fld_info = {
+        # field                              lora    reg                                reg     bit     bit     val                 val                 val
+        # name                               mode    start                              cnt     start   cnt     min                 max                 reset
+        "FLD_RDO_LF_MODE":          FldInfo( False,  PhySX127x.REG_RDO_OPMODE,          1,      3,      1,      0,                  1,                  1                   ),
+        "FLD_RDO_LORA_MODE":        FldInfo( False,  PhySX127x.REG_RDO_OPMODE,          1,      7,      1,      0,                  1,                  0                   ),
+        "FLD_RDO_FREQ":             FldInfo( False,  PhySX127x.REG_RDO_FREQ_MSB,        3,      0,      8,      STNG_RF_FREQ_MIN,   STNG_RF_FREQ_MAX,   434000000           ),
+        "FLD_RDO_OUT_PWR":          FldInfo( False,  PhySX127x.REG_RDO_PA_CFG,          1,      0,      4,      0,                  15,                 0x0F                ),
+        "FLD_RDO_MAX_PWR":          FldInfo( False,  PhySX127x.REG_RDO_PA_CFG,          1,      4,      3,      0,                  7,                  0x04                ),
+        "FLD_RDO_PA_BOOST":         FldInfo( False,  PhySX127x.REG_RDO_PA_CFG,          1,      7,      1,      0,                  1,                  0                   ),
+        "FLD_RDO_LNA_BOOST_HF":     FldInfo( False,  PhySX127x.REG_RDO_LNA,             1,      0,      2,      0,                  3,                  0                   ),
+        "FLD_RDO_LNA_GAIN":         FldInfo( False,  PhySX127x.REG_RDO_LNA,             1,      5,      3,      1,                  6,                  0x01                ),
+        "FLD_RDO_DIO0":             FldInfo( False,  PhySX127x.REG_RDO_DIOMAP1,         1,      6,      2,      0,                  2,                  0                   ),
+        "FLD_RDO_DIO1":             FldInfo( False,  PhySX127x.REG_RDO_DIOMAP1,         1,      4,      2,      0,                  2,                  0                   ),
+        "FLD_RDO_DIO2":             FldInfo( False,  PhySX127x.REG_RDO_DIOMAP1,         1,      2,      2,      0,                  2,                  0                   ),
+        "FLD_RDO_DIO3":             FldInfo( False,  PhySX127x.REG_RDO_DIOMAP1,         1,      0,      2,      0,                  2,                  0                   ),
+        "FLD_RDO_DIO4":             FldInfo( False,  PhySX127x.REG_RDO_DIOMAP2,         1,      6,      2,      0,                  2,                  0                   ),
+        "FLD_RDO_DIO5":             FldInfo( False,  PhySX127x.REG_RDO_DIOMAP2,         1,      4,      2,      0,                  2,                  0                   ),
+
+        "FLD_LORA_IMPLCT_HDR_MODE": FldInfo( True,   PhySX127x.REG_LORA_CFG1,           1,      0,      1,      0,                  1,                  0                   ),
+        "FLD_LORA_CR":              FldInfo( True,   PhySX127x.REG_LORA_CFG1,           1,      1,      3,      STNG_LORA_CR_MIN,   STNG_LORA_CR_MAX,   STNG_LORA_CR_4TO5   ),
+        "FLD_LORA_BW":              FldInfo( True,   PhySX127x.REG_LORA_CFG1,           1,      4,      4,      STNG_LORA_BW_MIN,   STNG_LORA_BW_MAX,   STNG_LORA_BW_125K   ),
+        "FLD_LORA_CRC_EN":          FldInfo( True,   PhySX127x.REG_LORA_CFG2,           1,      2,      1,      0,                  1,                  0                   ),
+        "FLD_LORA_SF":              FldInfo( True,   PhySX127x.REG_LORA_CFG2,           1,      4,      4,      STNG_LORA_SF_MIN,   STNG_LORA_SF_MAX,   STNG_LORA_SF_128_CPS),
+        "FLD_LORA_RX_TMOUT":        FldInfo( True,   PhySX127x.REG_LORA_CFG2,           2,      0,      2,      0,                  (1<<10)-1,          0x00                ),
+        "_FLD_LORA_RX_TMOUT_2":     FldInfo( 0,      PhySX127x.REG_LORA_RX_SYM_TMOUT,   0,      0,      0,      0,                  0,                  0x64                ),
+        "FLD_LORA_PREAMBLE_LEN":    FldInfo( True,   PhySX127x.REG_LORA_PREAMBLE_LEN,   2,      0,      16,     0,                  (1<<16)-1,          0x00                ),
+        "_FLD_LORA_PREAMBLE_LEN_2": FldInfo( 0,      PhySX127x.REG_LORA_PREAMBLE_LEN_LSB,0,     0,      0,      0,                  0,                  0x08                ),
+        "FLD_LORA_AGC_ON":          FldInfo( True,   PhySX127x.REG_LORA_CFG3,           1,      2,      1,      0,                  1,                  0                   ),
+        "FLD_LORA_SYNC_WORD":       FldInfo( True,   PhySX127x.REG_LORA_SYNC_WORD,      1,      0,      8,      0,                  (1<<8)-1,           0x12                ),
+    }
+
+    def __init__(self,):
+        self._stngs = {}
+        self._stngs_applied = {}
+        self.reset()
+
+# Public
+
+    @classmethod
+    def get_field_names(cls):
+        return filter(lambda x: not x.startswith("_"), cls._fld_info.keys())
+
+    @classmethod
+    def get_reg(cls, fld):
+        return cls._fld_info[fld].reg_start
+
+    @classmethod
+    def get_reset_value(cls, fld):
+        return cls._fld_info[fld].val_reset
+
+    def apply(self, fld):
+        """Copies the desired value to the applied value.
+        This should be called when the setting is actually
+        written to the device register.
+        """
+        self._stngs_applied[fld] = self._stngs[fld]
+
+    def changed(self, fld):
+        """Returns True if the setting field differs
+        from the one that's applied.
+        """
+        return self._stngs[fld] != self._stngs_applied[fld]
+
+    def get(self, fld):
+        # Frequency is a special case because it's multi-reg and
+        # is handled specially due to chip errata
+        if fld == "FLD_RDO_FREQ":
+            return self._rdo_stngs_freq
+        else:
+            return self._stngs[fld]
+
+    def get_applied(self, fld):
+        return self._stngs_applied[fld]
+
+    def modify(self, fld, val):
+        """Modifies the given value to clear out the former bits
+        for the given field and put the requested value in their place.
+        """
+        # FIXME: for fields that span >1 register
+        if PhySX127xSettings._fld_info[fld].reg_cnt > 1: return val
+
+        bit_start = self._fld_info[fld].bit_start
+        bitf = self._bit_fld(bit_start,
+                             self._fld_info[fld].bit_cnt)
+        val &= (~bitf & 0xFF)
+        val |= (bitf & (self._stngs[fld] << bit_start))
+        return val
+
+
+    def reset(self):
+        """Applies the chip-reset values to all of the fields.
+        This should be done after a chip reset
+        so this driver is synchronized with the chip.
+        """
+        for fld in self.get_field_names():
+            val = self.get_reset_value(fld)
+            self._stngs[fld] = val
+            self._stngs_applied[fld] = val
+        self._rdo_stngs_freq_applied = 0
+
+    def set(self, fld, val):
+        """Sets the field to the value.
+        The field is not written to the register(s) in this procedure.
+        Once all the fields have been set, call write_stngs() to write
+        all of the settings to the register(s).
+        """
+        minval = PhySX127xSettings._fld_info[fld].val_min
+        maxval = PhySX127xSettings._fld_info[fld].val_max
+        assert minval <= val <= maxval, "Invalid value"
+
+        self._stngs[fld] = val
+
+        # Settings special cases for multi-reg values
+        if fld == "FLD_RDO_FREQ":
+            assert PhySX127xSettings._fld_info[fld].reg_cnt == 3
+            # Errata 2.3: store freq so rejection offset may be applied later
+            self._rdo_stngs_freq = val
+
+        elif fld == "FLD_LORA_RX_TMOUT":
+            assert PhySX127xSettings._fld_info[fld].reg_cnt == 2
+            self._stngs["FLD_LORA_RX_TMOUT"] = (val >> 8) & 0xFF
+            self._stngs["_FLD_LORA_RX_TMOUT_2"] = (val >> 0) & 0xFF
+
+        elif fld == "FLD_LORA_PREAMBLE_LEN":
+            assert PhySX127xSettings._fld_info[fld].reg_cnt == 2
+            self._stngs["FLD_LORA_PREAMBLE_LEN"] = (val >> 8) & 0xFF
+            self._stngs["_FLD_LORA_PREAMBLE_LEN_2"] = (val >> 0) & 0xFF
+
+        # Settings normal case for single-reg values
+        else:
+            assert PhySX127xSettings._fld_info[fld].reg_cnt == 1
+            mask = self._bit_fld(0, PhySX127xSettings._fld_info[fld].bit_cnt)
+            self._stngs[fld] = val & mask
+
+# Private
+
+    def _bit_fld(self, ls1, nbits):
+        """Creates a bitfield per
+        https://stackoverflow.com/questions/8774567/c-macro-to-create-a-bit-mask-possible-and-have-i-found-a-gcc-bug
+        """
+        assert nbits <= 8
+        return ((0xFF >> (7 - ((ls1) + (nbits) - 1))) & ~((1 << (ls1)) - 1))
