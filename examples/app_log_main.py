@@ -11,29 +11,27 @@ import socket
 import sys
 
 import farc
-import farc.SimpleSpy
 import heymac
 import lnk_heymac
+import phy_sx127x
 
 
 def main():
-    if False:
-        farc.Spy.enable_spy(farc.SimpleSpy)
-    else:
-        logging.basicConfig(
-            stream=sys.stdout,
-            format="%(asctime)s %(message)s",
-            level=logging.DEBUG)
+    logging.basicConfig(
+        stream=sys.stdout,
+        format="%(asctime)s %(message)s",
+        level=logging.DEBUG)
 
     # Compute the long address from host credentials
     station_id = socket.gethostname()
     lnk_addr = heymac.utl.get_long_addr(station_id)
 
     # Instantiate state machines
-    lnk_ahsm = lnk_heymac.LnkHeymacCsmaAhsm(lnk_addr, station_id)
-
-    # Start state machines
-    lnk_ahsm.start_stack(50)
+    phy_ahsm = phy_sx127x.PhySX127xAhsm(True)
+    lnk_ahsm = lnk_heymac.LnkHeymacCsmaAhsm(phy_ahsm, lnk_addr, station_id)
+    # Start state machines with their priorities
+    lnk_ahsm.start(50)
+    phy_ahsm.start(40)
 
     farc.run_forever()
 
