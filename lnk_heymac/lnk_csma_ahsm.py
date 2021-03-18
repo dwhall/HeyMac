@@ -68,12 +68,12 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
     Automates beaconing and frame processing.
     """
-    def __init__(self, lnk_addr, station_id):
+    def __init__(self, phy, lnk_addr, station_id):
         """Class intialization"""
         super().__init__()
 
-        # Instantiate the lower layer
-        self.phy_ahsm = phy_sx127x.PhySX127xAhsm(True)
+        # Init the lower layer
+        self.phy_ahsm = phy
         self.phy_ahsm.set_dflt_stngs(LnkHeymac._PHY_STNGS_DFLT)
         self.phy_ahsm.set_dflt_rx_clbk(self._phy_rx_clbk)
 
@@ -84,20 +84,6 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
         self._station_id = station_id   # UNUSED
 
         self._lnk_data = lnk_data.LnkData(lnk_addr)
-
-
-    def start_stack(self, ahsm_prio, delta_prio=10):
-        """Starts this layer of the network stack.
-
-        This layer must start the lower layer,
-        giving it a higher priority (lower number)
-        and then starts this layer's state machine.
-        """
-        assert delta_prio > 0, \
-            "Lower layer must have higher priority (lower number)"
-        assert ahsm_prio - delta_prio > 0, "Priorty must not go below zero"
-        self.phy_ahsm.start_stack(ahsm_prio - delta_prio)
-        self.start(ahsm_prio)
 
 
 # State machine
