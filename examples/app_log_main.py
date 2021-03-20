@@ -11,9 +11,11 @@ import socket
 import sys
 
 import farc
+
 import heymac
 import lnk_heymac
 import phy_sx127x
+import tui_ahsm
 
 
 def main():
@@ -27,11 +29,14 @@ def main():
     lnk_addr = heymac.utl.get_long_addr(station_id)
 
     # Instantiate state machines
-    phy_ahsm = phy_sx127x.PhySX127xAhsm(True)
-    lnk_ahsm = lnk_heymac.LnkHeymacCsmaAhsm(phy_ahsm, lnk_addr, station_id)
+    phy_sm = phy_sx127x.PhySX127xAhsm(True)
+    lnk_sm = lnk_heymac.LnkHeymacCsmaAhsm(phy_sm, lnk_addr, station_id)
+    tui_sm = tui_ahsm.TxtUiAhsm(phy_sm, lnk_sm)
+
     # Start state machines with their priorities
-    lnk_ahsm.start(50)
-    phy_ahsm.start(40)
+    lnk_sm.start(50)
+    phy_sm.start(40)
+    tui_sm.start(30)
 
     farc.run_forever()
 
