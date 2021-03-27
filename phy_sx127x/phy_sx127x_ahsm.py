@@ -36,6 +36,11 @@ class PhySX127xAhsm(farc.Ahsm):
         self._dflt_rx_stngs = ()
 
 
+    def get_stngs(self,):
+        """Returns the current settings"""
+        return self._dflt_stngs
+
+
     def post_rx_action(self, rx_time, rx_stngs, rx_durxn, rx_clbk):
         """Posts the _PHY_RQST event to this state machine
         with the container-ized arguments as the value.
@@ -471,12 +476,17 @@ class PhySX127xAhsm(farc.Ahsm):
 
         elif sig == farc.Signal._PHY_TMOUT:
             logging.warning("PHY._txing@_PHY_TMOUT")
-            # SX127x takes time to change modes from TX to STBY.
-            # Use DIO5/ModeReady here so we don't transition
-            # to _scheduling before the chip is in STBY mode.
-            # Await _DIO_MODE_RDY
-            self.sx127x.write_opmode(self.sx127x.OPMODE_STBY, True)
-            return self.handled(event)
+            if self.sx127x.in_sim_mode():
+                # Sim-radio will never emit DIO events
+                # so go straight to _scheduling
+                return self.tran(self._scheduling)
+            else:
+                # SX127x takes time to change modes from TX to STBY.
+                # Use DIO5/ModeReady here so we don't transition
+                # to _scheduling and try to do stuff before the
+                # chip is in STBY mode.  Await _DIO_MODE_RDY.
+                self.sx127x.write_opmode(self.sx127x.OPMODE_STBY, True)
+                return self.handled(event)
 
         elif sig == farc.Signal._DIO_MODE_RDY:
             return self.tran(self._scheduling)

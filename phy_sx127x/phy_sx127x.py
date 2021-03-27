@@ -149,6 +149,11 @@ class PhySX127x(object):
         self.spi.close()
 
 
+    def in_sim_mode(self,):
+        """Returns True if this driver is simulating the radio interface."""
+        return "mock" in str(spidev)
+
+
     def open(self, dio_isr_clbk):
         """Opens the SX127X command interface.
         Resets the radio, clears internal settings,
@@ -662,6 +667,7 @@ class PhySX127xSettings(object):
             self._stngs[fld] = val
             self._stngs_applied[fld] = val
         self._rdo_stngs_freq_applied = 0
+
 
     def set(self, fld, val):
         """Sets the field to the value.
