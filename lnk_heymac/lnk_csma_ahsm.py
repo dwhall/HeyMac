@@ -77,6 +77,8 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
         self.phy_ahsm.set_dflt_stngs(LnkHeymac._PHY_STNGS_DFLT)
         self.phy_ahsm.set_dflt_rx_clbk(self._phy_rx_clbk)
 
+        self._rx_clbk = None
+
         # TODO: these go in lnk data?
         assert type(lnk_addr) is bytes
         assert len(lnk_addr) is LnkHeymac.LNK_ADDR_SZ
@@ -84,6 +86,10 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
         self._station_id = station_id   # UNUSED
 
         self._lnk_data = lnk_data.LnkData(lnk_addr)
+
+
+    def set_rx_clbk(self, rx_clbk):
+        self._rx_clbk = rx_clbk
 
 
 # State machine
@@ -254,7 +260,9 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
                 # Post the frame to PHY for transmission
                 self._post_frm(frame)
 
-        # TODO: See if the NET layer wants to process the frame
+        # Allow the NET layer to process the frame
+        if self._rx_clbk:
+            self._rx_clbk(frame)
 
 
     def _phy_rx_clbk(self, rx_time, rx_bytes, rx_rssi, rx_snr):
