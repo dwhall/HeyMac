@@ -25,12 +25,12 @@ def main():
         level=logging.DEBUG)
 
     # Compute the long address from host credentials
-    station_id = socket.gethostname()
-    lnk_addr = heymac.utl.get_long_addr(station_id)
+    #callsign_ssid = "KC4KSU-999"
+    #lnk_addr = heymac.utl.ham_ident.HamIdent.get_long_addr("HeyMac", callsign_ssid)
 
     # Instantiate state machines
     phy_sm = phy_sx127x.PhySX127xAhsm(True)
-    lnk_sm = lnk_heymac.LnkHeymacCsmaAhsm(phy_sm, lnk_addr, station_id)
+    lnk_sm = lnk_heymac.LnkHeymacCsmaAhsm(phy_sm)
     tui_sm = tui_ahsm.TxtUiAhsm(phy_sm, lnk_sm)
 
     # Start state machines with their priorities

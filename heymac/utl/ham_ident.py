@@ -77,17 +77,17 @@ class HamIdent(object):
 
     @staticmethod
     def get_info_from_cert():
-        cert_fn = HamIdent._get_cert_fn()
-        with open(cert_fn, "rb") as f:
+        person_info = {}
+        fn = HamIdent._get_cert_fn()
+        with open(fn, "rb") as f:
             pem_data = f.read()
             cert = x509.load_pem_x509_certificate(pem_data, default_backend())
-            person_info = {}
             person_info["cmn_name"] = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
             person_info["callsign"] = cert.subject.get_attributes_for_oid(NameOID.PSEUDONYM)[0].value
             person_info["email"] = cert.subject.get_attributes_for_oid(NameOID.EMAIL_ADDRESS)[0].value
-            person_info["country_name"] = cert.subject.get_attributes_for_oid(NameOID.COUNTRY_NAME)[0].value
-            person_info["prov_name"] = cert.subject.get_attributes_for_oid(NameOID.STATE_OR_PROVINCE_NAME)[0].value
-            person_info["zipcode"] = cert.subject.get_attributes_for_oid(NameOID.POSTAL_CODE)[0].value
+            person_info["country"] = cert.subject.get_attributes_for_oid(NameOID.COUNTRY_NAME)[0].value
+            person_info["province"] = cert.subject.get_attributes_for_oid(NameOID.STATE_OR_PROVINCE_NAME)[0].value
+            person_info["postalcode"] = cert.subject.get_attributes_for_oid(NameOID.POSTAL_CODE)[0].value
         return person_info
 
     @staticmethod
@@ -103,23 +103,39 @@ class HamIdent(object):
 
 
     @staticmethod
-    def get_long_addr(app_name, tac_id):
+    def get_info_from_json_cred(app_name):
+        fn = HamIdent._get_cred_fn(app_name)
+        with open(fn) as f:
+            json_info = json.load(f)
+        return json_info
+
+    @staticmethod
+    def _get_cred_fn(app_name):
+        app_path = app_data.get_app_data_path(app_name)
+        result = []
+        for root, _, files in os.walk(app_path):
+            for fn in files:
+                if fnmatch.fnmatch(fn, "*_cred.json"):
+                    result.append(os.path.join(root, fn))
+        assert len(result) == 1, "Expected one cred file"
+        return result[0]
+
+
+    @staticmethod
+    def get_long_addr(app_name):
         """Returns a long address that is computed from
         the public key found in the app's pre-made JSON file.
+        The callsign_ssid may or may not have the SSID.
         """
-        pub_key = HamIdent._get_key_from_json(app_name, tac_id)
+        pub_key = HamIdent._get_key_from_json(app_name)
         saddr = HamIdent._get_addr_from_key(pub_key)
         assert saddr[0] in (0xfc, 0xfd), "Credential not valid"
         return saddr
 
     @staticmethod
-    def _get_key_from_json(app_name, tac_id):
-        fn = os.path.join(
-            app_data.get_app_data_path(app_name),
-            tac_id + "_cred.json")
-        with open(fn) as f:
-            mac_identity = json.load(f)
-        return bytearray.fromhex(mac_identity['pub_key'])
+    def _get_key_from_json(app_name):
+        json_info = HamIdent.get_info_from_json_cred(app_name)
+        return bytearray.fromhex(json_info['pub_key'])
 
     @staticmethod
     def _get_addr_from_key(pub_key):
@@ -157,8 +173,8 @@ class HamIdent(object):
             prv_key = ec.generate_private_key(ec.SECP384R1(), default_backend())
             pub_key = prv_key.public_key()
             der_bytes = pub_key.public_bytes(
-                serialization.Encoding.DER,
-                serialization.PublicFormat.SubjectPublicKeyInfo)
+                    serialization.Encoding.DER,
+                    serialization.PublicFormat.SubjectPublicKeyInfo)
             pub_key_bytes = HamIdent._get_key_from_asn1(der_bytes)
             h = hashlib.sha512()
             h.update(pub_key_bytes)
@@ -200,7 +216,7 @@ class HamIdent(object):
         return pub_key_bytes
 
 
-    def gen_device_credentials(self, dev_id, passphrase):
+    def gen_device_credentials(self, ssid, passphrase):
         """Generates a set of device credential files.
         Opens the personal certificate to get the callsign and common name.
         Generates a new keypair and asks for a passphrase
@@ -210,7 +226,7 @@ class HamIdent(object):
         """
         person_info = HamIdent.get_info_from_cert()
         dev_info = {}
-        dev_info["callsign"] = person_info["callsign"] + '-' + dev_id
+        dev_info["callsign"] = person_info["callsign"] + '-' + ssid
         dev_info["cmn_name"] = person_info["cmn_name"]
 
         prv_key, pub_key = self.gen_device_keypair()
@@ -269,9 +285,9 @@ class HamIdent(object):
             x509.NameAttribute(NameOID.COMMON_NAME, person_info["cmn_name"]),
             x509.NameAttribute(NameOID.PSEUDONYM, person_info["callsign"]),
             x509.NameAttribute(NameOID.EMAIL_ADDRESS, person_info["email"]),
-            x509.NameAttribute(NameOID.COUNTRY_NAME, person_info["country_name"]),
-            x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, person_info["prov_name"]),
-            x509.NameAttribute(NameOID.POSTAL_CODE, person_info["zipcode"]),])
+            x509.NameAttribute(NameOID.COUNTRY_NAME, person_info["country"]),
+            x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, person_info["province"]),
+            x509.NameAttribute(NameOID.POSTAL_CODE, person_info["postalcode"]),])
         now = datetime.datetime.utcnow()
         cert = x509.CertificateBuilder().subject_name( subject
             ).issuer_name( issuer
@@ -298,8 +314,8 @@ class HamIdent(object):
             serialization.Encoding.DER,
             serialization.PublicFormat.SubjectPublicKeyInfo)
         pub_key_bytes = HamIdent._get_key_from_asn1(der_bytes)
-        cred = {"name": field_info["cmn_name"],
-                "tac_id": field_info["callsign"],
+        cred = {"cmn_name": field_info["cmn_name"],
+                "callsign": field_info["callsign"],
                 "pub_key": pub_key_bytes.hex()}
 
         fn = os.path.join(self.app_path, field_info["callsign"] + "_cred.json")

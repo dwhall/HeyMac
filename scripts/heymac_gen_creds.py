@@ -35,10 +35,10 @@ def main(args):
 
 def _gen_device_credentials():
     person_info = HamIdent.get_info_from_cert()
-    dev_id = input("Tactical ID (callsign-###): %s-" % person_info["callsign"])
+    ssid = input("SSID (callsign-###): %s-" % person_info["callsign"])
     passphrase = _input_passphrase()
     ident = HamIdent("HeyMac")
-    ident.gen_device_credentials(dev_id, passphrase)
+    ident.gen_device_credentials(ssid, passphrase)
 
 
 def _gen_personal_credentials():
@@ -67,7 +67,7 @@ def _input_person_info():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--device", default=False, help='Generate device credential files')
-    #parser.add_argument("-d", "--device", default=True, help='Generate device credential files')
+    #parser.add_argument("-d", "--device", default=False, help='Generate device credential files')
+    parser.add_argument("-d", "--device", default=True, help='Generate device credential files')
     args = parser.parse_args()
     main(args)
