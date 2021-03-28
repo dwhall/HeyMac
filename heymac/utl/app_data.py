@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """
-Copyright 2018 Dean Hall.  See LICENSE for details.
+Copyright 2021 Dean Hall.  See LICENSE for details.
 """
 
-import hashlib
-import json
 import os
+import shelve
 import sys
 
 
@@ -30,32 +29,12 @@ def get_app_data_path(app_name):
     return app_data_path
 
 
-def get_from_json(app_name, fn):
-    """Returns a Python dict built from reading the given file as a JSON object.
+def get_app_data_shelve(app_name):
+    """Returns a Python shelve object backed by a file in the app data path.
+    The caller MUST close the shelve object.
     """
+    fn = app_name + ".shelve"
     file_path = os.path.join(get_app_data_path(app_name), fn)
-    with open(file_path) as f:
-        data = json.load(f)
-    return data
-
-
-def get_long_addr(tac_id):
-    """Returns a 64-bit value (long address)
-    that is computed from the public key
-    found in a specific, pre-made file.
-    """
-    fn = tac_id + "_cred.json"
-    # Turn user JSON config files into Python dicts
-    mac_identity = get_from_json("HeyMac", fn)
-    # Convert hex bytes to bytearray since JSON can't do binary strings
-    pub_key = bytearray.fromhex(mac_identity['pub_key'])
-    # Calculate the 64-bit source address from the identity's pub_key
-    h = hashlib.sha512()
-    h.update(pub_key)
-    h.update(h.digest())
-    saddr = h.digest()[:8]
-
-    assert saddr[0] in (0xfc, 0xfd), "Credential not valid"
-    return saddr
+    return shelve.open(file_path, flag='c', writeback=True)
 
 

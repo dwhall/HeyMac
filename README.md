@@ -9,7 +9,7 @@ HeyMac is distilled from and incompatible with IEEE 802.15.4.
 HeyMac is written in Python 3 using the [farc](https://github.com/dwhall/farc)
 state machine framework and is intended to run
 on a Raspberry Pi 3 running Linux.
-HeyMac and farc require the asyncio module found in Python 3.4 and later.
+HeyMac requires Python 3.5 or later.
 
 This project formerly included its own Physical Layer (Layer 1) radio driver,
 but that code is now its own [submodule](https://github.com/dwhall/sx127x_ahsm).
