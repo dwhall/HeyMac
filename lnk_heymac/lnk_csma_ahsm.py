@@ -16,6 +16,7 @@ import phy_sx127x
 from . import lnk_data
 from . import lnk_frame
 from . import lnk_heymac_cmd
+from heymac.utl import ham_ident
 
 
 class LnkHeymac(object):
@@ -68,7 +69,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
     Automates beaconing and frame processing.
     """
-    def __init__(self, phy, lnk_addr, station_id):
+    def __init__(self, phy):
         """Class intialization"""
         super().__init__()
 
@@ -79,13 +80,8 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
         self._rx_clbk = None
 
-        # TODO: these go in lnk data?
-        assert type(lnk_addr) is bytes
-        assert len(lnk_addr) is LnkHeymac.LNK_ADDR_SZ
-        self._lnk_addr = lnk_addr
-        self._station_id = station_id   # UNUSED
-
-        self._lnk_data = lnk_data.LnkData(lnk_addr)
+        self._lnk_addr = ham_ident.HamIdent.get_long_addr("HeyMac")
+        self._lnk_data = lnk_data.LnkData(self._lnk_addr)
 
 
     def set_rx_clbk(self, rx_clbk):
@@ -126,9 +122,6 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             logging.debug("LNK._initializing")
-
-            # Data Link Layer data
-            # self._lnk_data = lnk_csma_data.LnkData()
 
             # Transmit queue
             self.mac_txq = []
