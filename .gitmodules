@@ -1,6 +1,0 @@
-[submodule "deps/phy_sx127x"]
-	path = deps/phy_sx127x
-	url = https://github.com/dwhall/phy_sx127x.git
-[submodule "deps/lnk_heymac"]
-	path = deps/lnk_heymac
-	url = https://github.com/dwhall/lnk_heymac.git
