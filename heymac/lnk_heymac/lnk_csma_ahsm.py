@@ -11,7 +11,6 @@ radio operations using Heymac frame protocol.
 import logging
 
 import farc
-import phy_sx127x
 
 from . import lnk_data
 from . import lnk_frame

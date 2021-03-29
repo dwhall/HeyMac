@@ -13,7 +13,7 @@ from asciimatics.widgets import Button, Frame, Label, Layout, \
         MultiColumnListBox, Text, Widget
 from asciimatics.screen import Screen
 
-import lnk_heymac
+from heymac import lnk_heymac
 
 
 class StatusModel(object):

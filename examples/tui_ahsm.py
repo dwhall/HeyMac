@@ -13,7 +13,6 @@ from asciimatics.exceptions import ResizeScreenError, StopApplication
 from asciimatics.scene import Scene
 from asciimatics.screen import Screen
 import farc
-import phy_sx127x
 
 from tui_ident import IdentModel, IdentView
 from tui_msgs import MsgsModel, MsgsView, StatusModel
