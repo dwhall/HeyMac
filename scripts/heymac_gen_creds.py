@@ -59,9 +59,9 @@ def _input_person_info():
     person_info["cmn_name"] = input("Common name: ")
     person_info["callsign"] = input("Callsign: ")
     person_info["email"] = input("Email: ")
-    person_info["country_name"] = input("Country name: ")
-    person_info["prov_name"] = input("State or province name: ")
-    person_info["zipcode"] = input("Postal/zip code: ")
+    person_info["country"] = input("Country name: ")
+    person_info["province"] = input("State or province name: ")
+    person_info["postalcode"] = input("Postal/zip code: ")
     return person_info
 
 
