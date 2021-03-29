@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model version="5.1.0" links="0">
+ <framework name="qpc"/>
+ <package name="AOs" stereotype="0x02">
+  <class name="LnkHeymacAhsm" superclass="qpc::QActive">
+   <attribute name="tmEvnt" type="QTimeEvt" visibility="0x02" properties="0x00"/>
+   <statechart properties="0x01">
+    <initial target="../1">
+     <initial_glyph conn="28,4,5,0,4,6">
+      <action box="0,-2,10,2"/>
+     </initial_glyph>
+    </initial>
+    <state name="_initializing">
+     <tran trig="_ALWAYS" target="../../2">
+      <tran_glyph conn="22,20,3,0,10,6">
+       <action box="0,-2,10,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="22,10,28,12"/>
+    </state>
+    <state name="_lurking">
+     <documentation>ex_prep()</documentation>
+     <entry brief="bcn_evt.post_in(2 * _BCN_PRD)"/>
+     <exit brief="bcn_evt.disarm()"/>
+     <tran trig="_LNK_BCN_TMOUT" target="../2">
+      <tran_glyph conn="22,36,3,0,26,2">
+       <action box="0,-2,16,2"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="_LNK_RXD_FROM_PHY">
+      <tran_glyph conn="22,70,3,-1,26">
+       <action box="0,-2,20,2"/>
+      </tran_glyph>
+     </tran>
+     <state name="_beaconing">
+      <entry brief="bcn_evt.post_every(_BCN_PRD)">Picks beacon slot, sets timer for next Tslot</entry>
+      <exit brief="bcn_evt.disarm()"/>
+      <tran trig="_LNK_BCN_TMOUT">
+       <action brief="_tx_bcn()"/>
+       <tran_glyph conn="24,48,3,-1,24">
+        <action box="0,-2,24,2"/>
+       </tran_glyph>
+      </tran>
+      <tran trig="_LNK_RXD_FROM_PHY">
+       <choice target="../../2">
+        <guard brief="ngbr_hears_me()"/>
+        <choice_glyph conn="46,50,4,0,4">
+         <action box="1,0,15,2"/>
+        </choice_glyph>
+       </choice>
+       <choice>
+        <choice_glyph conn="46,50,5,-1,2">
+         <action box="1,0,10,2"/>
+        </choice_glyph>
+       </choice>
+       <tran_glyph conn="24,50,3,-1,22">
+        <action box="0,-2,20,2"/>
+       </tran_glyph>
+      </tran>
+      <state name="_linking">
+       <entry brief="_tm_evt.post_every(_LNK_UPDT_PRD)"/>
+       <tran trig="_LNK_TMOUT">
+        <tran_glyph conn="26,62,3,-1,22">
+         <action box="0,-2,20,2"/>
+        </tran_glyph>
+       </tran>
+       <state_glyph node="26,54,32,10">
+        <entry box="1,2,31,2"/>
+       </state_glyph>
+      </state>
+      <state_glyph node="24,38,36,28">
+       <entry box="1,2,29,2"/>
+       <exit box="1,4,29,2"/>
+      </state_glyph>
+     </state>
+     <state_glyph node="22,26,40,46">
+      <entry box="1,2,25,2"/>
+      <exit box="1,4,25,2"/>
+     </state_glyph>
+    </state>
+    <state_diagram size="84,80"/>
+   </statechart>
+  </class>
+ </package>
+ <directory name=".">
+  <file name="sx127x_phy.c"/>
+ </directory>
+</model>
