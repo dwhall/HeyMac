@@ -43,10 +43,9 @@ class TxtUiAhsm(farc.Ahsm):
         screen = Screen.open()
         screen.clear()
         scenes = [
-#            Scene([MsgsView(screen, self._msgs_model, self._status_model)], -1, name="Messages"),
+            Scene([MsgsView(screen, self._msgs_model, self._ident_model, self._stngs_model, self._status_model)], -1, name="Messages"),
             Scene([IdentView(screen, self._ident_model)], -1, name="Identity"),
             Scene([RadioStngsView(screen, self._stngs_model)], -1, name="Settings"),
-            Scene([MsgsView(screen, self._msgs_model, self._ident_model, self._stngs_model, self._status_model)], -1, name="Messages"),
         ]
         screen.set_scenes(scenes)
         self._screen = screen
