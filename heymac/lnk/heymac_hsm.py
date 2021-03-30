@@ -12,10 +12,10 @@ import logging
 
 import farc
 
-from . import heymac_link
-from . import heymac_frame
-from . import heymac_cmd
-from heymac.utl import ham_ident
+from .heymac_link import HeymacLink
+from .heymac_frame import HeymacFrame, HeymacFrameError
+from .heymac_cmd import HeymacCmd, HeymacCmdError, HeymacCmdCsmaBcn
+from heymac.utl.ham_ident import HamIdent
 
 
 class Heymac(object):
@@ -79,8 +79,8 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
 
         self._rx_clbk = None
 
-        self._lnk_addr = ham_ident.HamIdent.get_long_addr("HeyMac")
-        self._lnk_data = heymac_link.HeymacLink(self._lnk_addr)
+        self._lnk_addr = HamIdent.get_long_addr("HeyMac")
+        self._lnk_data = HeymacLink(self._lnk_addr)
 
 
     def set_rx_clbk(self, rx_clbk):
@@ -228,12 +228,12 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
 
     def _on_rxd_from_phy(self, frame):
         """Processes a frame received from the PHY."""
-        assert type(frame) is heymac_frame.HeymacFrame
+        assert type(frame) is HeymacFrame
 
         # Attach the Heymac command, if present
         try:
             cmd = heymac_cmd.HeymacCmd.parse(
-                frame.get_field(heymac_frame.HeymacFrame.FLD_PAYLD))
+                frame.get_field(HeymacFrame.FLD_PAYLD))
         except heymac_cmd.HeymacCmdError:
             cmd = None
         frame.cmd = cmd
@@ -243,11 +243,11 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
 
         # If the frame is a multi-hop Heymac command
         if frame.cmd and frame.is_mhop():
-            hops = frame.get_field(heymac_frame.HeymacFrame.FLD_HOPS)
+            hops = frame.get_field(HeymacFrame.FLD_HOPS)
             if hops > 1:
                 # Update the hops and re-transmitter fields
-                frame.set_field(heymac_frame.HeymacFrame.FLD_HOPS, hops - 1)
-                frame.set_field(heymac_frame.HeymacFrame.FLD_TADDR,
+                frame.set_field(HeymacFrame.FLD_HOPS, hops - 1)
+                frame.set_field(HeymacFrame.FLD_TADDR,
                                 self._lnk_addr)
                 # Post the frame to PHY for transmission
                 self._post_frm(frame)
@@ -268,9 +268,9 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
         # Parse the bytes into a frame
         # and store reception meta-data
         try:
-            frame = heymac_frame.HeymacFrame.parse(rx_bytes)
+            frame = HeymacFrame.parse(rx_bytes)
             frame.rx_meta = (rx_time, rx_rssi, rx_snr)
-        except heymac_frame.HeymacFrameError:
+        except HeymacFrameError:
             logging.info("LNK:rxd frame is not valid Heymac\n\t{}"
                          .format(rx_bytes))
             # TODO: lnk stats incr rxd frame is not Heymac
@@ -288,13 +288,13 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
             FLD_STATUS=0,
             FLD_NETS=(),
             FLD_NGBRS=self._lnk_data.get_ngbrs_lnk_addrs())
-        frame = heymac_frame.HeymacFrame(
-            heymac_frame.HeymacFrame.PID_IDENT_HEYMAC
-            | heymac_frame.HeymacFrame.PID_TYPE_CSMA,
-            heymac_frame.HeymacFrame.FCTL_L
-            | heymac_frame.HeymacFrame.FCTL_S)
-        frame.set_field(heymac_frame.HeymacFrame.FLD_SADDR, self._lnk_addr)
-        frame.set_field(heymac_frame.HeymacFrame.FLD_PAYLD, bytes(bcn))
+        frame = HeymacFrame(
+            HeymacFrame.PID_IDENT_HEYMAC
+            | HeymacFrame.PID_TYPE_CSMA,
+            HeymacFrame.FCTL_L
+            | HeymacFrame.FCTL_S)
+        frame.set_field(HeymacFrame.FLD_SADDR, self._lnk_addr)
+        frame.set_field(HeymacFrame.FLD_PAYLD, bytes(bcn))
         self.phy_ahsm.post_tx_action(
             self.phy_ahsm.TM_NOW,
             Heymac._PHY_STNGS_TX,
@@ -303,7 +303,7 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
 
     def _post_frm(self, frame):
         """Posts the frame to the PHY for transmit."""
-        assert type(frame) is heymac_frame.HeymacFrame
+        assert type(frame) is HeymacFrame
         self.phy_ahsm.post_tx_action(
             self.phy_ahsm.TM_NOW,
             Heymac._PHY_STNGS_TX,
