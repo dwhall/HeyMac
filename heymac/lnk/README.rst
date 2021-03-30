@@ -1,5 +1,5 @@
-lnk_heymac
-==========
+Heymac Link Layer
+=================
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Introduction
 A data link layer (LNK) that provides a frame format
 and automated link data management via a state machine.
 This package uses the `farc`_ state machine framework and
-drives a `Semtech SX127x radio`_ via the `phy_sx127x`_ physical layer.
+drives a `Semtech SX127x radio`_.
 
 A state machine manages the operational behavior and calls into other LNK layer modules
 to generate and parse frames, manage link layer data and manage the PHY.
@@ -18,16 +18,15 @@ and is not operational on its own.
 
 .. _`farc`: https://github.com/dwhall/farc
 .. _`Semtech SX127x radio`: https://www.semtech.com/products/wireless-rf/lora-transceivers/sx1276
-.. _`phy_sx127x`: https://github.com/dwhall/phy_sx127x
 
 
 Software
 --------
 
-lnk_csma_ahsm.py
+heymac_hsm.py
     Contains LnkHeymacAhsm, the link layer state machine.
 
-lnk_frame.py
+heymac_frame.py
     Contains HeymacFrame, which has methods to build or parse a link layer frame.
 
 
@@ -59,7 +58,7 @@ Callable                Description
 State Machine
 -------------
 
-.. image:: docs/LnkHeymacAhsm.png
+.. image:: ../docs/LnkHeymacAhsm.png
 
 
 Settings

@@ -14,16 +14,16 @@ try:
 except ImportError:
     from . import mock_gpio as GPIO
 
-from . import phy_cfg
+from . import cfg
 
 
-class PhySX127x(object):
+class SX127x(object):
     """The PHY layer SPI operations, settings management and GPIO
     interfaces for the Semtec SX127x family of digital radio transceivers.
     For now, this library only supports LoRa mode.
     """
 
-    # SX127X Oscillator frequency
+    # SX127x Oscillator frequency
     SX127X_OSC_FREQ = 32e6  # Hz
 
     # SPI clock frequency
@@ -32,7 +32,7 @@ class PhySX127x(object):
 
     # SX127x DIOs (DO NOT CHANGE VALUES)
     # This table is dual maintenance with
-    # phy_sx127x_ahsm.PhySX127xAhsm._dio_sig_lut
+    # sx127x_hsm.SX127xHsm._dio_sig_lut
     DIO_MODE_RDY = 0
     DIO_CAD_DETECTED = 1
     DIO_CAD_DONE = 2
@@ -109,25 +109,25 @@ class PhySX127x(object):
         Opens the SPI bus with the given port,CS and freq.
         Saves the DIOx pins and Reset pin configs.
         """
-        (spi_port, spi_cs, spi_freq) = phy_cfg.spi_cfg
+        (spi_port, spi_cs, spi_freq) = cfg.spi_cfg
         assert spi_port in (0, 1), "SPI port index must be 0 or 1"
         assert spi_cs in (0, 1), "SPI chip select must be 0 or 1"
         spi_freq = int(spi_freq)
-        assert PhySX127x.SPI_FREQ_MIN <= spi_freq <= PhySX127x.SPI_FREQ_MAX, "SPI clock frequency must be within 1-20 MHz"
+        assert SX127x.SPI_FREQ_MIN <= spi_freq <= SX127x.SPI_FREQ_MAX, "SPI clock frequency must be within 1-20 MHz"
         self.spi = spidev.SpiDev()
         self.spi.open(spi_port, spi_cs)
         self.spi.max_speed_hz = spi_freq
         self.spi.mode = 0  # phase=0 and polarity=0
 
         # DIOx: validate and save arguments
-        assert len(phy_cfg.dio_cfg) <= 6
-        for pin_nmbr in phy_cfg.dio_cfg:
+        assert len(cfg.dio_cfg) <= 6
+        for pin_nmbr in cfg.dio_cfg:
             assert 0 <= pin_nmbr <= 48, "Not a valid RPi GPIO number"
-        self.dio_cfg = phy_cfg.dio_cfg
+        self.dio_cfg = cfg.dio_cfg
 
         # Reset: validate and save argument
-        assert 0 <= phy_cfg.reset_cfg <= 48, "Not a valid RPi GPIO number"
-        self.reset_cfg = phy_cfg.reset_cfg
+        assert 0 <= cfg.reset_cfg <= 48, "Not a valid RPi GPIO number"
+        self.reset_cfg = cfg.reset_cfg
 
         self._stngs = PhySX127xSettings()
 
@@ -136,12 +136,12 @@ class PhySX127x(object):
     def clear_irq_flags(self,):
         """Writes the IRQ flags reg back to itself to clear the flags
         """
-        reg = self._read(PhySX127x.REG_LORA_IRQ_FLAGS)[0]
-        self._write(PhySX127x.REG_LORA_IRQ_FLAGS, reg)
+        reg = self._read(SX127x.REG_LORA_IRQ_FLAGS)[0]
+        self._write(SX127x.REG_LORA_IRQ_FLAGS, reg)
 
 
     def close(self,):
-        """Closes the SX127X command interface.
+        """Closes the SX127x command interface.
         Disables GPIO and closes the SPI port.
         """
         # TODO: put the radio in standby or sleep
@@ -155,7 +155,7 @@ class PhySX127x(object):
 
 
     def open(self, dio_isr_clbk):
-        """Opens the SX127X command interface.
+        """Opens the SX127x command interface.
         Resets the radio, clears internal settings,
         validates the chip communications,
         puts the modem into LoRa mode
@@ -174,10 +174,10 @@ class PhySX127x(object):
 
         # Put the radio in LoRa mode so DIO5 outputs ModeReady (instead of ClkOut)
         # This is needed so the state machine receives the ModeReady event
-        self.write_opmode(PhySX127x.OPMODE_SLEEP, False)
+        self.write_opmode(SX127x.OPMODE_SLEEP, False)
         self.set_fld("FLD_RDO_LORA_MODE", 1)
         self.write_sleep_settings()
-        self.write_opmode(PhySX127x.OPMODE_STBY, False)
+        self.write_opmode(SX127x.OPMODE_STBY, False)
         self._stngs.apply("FLD_RDO_LORA_MODE")
 
         # Init DIOx pins
@@ -200,35 +200,35 @@ class PhySX127x(object):
         flags is 0 if rx is good, otherwise it is bitwise combo of IRQ_FLAGS_*.
         """
         # Clear rx-related IRQ flags in the reg
-        reg = self._read(PhySX127x.REG_LORA_IRQ_FLAGS)[0]
-        flags = reg & ( PhySX127x.IRQ_FLAGS_RXTIMEOUT
-                      | PhySX127x.IRQ_FLAGS_RXDONE
-                      | PhySX127x.IRQ_FLAGS_PAYLDCRCERROR
-                      | PhySX127x.IRQ_FLAGS_VALIDHEADER )
-        self._write(PhySX127x.REG_LORA_IRQ_FLAGS, flags)
+        reg = self._read(SX127x.REG_LORA_IRQ_FLAGS)[0]
+        flags = reg & ( SX127x.IRQ_FLAGS_RXTIMEOUT
+                      | SX127x.IRQ_FLAGS_RXDONE
+                      | SX127x.IRQ_FLAGS_PAYLDCRCERROR
+                      | SX127x.IRQ_FLAGS_VALIDHEADER )
+        self._write(SX127x.REG_LORA_IRQ_FLAGS, flags)
 
         # Determine rx status from flags
-        good_rx = bool(flags & PhySX127x.IRQ_FLAGS_RXDONE)
-        flags &= ( PhySX127x.IRQ_FLAGS_RXTIMEOUT
-                 | PhySX127x.IRQ_FLAGS_PAYLDCRCERROR)
+        good_rx = bool(flags & SX127x.IRQ_FLAGS_RXDONE)
+        flags &= ( SX127x.IRQ_FLAGS_RXTIMEOUT
+                 | SX127x.IRQ_FLAGS_PAYLDCRCERROR)
         if flags:
             good_rx = False
 
         # Read the packet SNR and RSSI (2 consecutive regs)
         # and calculate RSSI [dBm] and SNR [dB]
-        snr, rssi = self._read(PhySX127x.REG_LORA_PKT_SNR, 2)
+        snr, rssi = self._read(SX127x.REG_LORA_PKT_SNR, 2)
         rssi = -157 + rssi
         snr = snr / 4.0
 
         if good_rx:
             # Read the index into the FIFO of where the pkt starts
             # and the length of the data received
-            pkt_start, _, _, nbytes = self._read(PhySX127x.REG_LORA_FIFO_CURR_ADDR, 4)
+            pkt_start, _, _, nbytes = self._read(SX127x.REG_LORA_FIFO_CURR_ADDR, 4)
             assert pkt_start == 0, "rxd pkt_start was not at 0"
 
             # Read the payload
-            self._write(PhySX127x.REG_LORA_FIFO_ADDR_PTR, pkt_start)
-            payld = self._read(PhySX127x.REG_RDO_FIFO, nbytes)
+            self._write(SX127x.REG_LORA_FIFO_ADDR_PTR, pkt_start)
+            payld = self._read(SX127x.REG_RDO_FIFO, nbytes)
         else:
             payld = b""
 
@@ -238,7 +238,7 @@ class PhySX127x(object):
     def read_opmode(self,):
         """Reads and returns OPMODE from its register
         """
-        return 0x07 & self._read(PhySX127x.REG_RDO_OPMODE)[0]
+        return 0x07 & self._read(SX127x.REG_RDO_OPMODE)[0]
 
 
     def reset_rdo(self,):
@@ -290,7 +290,7 @@ class PhySX127x(object):
         """The RSSI Wideband register's least significant bit
         provides a noise source for a Random Number Generator
         """
-        reg = self._read(PhySX127x.REG_LORA_RSSI_WB)[0]
+        reg = self._read(SX127x.REG_LORA_RSSI_WB)[0]
         self._rng_raw = (self._rng_raw << 1) | (reg & 1)
         # TODO: feed an octet of raw bits into a hash algorithm
 
@@ -298,34 +298,34 @@ class PhySX127x(object):
         if not bool(sz):
             sz = len(data)
         assert 0 < sz < 256, "Data will not fit in the radio's FIFO"
-        self._write(PhySX127x.REG_RDO_FIFO, data[:sz])
+        self._write(SX127x.REG_RDO_FIFO, data[:sz])
 
 
     def write_fifo_ptr(self, offset):
         assert 0 <= offset < 256
-        self._write(PhySX127x.REG_LORA_FIFO_ADDR_PTR, [offset]*3)
+        self._write(SX127x.REG_LORA_FIFO_ADDR_PTR, [offset]*3)
 
 
     def write_lora_irq_flags(self, clear_these):
-        self._write(PhySX127x.REG_LORA_IRQ_FLAGS, clear_these)
+        self._write(SX127x.REG_LORA_IRQ_FLAGS, clear_these)
 
 
     def write_lora_irq_mask(self, disable_these, enable_these):
-        reg = self._read(PhySX127x.REG_LORA_IRQ_MASK)[0]
+        reg = self._read(SX127x.REG_LORA_IRQ_MASK)[0]
         reg |= (disable_these & 0xFF)
         reg &= (~enable_these & 0xFF)
-        self._write(PhySX127x.REG_LORA_IRQ_MASK, reg)
+        self._write(SX127x.REG_LORA_IRQ_MASK, reg)
 
 
     def write_lora_payld_len(self, payld_len):
-        self._write(PhySX127x.REG_LORA_PAYLD_LEN, payld_len)
+        self._write(SX127x.REG_LORA_PAYLD_LEN, payld_len)
 
 
     def write_opmode(self, opmode, en_mode_rdy=False):
-        reg = self._read(PhySX127x.REG_RDO_OPMODE)[0]
+        reg = self._read(SX127x.REG_RDO_OPMODE)[0]
         reg &= (~0x7 & 0xFF)
         reg |= (0x7 & opmode)
-        self._write(PhySX127x.REG_RDO_OPMODE, reg)
+        self._write(SX127x.REG_RDO_OPMODE, reg)
         # Enable/disable DIO5 callback
         self._en_dio5_clbk = en_mode_rdy
 
@@ -341,7 +341,7 @@ class PhySX127x(object):
                 reg |= 0x80
             else:
                 reg &= 0x7F
-            self._write(PhySX127x.REG_RDO_OPMODE, reg)
+            self._write(SX127x.REG_RDO_OPMODE, reg)
             self._stngs.apply("FLD_RDO_LORA_MODE")
 
 
@@ -367,9 +367,9 @@ class PhySX127x(object):
 
     def _dio0_isr(self, chnl):
         dio0_to_sig_lut = (
-            PhySX127x.DIO_RX_DONE,
-            PhySX127x.DIO_TX_DONE,
-            PhySX127x.DIO_CAD_DONE,
+            SX127x.DIO_RX_DONE,
+            SX127x.DIO_TX_DONE,
+            SX127x.DIO_CAD_DONE,
         )
         self._dio_isr_clbk(
                 dio0_to_sig_lut[self._stngs.get_applied("FLD_RDO_DIO0")])
@@ -377,9 +377,9 @@ class PhySX127x(object):
 
     def _dio1_isr(self, chnl):
         dio1_to_sig_lut = (
-            PhySX127x.DIO_RX_TMOUT,
-            PhySX127x.DIO_FHSS_CHG_CHNL,
-            PhySX127x.DIO_CAD_DETECTED,
+            SX127x.DIO_RX_TMOUT,
+            SX127x.DIO_FHSS_CHG_CHNL,
+            SX127x.DIO_CAD_DETECTED,
         )
         self._dio_isr_clbk(
                 dio1_to_sig_lut[self._stngs.get_applied("FLD_RDO_DIO1")])
@@ -387,9 +387,9 @@ class PhySX127x(object):
 
     def _dio2_isr(self, chnl):
         dio2_to_sig_lut = (
-            PhySX127x.DIO_FHSS_CHG_CHNL,
-            PhySX127x.DIO_FHSS_CHG_CHNL,
-            PhySX127x.DIO_FHSS_CHG_CHNL,
+            SX127x.DIO_FHSS_CHG_CHNL,
+            SX127x.DIO_FHSS_CHG_CHNL,
+            SX127x.DIO_FHSS_CHG_CHNL,
         )
         self._dio_isr_clbk(
                 dio2_to_sig_lut[self._stngs.get_applied("FLD_RDO_DIO2")])
@@ -397,9 +397,9 @@ class PhySX127x(object):
 
     def _dio3_isr(self, chnl):
         dio3_to_sig_lut = (
-            PhySX127x.DIO_CAD_DONE,
-            PhySX127x.DIO_VALID_HDR,
-            PhySX127x.DIO_PAYLD_CRC_ERR,
+            SX127x.DIO_CAD_DONE,
+            SX127x.DIO_VALID_HDR,
+            SX127x.DIO_PAYLD_CRC_ERR,
         )
         self._dio_isr_clbk(
                 dio3_to_sig_lut[self._stngs.get_applied("FLD_RDO_DIO3")])
@@ -407,9 +407,9 @@ class PhySX127x(object):
 
     def _dio4_isr(self, chnl):
         dio4_to_sig_lut = (
-            PhySX127x.DIO_CAD_DETECTED,
-            PhySX127x.DIO_PLL_LOCK,
-            PhySX127x.DIO_PLL_LOCK,
+            SX127x.DIO_CAD_DETECTED,
+            SX127x.DIO_PLL_LOCK,
+            SX127x.DIO_PLL_LOCK,
         )
         self._dio_isr_clbk(
                 dio4_to_sig_lut[self._stngs.get_applied("FLD_RDO_DIO4")])
@@ -417,9 +417,9 @@ class PhySX127x(object):
 
     def _dio5_isr(self, chnl):
         dio5_to_sig_lut = (
-            PhySX127x.DIO_MODE_RDY,
-            PhySX127x.DIO_CLK_OUT,
-            PhySX127x.DIO_CLK_OUT,
+            SX127x.DIO_MODE_RDY,
+            SX127x.DIO_CLK_OUT,
+            SX127x.DIO_CLK_OUT,
         )
         if self._en_dio5_clbk:
             self._dio_isr_clbk(
@@ -441,7 +441,7 @@ class PhySX127x(object):
         """Returns True if the SX127x chip and the SPI bus are operating.
         """
         CHIP_VRSN = 0x12
-        return CHIP_VRSN == self._read(PhySX127x.REG_RDO_CHIP_VRSN)[0]
+        return CHIP_VRSN == self._read(SX127x.REG_RDO_CHIP_VRSN)[0]
 
 
     def _write(self, reg_addr, data):
@@ -485,22 +485,22 @@ class PhySX127x(object):
         # If LoRa mode or LoRa BW has changed, apply the errata values to their regs
         if(self._stngs.changed("FLD_RDO_LORA_MODE") or
            self._stngs.changed("FLD_LORA_BW")):
-            self._write(PhySX127x.REG_LORA_IF_FREQ_2, reg_if_freq2)
-            reg = self._read(PhySX127x.REG_LORA_DTCT_OPTMZ)[0]
+            self._write(SX127x.REG_LORA_IF_FREQ_2, reg_if_freq2)
+            reg = self._read(SX127x.REG_LORA_DTCT_OPTMZ)[0]
             reg &= 0x7F
             reg |= (0, 0x80)[auto_if_on]
-            self._write(PhySX127x.REG_LORA_DTCT_OPTMZ, reg)
+            self._write(SX127x.REG_LORA_DTCT_OPTMZ, reg)
 
         # Write outstanding carrier freq to the regs
         if freq != self._stngs.get_applied("FLD_RDO_FREQ"):
             # Adjust numerical frequency to register value
-            reg_freq = round(freq * 2**19 / PhySX127x.SX127X_OSC_FREQ)
+            reg_freq = round(freq * 2**19 / SX127x.SX127X_OSC_FREQ)
             regs = [
                 (reg_freq >> 16) & 0xFF,    # MSB
                 (reg_freq >> 8) & 0xFF,     # MID
                 (reg_freq >> 0) & 0xFF,     # LSB
             ]
-            self._write(PhySX127x.REG_RDO_FREQ_MSB, regs)
+            self._write(SX127x.REG_RDO_FREQ_MSB, regs)
             self._stngs_freq_applied = freq
 
 
@@ -513,7 +513,7 @@ class PhySX127xSettings(object):
 
     When setting a value to a field, the value is validated against min/max
     values.  Also the value is held in a cache of requested field changes
-    so that PhySX127x class can write all modified fields at once
+    so that SX127x class can write all modified fields at once
     when the radio is in a good state to do so.
     When that mass-write takes place, only modified fields are
     written and afterward the requested values are considered applied.
@@ -571,32 +571,32 @@ class PhySX127xSettings(object):
     _fld_info = {
         # field                              lora    reg                                reg     bit     bit     val                 val                 val
         # name                               mode    start                              cnt     start   cnt     min                 max                 reset
-        "FLD_RDO_LF_MODE":          FldInfo( False,  PhySX127x.REG_RDO_OPMODE,          1,      3,      1,      0,                  1,                  1                   ),
-        "FLD_RDO_LORA_MODE":        FldInfo( False,  PhySX127x.REG_RDO_OPMODE,          1,      7,      1,      0,                  1,                  0                   ),
-        "FLD_RDO_FREQ":             FldInfo( False,  PhySX127x.REG_RDO_FREQ_MSB,        3,      0,      8,      STNG_RF_FREQ_MIN,   STNG_RF_FREQ_MAX,   434000000           ),
-        "FLD_RDO_OUT_PWR":          FldInfo( False,  PhySX127x.REG_RDO_PA_CFG,          1,      0,      4,      0,                  15,                 0x0F                ),
-        "FLD_RDO_MAX_PWR":          FldInfo( False,  PhySX127x.REG_RDO_PA_CFG,          1,      4,      3,      0,                  7,                  0x04                ),
-        "FLD_RDO_PA_BOOST":         FldInfo( False,  PhySX127x.REG_RDO_PA_CFG,          1,      7,      1,      0,                  1,                  0                   ),
-        "FLD_RDO_LNA_BOOST_HF":     FldInfo( False,  PhySX127x.REG_RDO_LNA,             1,      0,      2,      0,                  3,                  0                   ),
-        "FLD_RDO_LNA_GAIN":         FldInfo( False,  PhySX127x.REG_RDO_LNA,             1,      5,      3,      1,                  6,                  0x01                ),
-        "FLD_RDO_DIO0":             FldInfo( False,  PhySX127x.REG_RDO_DIOMAP1,         1,      6,      2,      0,                  2,                  0                   ),
-        "FLD_RDO_DIO1":             FldInfo( False,  PhySX127x.REG_RDO_DIOMAP1,         1,      4,      2,      0,                  2,                  0                   ),
-        "FLD_RDO_DIO2":             FldInfo( False,  PhySX127x.REG_RDO_DIOMAP1,         1,      2,      2,      0,                  2,                  0                   ),
-        "FLD_RDO_DIO3":             FldInfo( False,  PhySX127x.REG_RDO_DIOMAP1,         1,      0,      2,      0,                  2,                  0                   ),
-        "FLD_RDO_DIO4":             FldInfo( False,  PhySX127x.REG_RDO_DIOMAP2,         1,      6,      2,      0,                  2,                  0                   ),
-        "FLD_RDO_DIO5":             FldInfo( False,  PhySX127x.REG_RDO_DIOMAP2,         1,      4,      2,      0,                  2,                  0                   ),
+        "FLD_RDO_LF_MODE":          FldInfo( False,  SX127x.REG_RDO_OPMODE,          1,      3,      1,      0,                  1,                  1                   ),
+        "FLD_RDO_LORA_MODE":        FldInfo( False,  SX127x.REG_RDO_OPMODE,          1,      7,      1,      0,                  1,                  0                   ),
+        "FLD_RDO_FREQ":             FldInfo( False,  SX127x.REG_RDO_FREQ_MSB,        3,      0,      8,      STNG_RF_FREQ_MIN,   STNG_RF_FREQ_MAX,   434000000           ),
+        "FLD_RDO_OUT_PWR":          FldInfo( False,  SX127x.REG_RDO_PA_CFG,          1,      0,      4,      0,                  15,                 0x0F                ),
+        "FLD_RDO_MAX_PWR":          FldInfo( False,  SX127x.REG_RDO_PA_CFG,          1,      4,      3,      0,                  7,                  0x04                ),
+        "FLD_RDO_PA_BOOST":         FldInfo( False,  SX127x.REG_RDO_PA_CFG,          1,      7,      1,      0,                  1,                  0                   ),
+        "FLD_RDO_LNA_BOOST_HF":     FldInfo( False,  SX127x.REG_RDO_LNA,             1,      0,      2,      0,                  3,                  0                   ),
+        "FLD_RDO_LNA_GAIN":         FldInfo( False,  SX127x.REG_RDO_LNA,             1,      5,      3,      1,                  6,                  0x01                ),
+        "FLD_RDO_DIO0":             FldInfo( False,  SX127x.REG_RDO_DIOMAP1,         1,      6,      2,      0,                  2,                  0                   ),
+        "FLD_RDO_DIO1":             FldInfo( False,  SX127x.REG_RDO_DIOMAP1,         1,      4,      2,      0,                  2,                  0                   ),
+        "FLD_RDO_DIO2":             FldInfo( False,  SX127x.REG_RDO_DIOMAP1,         1,      2,      2,      0,                  2,                  0                   ),
+        "FLD_RDO_DIO3":             FldInfo( False,  SX127x.REG_RDO_DIOMAP1,         1,      0,      2,      0,                  2,                  0                   ),
+        "FLD_RDO_DIO4":             FldInfo( False,  SX127x.REG_RDO_DIOMAP2,         1,      6,      2,      0,                  2,                  0                   ),
+        "FLD_RDO_DIO5":             FldInfo( False,  SX127x.REG_RDO_DIOMAP2,         1,      4,      2,      0,                  2,                  0                   ),
 
-        "FLD_LORA_IMPLCT_HDR_MODE": FldInfo( True,   PhySX127x.REG_LORA_CFG1,           1,      0,      1,      0,                  1,                  0                   ),
-        "FLD_LORA_CR":              FldInfo( True,   PhySX127x.REG_LORA_CFG1,           1,      1,      3,      STNG_LORA_CR_MIN,   STNG_LORA_CR_MAX,   STNG_LORA_CR_4TO5   ),
-        "FLD_LORA_BW":              FldInfo( True,   PhySX127x.REG_LORA_CFG1,           1,      4,      4,      STNG_LORA_BW_MIN,   STNG_LORA_BW_MAX,   STNG_LORA_BW_125K   ),
-        "FLD_LORA_CRC_EN":          FldInfo( True,   PhySX127x.REG_LORA_CFG2,           1,      2,      1,      0,                  1,                  0                   ),
-        "FLD_LORA_SF":              FldInfo( True,   PhySX127x.REG_LORA_CFG2,           1,      4,      4,      STNG_LORA_SF_MIN,   STNG_LORA_SF_MAX,   STNG_LORA_SF_128_CPS),
-        "FLD_LORA_RX_TMOUT":        FldInfo( True,   PhySX127x.REG_LORA_CFG2,           2,      0,      2,      0,                  (1<<10)-1,          0x00                ),
-        "_FLD_LORA_RX_TMOUT_2":     FldInfo( 0,      PhySX127x.REG_LORA_RX_SYM_TMOUT,   0,      0,      0,      0,                  0,                  0x64                ),
-        "FLD_LORA_PREAMBLE_LEN":    FldInfo( True,   PhySX127x.REG_LORA_PREAMBLE_LEN,   2,      0,      16,     0,                  (1<<16)-1,          0x00                ),
-        "_FLD_LORA_PREAMBLE_LEN_2": FldInfo( 0,      PhySX127x.REG_LORA_PREAMBLE_LEN_LSB,0,     0,      0,      0,                  0,                  0x08                ),
-        "FLD_LORA_AGC_ON":          FldInfo( True,   PhySX127x.REG_LORA_CFG3,           1,      2,      1,      0,                  1,                  0                   ),
-        "FLD_LORA_SYNC_WORD":       FldInfo( True,   PhySX127x.REG_LORA_SYNC_WORD,      1,      0,      8,      0,                  (1<<8)-1,           0x12                ),
+        "FLD_LORA_IMPLCT_HDR_MODE": FldInfo( True,   SX127x.REG_LORA_CFG1,           1,      0,      1,      0,                  1,                  0                   ),
+        "FLD_LORA_CR":              FldInfo( True,   SX127x.REG_LORA_CFG1,           1,      1,      3,      STNG_LORA_CR_MIN,   STNG_LORA_CR_MAX,   STNG_LORA_CR_4TO5   ),
+        "FLD_LORA_BW":              FldInfo( True,   SX127x.REG_LORA_CFG1,           1,      4,      4,      STNG_LORA_BW_MIN,   STNG_LORA_BW_MAX,   STNG_LORA_BW_125K   ),
+        "FLD_LORA_CRC_EN":          FldInfo( True,   SX127x.REG_LORA_CFG2,           1,      2,      1,      0,                  1,                  0                   ),
+        "FLD_LORA_SF":              FldInfo( True,   SX127x.REG_LORA_CFG2,           1,      4,      4,      STNG_LORA_SF_MIN,   STNG_LORA_SF_MAX,   STNG_LORA_SF_128_CPS),
+        "FLD_LORA_RX_TMOUT":        FldInfo( True,   SX127x.REG_LORA_CFG2,           2,      0,      2,      0,                  (1<<10)-1,          0x00                ),
+        "_FLD_LORA_RX_TMOUT_2":     FldInfo( 0,      SX127x.REG_LORA_RX_SYM_TMOUT,   0,      0,      0,      0,                  0,                  0x64                ),
+        "FLD_LORA_PREAMBLE_LEN":    FldInfo( True,   SX127x.REG_LORA_PREAMBLE_LEN,   2,      0,      16,     0,                  (1<<16)-1,          0x00                ),
+        "_FLD_LORA_PREAMBLE_LEN_2": FldInfo( 0,      SX127x.REG_LORA_PREAMBLE_LEN_LSB,0,     0,      0,      0,                  0,                  0x08                ),
+        "FLD_LORA_AGC_ON":          FldInfo( True,   SX127x.REG_LORA_CFG3,           1,      2,      1,      0,                  1,                  0                   ),
+        "FLD_LORA_SYNC_WORD":       FldInfo( True,   SX127x.REG_LORA_SYNC_WORD,      1,      0,      8,      0,                  (1<<8)-1,           0x12                ),
     }
 
     def __init__(self,):

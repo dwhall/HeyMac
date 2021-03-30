@@ -64,7 +64,7 @@ Six Hop Example::
 """
 
 
-from . import net_honr
+from . import honr
 
 
 def get_route(srcx, dstx):
@@ -72,19 +72,19 @@ def get_route(srcx, dstx):
     from src to dst as a list of addresses
     """
     route = []
-    curi = net_honr.to_internal_repr(srcx)
-    dsti = net_honr.to_internal_repr(dstx)
-    ncax = net_honr.get_nearest_common_ancestor(srcx, dstx)
-    ncai = net_honr.to_internal_repr(ncax)
-    leftzero = net_honr.get_rank(srcx)
+    curi = honr.to_internal_repr(srcx)
+    dsti = honr.to_internal_repr(dstx)
+    ncax = honr.get_nearest_common_ancestor(srcx, dstx)
+    ncai = honr.to_internal_repr(ncax)
+    leftzero = honr.get_rank(srcx)
     while curi != ncai:
-        route.append(net_honr.to_external_addr(curi))
+        route.append(honr.to_external_addr(curi))
         leftzero -= 1
         curi[leftzero] = 0
     route.append(ncax)
     while curi != dsti:
         curi[leftzero] = dsti[leftzero]
-        route.append(net_honr.to_external_addr(curi))
+        route.append(honr.to_external_addr(curi))
         leftzero += 1
     return route
 

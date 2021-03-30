@@ -7,10 +7,10 @@ import time
 
 import farc
 
-from . import phy_sx127x
+from . import sx127x
 
 
-class PhySX127xAhsm(farc.Ahsm):
+class SX127xHsm(farc.Ahsm):
     """The physical layer (PHY) state machine for a Semtech SX127x device.
 
     Automates the behavior of the Semtech SX127x family of radio transceivers.
@@ -30,7 +30,7 @@ class PhySX127xAhsm(farc.Ahsm):
         when it is not doing anything else.
         """
         super().__init__()
-        self.sx127x = phy_sx127x.PhySX127x()
+        self.sx127x = sx127x.SX127x()
         self._lstn_by_dflt = lstn_by_dflt
         self._dflt_stngs = ()
         self._dflt_rx_stngs = ()
@@ -49,7 +49,7 @@ class PhySX127xAhsm(farc.Ahsm):
             """post_rx_action() should not be used when the PHY is
             listen-by-default.  Use set_dflt_rx_clbk() once, instead."""
         # Convert NOW to an actual time
-        if rx_time == PhySX127xAhsm.TM_NOW:
+        if rx_time == SX127xHsm.TM_NOW:
             rx_time = farc.Framework._event_loop.time()
         # The order MUST begin: (action, stngs, ...)
         rx_action = ("rx", rx_stngs, rx_durxn, rx_clbk)
@@ -62,7 +62,7 @@ class PhySX127xAhsm(farc.Ahsm):
         """
         assert type(tx_bytes) is bytes
         # Convert NOW to an actual time
-        if tx_time == PhySX127xAhsm.TM_NOW:
+        if tx_time == SX127xHsm.TM_NOW:
             tx_time = farc.Framework._event_loop.time()
         # The order MUST begin: (action, stngs, ...)
         tx_action = ("tx", tx_stngs, tx_bytes)
@@ -112,7 +112,7 @@ class PhySX127xAhsm(farc.Ahsm):
         farc.Signal.register("_PHY_RQST")
 
         # DIO Signal table (DO NOT CHANGE ORDER)
-        # This table is dual maintenance with phy_sx127x.PhySX127x.DIO_*
+        # This table is dual maintenance with sx127x.SX127x.DIO_*
         self._dio_sig_lut = (
             farc.Signal.register("_DIO_MODE_RDY"),
             farc.Signal.register("_DIO_CAD_DETECTED"),
@@ -330,9 +330,9 @@ class PhySX127xAhsm(farc.Ahsm):
                 tiny_sleep = rx_time - now
                 assert tiny_sleep > 0.0, \
                     "didn't beat action time, need to increase _TM_SVC_MARGIN"
-                if tiny_sleep > PhySX127xAhsm._TM_BLOCKING_MAX:
-                    tiny_sleep = PhySX127xAhsm._TM_BLOCKING_MAX
-                if tiny_sleep > PhySX127xAhsm._TM_BLOCKING_MIN:
+                if tiny_sleep > SX127xHsm._TM_BLOCKING_MAX:
+                    tiny_sleep = SX127xHsm._TM_BLOCKING_MAX
+                if tiny_sleep > SX127xHsm._TM_BLOCKING_MIN:
                     time.sleep(tiny_sleep)
                 self.sx127x.write_opmode(self.sx127x.OPMODE_RXONCE, False)
                 # Start the rx duration timer
@@ -453,8 +453,8 @@ class PhySX127xAhsm(farc.Ahsm):
             # Blocking sleep until tx_time (assuming a short amount)
             now = farc.Framework._event_loop.time()
             tiny_sleep = tx_time - now
-            if tiny_sleep > PhySX127xAhsm._TM_BLOCKING_MAX:
-                tiny_sleep = PhySX127xAhsm._TM_BLOCKING_MAX
+            if tiny_sleep > SX127xHsm._TM_BLOCKING_MAX:
+                tiny_sleep = SX127xHsm._TM_BLOCKING_MAX
             if tiny_sleep > 0.001:
                 time.sleep(tiny_sleep)
 
@@ -537,7 +537,7 @@ class PhySX127xAhsm(farc.Ahsm):
 
         # IMMEDIATELY means this frame jumps to the front of the line
         # put it in the immediate queue (which is serviced before the tm_queue)
-        if tm == PhySX127xAhsm.TM_IMMEDIATE:
+        if tm == SX127xHsm.TM_IMMEDIATE:
             self._im_queue.append(action_args)
         else:
             # Ensure this tx time doesn't overwrite an existing one
@@ -585,7 +585,7 @@ class PhySX127xAhsm(farc.Ahsm):
         elif self._tm_queue:
             tm = min(self._tm_queue.keys())
             now = farc.Framework._event_loop.time()
-            if tm < now + PhySX127xAhsm._TM_SOON:
+            if tm < now + SX127xHsm._TM_SOON:
                 action = self._tm_queue[tm]
                 del self._tm_queue[tm]
                 return (tm, action)
@@ -598,14 +598,14 @@ class PhySX127xAhsm(farc.Ahsm):
         Returns None if the queue is empty.
         """
         if self._im_queue:
-            tm = PhySX127xAhsm.TM_IMMEDIATE
+            tm = SX127xHsm.TM_IMMEDIATE
             action = self._im_queue[-1]
             return (tm, action)
 
         elif self._tm_queue:
             tm = min(self._tm_queue.keys())
             now = farc.Framework._event_loop.time()
-            if tm < now + PhySX127xAhsm._TM_SOON:
+            if tm < now + SX127xHsm._TM_SOON:
                 action = self._tm_queue[tm]
                 return (tm, action)
         return None

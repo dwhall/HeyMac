@@ -12,13 +12,13 @@ import logging
 
 import farc
 
-from . import lnk_data
-from . import lnk_frame
-from . import lnk_heymac_cmd
+from . import heymac_link
+from . import heymac_frame
+from . import heymac_cmd
 from heymac.utl import ham_ident
 
 
-class LnkHeymac(object):
+class Heymac(object):
     """Heymac link layer (LNK) protocol values."""
     # Link addresses are 8 octets in size
     # Heymac uses its long-address mode to convey a link address
@@ -53,9 +53,9 @@ class LnkHeymac(object):
         ("FLD_RDO_MAX_PWR", 7),
         ("FLD_RDO_PA_BOOST", 1),
         ("FLD_LORA_IMPLCT_HDR_MODE", 0),
-        ("FLD_LORA_CR", 2),     # phy_sx127x.PhySX127x.STNG_LORA_CR_4TO6
-        ("FLD_LORA_BW", 8),     # phy_sx127x.PhySX127x.STNG_LORA_BW_250K
-        ("FLD_LORA_SF", 7),     # phy_sx127x.PhySX127x.STNG_LORA_SF_128_CPS
+        ("FLD_LORA_CR", 2),     # phy.SX127x.STNG_LORA_CR_4TO6
+        ("FLD_LORA_BW", 8),     # phy.SX127x.STNG_LORA_BW_250K
+        ("FLD_LORA_SF", 7),     # phy.SX127x.STNG_LORA_SF_128_CPS
         ("FLD_LORA_CRC_EN", 1),
         ("FLD_LORA_SYNC_WORD", _HEYMAC_SYNC_WORD),
     )
@@ -63,7 +63,7 @@ class LnkHeymac(object):
     _PHY_STNGS_TX = (("FLD_RDO_FREQ", 432_550_000),)
 
 
-class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
+class HeymacCsmaHsm(Heymac, farc.Ahsm):
     """The link layer (LNK) state machine.
 
     Automates beaconing and frame processing.
@@ -74,13 +74,13 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
         # Init the lower layer
         self.phy_ahsm = phy
-        self.phy_ahsm.set_dflt_stngs(LnkHeymac._PHY_STNGS_DFLT)
+        self.phy_ahsm.set_dflt_stngs(Heymac._PHY_STNGS_DFLT)
         self.phy_ahsm.set_dflt_rx_clbk(self._phy_rx_clbk)
 
         self._rx_clbk = None
 
         self._lnk_addr = ham_ident.HamIdent.get_long_addr("HeyMac")
-        self._lnk_data = lnk_data.LnkData(self._lnk_addr)
+        self._lnk_data = heymac_link.HeymacLink(self._lnk_addr)
 
 
     def set_rx_clbk(self, rx_clbk):
@@ -148,7 +148,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             logging.debug("LNK._lurking")
-            self._bcn_evt.post_in(self, 2 * LnkHeymac._BCN_PRD)
+            self._bcn_evt.post_in(self, 2 * Heymac._BCN_PRD)
             return self.handled(event)
 
         elif sig == farc.Signal._LNK_BCN_TMOUT:
@@ -174,7 +174,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             logging.debug("LNK._beaconing")
-            self._bcn_evt.post_every(self, LnkHeymac._BCN_PRD)
+            self._bcn_evt.post_every(self, Heymac._BCN_PRD)
             self._post_bcn()
             return self.handled(event)
 
@@ -207,7 +207,7 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             logging.debug("LNK._linking")
-            self._tm_evt.post_every(self, LnkHeymac._LNK_UPDT_PRD)
+            self._tm_evt.post_every(self, Heymac._LNK_UPDT_PRD)
             return self.handled(event)
 
         elif sig == farc.Signal._LNK_TMOUT:
@@ -228,13 +228,13 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
     def _on_rxd_from_phy(self, frame):
         """Processes a frame received from the PHY."""
-        assert type(frame) is lnk_frame.HeymacFrame
+        assert type(frame) is heymac_frame.HeymacFrame
 
         # Attach the Heymac command, if present
         try:
-            cmd = lnk_heymac_cmd.HeymacCmd.parse(
-                frame.get_field(lnk_frame.HeymacFrame.FLD_PAYLD))
-        except lnk_heymac_cmd.HeymacCmdError:
+            cmd = heymac_cmd.HeymacCmd.parse(
+                frame.get_field(heymac_frame.HeymacFrame.FLD_PAYLD))
+        except heymac_cmd.HeymacCmdError:
             cmd = None
         frame.cmd = cmd
 
@@ -243,11 +243,11 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
         # If the frame is a multi-hop Heymac command
         if frame.cmd and frame.is_mhop():
-            hops = frame.get_field(lnk_frame.HeymacFrame.FLD_HOPS)
+            hops = frame.get_field(heymac_frame.HeymacFrame.FLD_HOPS)
             if hops > 1:
                 # Update the hops and re-transmitter fields
-                frame.set_field(lnk_frame.HeymacFrame.FLD_HOPS, hops - 1)
-                frame.set_field(lnk_frame.HeymacFrame.FLD_TADDR,
+                frame.set_field(heymac_frame.HeymacFrame.FLD_HOPS, hops - 1)
+                frame.set_field(heymac_frame.HeymacFrame.FLD_TADDR,
                                 self._lnk_addr)
                 # Post the frame to PHY for transmission
                 self._post_frm(frame)
@@ -268,9 +268,9 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
         # Parse the bytes into a frame
         # and store reception meta-data
         try:
-            frame = lnk_frame.HeymacFrame.parse(rx_bytes)
+            frame = heymac_frame.HeymacFrame.parse(rx_bytes)
             frame.rx_meta = (rx_time, rx_rssi, rx_snr)
-        except lnk_frame.HeymacFrameError:
+        except heymac_frame.HeymacFrameError:
             logging.info("LNK:rxd frame is not valid Heymac\n\t{}"
                          .format(rx_bytes))
             # TODO: lnk stats incr rxd frame is not Heymac
@@ -282,29 +282,29 @@ class LnkHeymacCsmaAhsm(LnkHeymac, farc.Ahsm):
 
     def _post_bcn(self,):
         """Builds a Heymac CsmaBeacon and posts it to the PHY for transmit."""
-        bcn = lnk_heymac_cmd.HeymacCmdCsmaBcn(
+        bcn = heymac_cmd.HeymacCmdCsmaBcn(
             # TODO: Fill with real data
-            FLD_CAPS=LnkHeymac.LNK_CAP_RXCONT,
+            FLD_CAPS=Heymac.LNK_CAP_RXCONT,
             FLD_STATUS=0,
             FLD_NETS=(),
             FLD_NGBRS=self._lnk_data.get_ngbrs_lnk_addrs())
-        frame = lnk_frame.HeymacFrame(
-            lnk_frame.HeymacFrame.PID_IDENT_HEYMAC
-            | lnk_frame.HeymacFrame.PID_TYPE_CSMA,
-            lnk_frame.HeymacFrame.FCTL_L
-            | lnk_frame.HeymacFrame.FCTL_S)
-        frame.set_field(lnk_frame.HeymacFrame.FLD_SADDR, self._lnk_addr)
-        frame.set_field(lnk_frame.HeymacFrame.FLD_PAYLD, bytes(bcn))
+        frame = heymac_frame.HeymacFrame(
+            heymac_frame.HeymacFrame.PID_IDENT_HEYMAC
+            | heymac_frame.HeymacFrame.PID_TYPE_CSMA,
+            heymac_frame.HeymacFrame.FCTL_L
+            | heymac_frame.HeymacFrame.FCTL_S)
+        frame.set_field(heymac_frame.HeymacFrame.FLD_SADDR, self._lnk_addr)
+        frame.set_field(heymac_frame.HeymacFrame.FLD_PAYLD, bytes(bcn))
         self.phy_ahsm.post_tx_action(
             self.phy_ahsm.TM_NOW,
-            LnkHeymac._PHY_STNGS_TX,
+            Heymac._PHY_STNGS_TX,
             bytes(frame))
 
 
     def _post_frm(self, frame):
         """Posts the frame to the PHY for transmit."""
-        assert type(frame) is lnk_frame.HeymacFrame
+        assert type(frame) is heymac_frame.HeymacFrame
         self.phy_ahsm.post_tx_action(
             self.phy_ahsm.TM_NOW,
-            LnkHeymac._PHY_STNGS_TX,
+            Heymac._PHY_STNGS_TX,
             bytes(frame))

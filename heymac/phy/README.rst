@@ -1,5 +1,5 @@
-phy_sx127x
-==========
+SX127x PHY Layer
+================
 
 Introduction
 ------------
@@ -26,12 +26,12 @@ and is not operational on its own.
 Software
 --------
 
-phy_sx127x_ahsm.py
-    Contains PhySX127xAhsm, the PHY layer state machine that automates
+sx127x_hsm.py
+    Contains SX127xHsm, the PHY layer state machine that automates
     the behavior of the Semtech SX127x family of radio transceivers.
 
-phy_sx127x.py
-    Contains PhySX127x, the PHY layer SPI operations, settings management
+sx127x.py
+    Contains SX127x, the PHY layer SPI operations, settings management
     and GPIO interfaces for the Semtec SX127x family of digital radio transceivers.
 
 
@@ -45,7 +45,7 @@ that instantiates the PHY layer.
 ======================  ================================================
 Callable                Description
 ======================  ================================================
-``PhySX127xAhsm()``     The constructor accepts one argument.
+``SX127xHsm()``         The constructor accepts one argument.
 
                         - *lstn_by_dflt* selects the default behavior
                           when the device is not doing anything else.
@@ -82,8 +82,8 @@ Callable                Description
                           ``farc.Framework._event_loop.time()``); or it is
                           a special value:
 
-                          * ``PhySX127xAhsm.TM_NOW``
-                          * ``PhySX127xAhsm.TM_IMMEDIATELY``
+                          * ``SX127xHsm.TM_NOW``
+                          * ``SX127xHsm.TM_IMMEDIATELY``
 
                           ``TM_NOW`` uses the current ``time()`` and
                           inserts this transmission into queue (where there
@@ -150,14 +150,14 @@ But that is the gist of it.  See the code for details.
 Likewise, the diagram below shows the important aspects of the
 SM, but it does not capture all details.
 
-.. image:: docs/PhySX127xAhsm.png
+.. image:: docs/SX127xHsm.png
 
 
 Settings
 --------
 
 An important aspect of manipulating the PHY layer is applying settings
-to the device.  PhySX127x makes applying device settings easy for you.
+to the device.  SX127x makes applying device settings easy for you.
 Instead of dealing with register addresses, bitwise operations and
 SPI transfers, all you have to do is set a field to a value.
 The field is a bit field, but you only need to know its name.
@@ -173,7 +173,7 @@ the desired frequency in Hertz.  Here are some examples::
     set_fld("FLD_LORA_CR", 1)
 
     # Set the LoRa Spread Factor to 128 chips per sec
-    set_fld("FLD_LORA_SF", phy_sx127x.PhySX127x.STNG_LORA_SF_128_CPS)
+    set_fld("FLD_LORA_SF", sx127x.SX127x.STNG_LORA_SF_128_CPS)
 
 If you have a batch of settings to apply, put the (name, value) tuples
 into a sequence and call set_flds().::
@@ -181,12 +181,12 @@ into a sequence and call set_flds().::
     set_flds((
         ("FLD_RDO_FREQ", 432550000),
         ("FLD_LORA_CR", 1),
-        ("FLD_LORA_SF", phy_sx127x.PhySX127x.STNG_LORA_SF_128_CPS),
+        ("FLD_LORA_SF", sx127x.SX127x.STNG_LORA_SF_128_CPS),
     ))
 
-PhySX127x does not write these values to the device registers immediately.
-Instead, it keeps the data until PhySX127xAhsm enters a safe state when the
-radio is not busy.  PhySX127x is also a little smart: it only writes values
+SX127x does not write these values to the device registers immediately.
+Instead, it keeps the data until SX127xHsm enters a safe state when the
+radio is not busy.  SX127x is also a little smart: it only writes values
 that have changed.  This keeps SPI traffic down.
 
 Now all you need is the list of field names.

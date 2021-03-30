@@ -12,7 +12,7 @@ from asciimatics.widgets import Button, DropdownList, Frame, Label, Layout, \
     MultiColumnListBox, Text, Widget
 from asciimatics.screen import Screen
 
-from heymac.phy_sx127x import PhySX127xSettings
+from heymac.phy import PhySX127xSettings
 
 
 class RadioStngsModel(object):

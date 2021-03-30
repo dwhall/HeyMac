@@ -4,12 +4,12 @@
 
 import farc
 
-from . import lnk_csma_ahsm
-from . import lnk_frame
-from . import lnk_heymac_cmd
+from . import heymac_hsm
+from . import heymac_frame
+from . import heymac_cmd
 
 
-class LnkData(object):
+class HeymacLink(object):
     """Heymac link layer data.
 
     _ngbr_data is a dict that holds data for each neighbor.
@@ -59,15 +59,15 @@ class LnkData(object):
         for data in self._ngbr_data.values():
             frame = data["BCN_FRAME"]
             bcn = frame.cmd
-            assert type(bcn) is lnk_heymac_cmd.HeymacCmdCsmaBcn
-            ngbrs = bcn.get_field(lnk_heymac_cmd.HeymacCmd.FLD_NGBRS)
+            assert type(bcn) is heymac_cmd.HeymacCmdCsmaBcn
+            ngbrs = bcn.get_field(heymac_cmd.HeymacCmd.FLD_NGBRS)
             return self._lnk_addr in ngbrs
         return False
 
 
     def process_frame(self, frame):
         """Update link data with info from the given frame."""
-        assert type(frame) is lnk_frame.HeymacFrame
+        assert type(frame) is heymac_frame.HeymacFrame
 
         # Init space for a new neighbor
         lnk_addr = frame.get_sender()
@@ -80,7 +80,7 @@ class LnkData(object):
         self._ngbr_data[lnk_addr]["LATEST_RX_SNR"] = frame.rx_meta[2]
 
         # Process a beacon
-        if frame.cmd and type(frame.cmd) is lnk_heymac_cmd.HeymacCmdCsmaBcn:
+        if frame.cmd and type(frame.cmd) is heymac_cmd.HeymacCmdCsmaBcn:
             self._process_bcn(frame)
 
 
@@ -104,7 +104,7 @@ class LnkData(object):
     # If we don't hear a neighbor (or periodic item)
     # for this many seconds then consider it expired/invalid
     # FIXME: circular dependency:
-    _EXPIRATION_PRD = 4 * 32 # lnk_csma_ahsm.LnkHeymac._BCN_PRD
+    _EXPIRATION_PRD = 4 * 32 # heymac_hsm.Heymac._BCN_PRD
 
 
     def _process_bcn(self, frame):

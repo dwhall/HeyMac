@@ -13,7 +13,7 @@ from asciimatics.widgets import Button, Frame, Label, Layout, \
         MultiColumnListBox, Text, Widget
 from asciimatics.screen import Screen
 
-from heymac import lnk_heymac
+import heymac
 
 
 class StatusModel(object):
@@ -56,12 +56,12 @@ class MsgsModel(object):
 
     def _rx_clbk(self, hm_frame):
         # TODO: blip status RX indicator
-        if isinstance(hm_frame, lnk_heymac.HeymacCmdCsmaBcn):
+        if isinstance(hm_frame, heymac.lnk.HeymacCmdCsmaBcn):
             longaddr = hm_frame.get_field(hm_frame.FLD_SADDR)
             callsign = "TODO"  # FIXME: get callsign from beacon (doesn't exist in std beacon)
             self._bcn_ident[longaddr] = callsign
 
-        elif isinstance(hm_frame, lnk_heymac.HeymacCmdTxt):
+        elif isinstance(hm_frame, heymac.lnk.HeymacCmdTxt):
             rxtime = hm_frame.rx_meta[0]
             src = hm_frame.saddr
             msg = hm_frame.cmd.get_field(hm_frame.cmd.FLD_MSG)

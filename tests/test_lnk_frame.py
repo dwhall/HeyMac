@@ -3,7 +3,7 @@
 
 import unittest
 
-from lnk_heymac import HeymacFrame, HeymacFrameError
+from heymac.lnk import HeymacFrame, HeymacFrameError
 
 
 class TestHeyMacFrame(unittest.TestCase):

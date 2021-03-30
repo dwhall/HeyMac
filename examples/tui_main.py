@@ -8,14 +8,14 @@ Runs the HeyMac stack with a text user interface.
 
 import farc
 
-from heymac.lnk_heymac import LnkHeymacCsmaAhsm
-from heymac.phy_sx127x import PhySX127xAhsm
+from heymac.lnk import HeymacCsmaHsm
+from heymac.phy import SX127xHsm
 from tui_ahsm import TxtUiAhsm
 
 
 def main():
-    phy_sm = PhySX127xAhsm(True)
-    lnk_sm = LnkHeymacCsmaAhsm(phy_sm)
+    phy_sm = SX127xHsm(True)
+    lnk_sm = HeymacCsmaHsm(phy_sm)
     tui_sm = TxtUiAhsm(phy_sm, lnk_sm)
 
     lnk_sm.start(50)

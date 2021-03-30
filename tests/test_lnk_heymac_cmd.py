@@ -3,7 +3,7 @@
 
 import unittest
 
-from lnk_heymac.lnk_heymac_cmd import *
+from heymac.lnk.heymac_cmd import *
 
 
 class TestHeyMacCmd(unittest.TestCase):

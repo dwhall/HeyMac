@@ -8,7 +8,7 @@ setuptools.setup(
     version="0.1.2",
     author="Dean Hall",
     author_email="dwhall256@gmail.com",
-    description="A small, flexible protocol stack for the Semtech SX127X radio data modem.",
+    description="A small, flexible protocol stack for the Semtech SX127x radio data modem.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/dwhall/HeyMac",
@@ -22,7 +22,7 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
 
         # This project is designed to run on a Raspberry Pi
-        # with a SX127X LoRa radio attached via the SPI bus
+        # with a SX127x LoRa radio attached via the SPI bus
         "Operating System :: POSIX :: Linux",
         "Topic :: System :: Hardware :: Hardware Drivers",
         "Topic :: Communications :: Ham Radio",
