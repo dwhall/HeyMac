@@ -2,7 +2,7 @@
 <model version="5.1.0" links="0">
  <framework name="qpc"/>
  <package name="AOs" stereotype="0x02">
-  <class name="LnkHeymacAhsm" superclass="qpc::QActive">
+  <class name="HeymacCsmaHsm" superclass="qpc::QActive">
    <attribute name="tmEvnt" type="QTimeEvt" visibility="0x02" properties="0x00"/>
    <statechart properties="0x01">
     <initial target="../1">
@@ -82,7 +82,5 @@
    </statechart>
   </class>
  </package>
- <directory name=".">
-  <file name="sx127x_phy.c"/>
- </directory>
+ <directory name="."/>
 </model>
