@@ -104,7 +104,7 @@ class SX127x(object):
     OPMODE_RXONCE = 6
     OPMODE_CAD = 7
 
-    def __init__(self,):
+    def __init__(self):
         """Validates the SPI, DIOx pin and Reset pin config.
         Opens the SPI bus with the given port,CS and freq.
         Saves the DIOx pins and Reset pin configs.
@@ -133,14 +133,14 @@ class SX127x(object):
 
 # Public
 
-    def clear_irq_flags(self,):
+    def clear_irq_flags(self):
         """Writes the IRQ flags reg back to itself to clear the flags
         """
         reg = self._read(SX127x.REG_LORA_IRQ_FLAGS)[0]
         self._write(SX127x.REG_LORA_IRQ_FLAGS, reg)
 
 
-    def close(self,):
+    def close(self):
         """Closes the SX127x command interface.
         Disables GPIO and closes the SPI port.
         """
@@ -149,7 +149,7 @@ class SX127x(object):
         self.spi.close()
 
 
-    def in_sim_mode(self,):
+    def in_sim_mode(self):
         """Returns True if this driver is simulating the radio interface."""
         return "mock" in str(spidev)
 
@@ -192,7 +192,7 @@ class SX127x(object):
         return valid
 
 
-    def read_lora_rxd(self,):
+    def read_lora_rxd(self):
         """Returns a tuple of: (payld, rssi, snr, flags)
         payld is a bytearray.
         rssi is an integer [dBm].
@@ -235,13 +235,13 @@ class SX127x(object):
         return (bytes(payld), rssi, snr, flags)
 
 
-    def read_opmode(self,):
+    def read_opmode(self):
         """Reads and returns OPMODE from its register
         """
         return 0x07 & self._read(SX127x.REG_RDO_OPMODE)[0]
 
 
-    def reset_rdo(self,):
+    def reset_rdo(self):
         """Resets the radio
         and internal tracking of radio settings
         """
@@ -278,7 +278,7 @@ class SX127x(object):
             self.set_fld(fld_nm, val)
 
 
-    def stngs_require_sleep(self,):
+    def stngs_require_sleep(self):
         """Returns True if any outstanding settings require
         being in sleep mode to be applied.
         At this time, only the LoRa Mode requires sleep mode.
@@ -286,7 +286,7 @@ class SX127x(object):
         return self._stngs.changed("FLD_RDO_LORA_MODE")
 
 
-    def updt_rng(self,):
+    def updt_rng(self):
         """The RSSI Wideband register's least significant bit
         provides a noise source for a Random Number Generator
         """
@@ -330,7 +330,7 @@ class SX127x(object):
         self._en_dio5_clbk = en_mode_rdy
 
 
-    def write_sleep_settings(self,):
+    def write_sleep_settings(self):
         """Writes settings that need the chip to be in sleep mode.
         At this time, only the LoRa Mode requires sleep mode.
         """
@@ -437,7 +437,7 @@ class SX127x(object):
         return self.spi.xfer2(b)[1:]
 
 
-    def _validate_chip(self,):
+    def _validate_chip(self):
         """Returns True if the SX127x chip and the SPI bus are operating.
         """
         CHIP_VRSN = 0x12
@@ -599,7 +599,7 @@ class PhySX127xSettings(object):
         "FLD_LORA_SYNC_WORD":       FldInfo( True,   SX127x.REG_LORA_SYNC_WORD,      1,      0,      8,      0,                  (1<<8)-1,           0x12                ),
     }
 
-    def __init__(self,):
+    def __init__(self):
         self._stngs = {}
         self._stngs_applied = {}
         self.reset()

@@ -64,22 +64,22 @@ class APv6Frame(dpkt.Packet):
     )
 
     # Functions to help determine which fields are present
-    def _has_hops_field(self,):
+    def _has_hops_field(self):
         return ((self._iphc & APv6Frame.IPHC_HLIM_MASK ) >> APv6Frame.IPHC_HLIM_SHIFT) == APv6Frame.IPHC_HLIM_INLINE
-    def _has_src_field(self,):
+    def _has_src_field(self):
         return ((self._iphc & APv6Frame.IPHC_SAM_MASK ) >> APv6Frame.IPHC_SAM_SHIFT) == APv6Frame.IPHC_ADDR_MODE_128
-    def _has_dst_field(self,):
+    def _has_dst_field(self):
         return ((self._iphc & APv6Frame.IPHC_DAM_MASK ) >> APv6Frame.IPHC_DAM_SHIFT) == APv6Frame.IPHC_ADDR_MODE_128
 
     # Getters for the _iphc subfields
     @property
-    def iphc(self,):
+    def iphc(self):
         """Gets the full value (all bits) from the IPHC field.
         """
         return self._iphc
 
     @property
-    def iphc_prefix(self,):
+    def iphc_prefix(self):
         """Returns the APv6 prefix.
         The value should be 3b110 according to APv6 1.0 spec.
         This value is different than RFC6282 which specifies 3b011.
@@ -87,7 +87,7 @@ class APv6Frame(dpkt.Packet):
         return (self._iphc & APv6Frame.IPHC_PREFIX_MASK) >> APv6Frame.IPHC_PREFIX_SHIFT
 
     @property
-    def iphc_nhc(self,):
+    def iphc_nhc(self):
         """Returns bit pattern to indicate Next Header Compressed.
         0: Next Header is carried in-line
         1: Next Header is encoded via LOWPAN_NHC
@@ -95,7 +95,7 @@ class APv6Frame(dpkt.Packet):
         return (self._iphc & APv6Frame.IPHC_NHC_MASK) >> APv6Frame.IPHC_NHC_SHIFT
 
     @property
-    def iphc_hlim(self,):
+    def iphc_hlim(self):
         """Returns the bit pattern to indicate the Hop Limit
         0: Hop Limit is carried in-line
         1: Hop Limit is 1
@@ -105,7 +105,7 @@ class APv6Frame(dpkt.Packet):
         return (self._iphc & APv6Frame.IPHC_HLIM_MASK) >> APv6Frame.IPHC_HLIM_SHIFT
 
     @property
-    def iphc_sam(self,):
+    def iphc_sam(self):
         """Returns bit pattern to indicate Source Address mode.
         0: Src Addr is carried in-line
         1: Src Addr is elided; computed from MAC layer
@@ -113,7 +113,7 @@ class APv6Frame(dpkt.Packet):
         return (self._iphc & APv6Frame.IPHC_SAM_MASK) >> APv6Frame.IPHC_SAM_SHIFT
 
     @property
-    def iphc_dam(self,):
+    def iphc_dam(self):
         """Returns bit pattern to indicate Destination Address mode.
         0: Dest Addr is carried in-line
         1: Dest Addr is elided; computed from MAC layer

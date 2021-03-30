@@ -30,12 +30,12 @@ class HeymacLink(object):
         self._ngbr_data = {}
 
 
-    def get_ngbrs_lnk_addrs(self,):
+    def get_ngbrs_lnk_addrs(self):
         """Returns a list of neighbors' link addresses."""
         return self._ngbr_data.keys()
 
 
-    def get_ngbrs_nets(self,):
+    def get_ngbrs_nets(self):
         """Returns a list of neighbors' net data.
 
         Net data is a tuple of the net_id as a bytes object
@@ -49,7 +49,7 @@ class HeymacLink(object):
         return list(nets)
 
 
-    def ngbr_hears_me(self,):
+    def ngbr_hears_me(self):
         """Does a neighbor node hear this node.
 
         Returns True if at least one neighbor has this node
@@ -84,7 +84,7 @@ class HeymacLink(object):
             self._process_bcn(frame)
 
 
-    def update(self,):
+    def update(self):
         """Performs periodic update of the link data."""
         now = farc.Framework._event_loop.time()
         # Collect and prune expired neighbors

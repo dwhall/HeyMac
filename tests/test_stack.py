@@ -11,7 +11,7 @@ class TestAll(unittest.TestCase):
     Each test function should test pack and unpack of the same data.
     """
 
-    def test_mac_min(self,):
+    def test_mac_min(self):
         # Pack
         fmac = heymac.HeyMacFrame(fctl_type = heymac.HeyMacFrame.FCTL_TYPE_MIN)
         b = bytes(fmac)
@@ -33,7 +33,7 @@ class TestAll(unittest.TestCase):
         self.assertEqual(fmac.saddr, b"")
         self.assertEqual(fmac.data, b"")
 
-    def test_mac_net_min(self,):
+    def test_mac_net_min(self):
         # Pack
         fmac = heymac.HeyMacFrame(fctl_type=heymac.HeyMacFrame.FCTL_TYPE_NET)
         fnet = heymac.APv6Frame()
@@ -68,7 +68,7 @@ class TestAll(unittest.TestCase):
         self.assertEqual(fnet.src, b"")
         self.assertEqual(fnet.dst, b"")
 
-    def test_mac_net_udp_min(self,):
+    def test_mac_net_udp_min(self):
         # Pack
         fmac = heymac.HeyMacFrame(fctl_type=heymac.HeyMacFrame.FCTL_TYPE_NET)
         fnet = heymac.APv6Frame()
@@ -115,7 +115,7 @@ class TestAll(unittest.TestCase):
         self.assertEqual(fudp.dst_port, 0xF0B0)
 
 
-    def test_mac_net_udp_to_root(self,):
+    def test_mac_net_udp_to_root(self):
         # Pack
         fmac = heymac.HeyMacFrame(
             fctl_type=heymac.HeyMacFrame.FCTL_TYPE_NET,
@@ -171,7 +171,7 @@ class TestAll(unittest.TestCase):
         self.assertEqual(fudp.data, b"UdpData")
 
 
-    def test_mac_net_udp_to_node(self,):
+    def test_mac_net_udp_to_node(self):
         # Pack
         fmac = heymac.HeyMacFrame(
             fctl_type=heymac.HeyMacFrame.FCTL_TYPE_NET,
@@ -228,7 +228,7 @@ class TestAll(unittest.TestCase):
         self.assertEqual(fudp.data, b"nodedata")
 
 
-    def test_mac_net_udp_to_google(self,):
+    def test_mac_net_udp_to_google(self):
         # Pack
         fmac = heymac.HeyMacFrame(
             fctl_type=heymac.HeyMacFrame.FCTL_TYPE_NET,

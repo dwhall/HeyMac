@@ -11,7 +11,7 @@ class TestAPv6Frame(unittest.TestCase):
     Each test function should test pack and unpack of the same data.
     """
 
-    def test_min(self,):
+    def test_min(self):
         # Pack
         f = heymac.APv6Frame()
         b = bytes(f)
@@ -27,7 +27,7 @@ class TestAPv6Frame(unittest.TestCase):
         self.assertEqual(f.src, b"")
         self.assertEqual(f.dst, b"")
 
-    def test_nhc_default(self,):
+    def test_nhc_default(self):
         # Pack
         f = heymac.APv6Frame(iphc_nhc=1)
         b = bytes(f)
@@ -43,20 +43,20 @@ class TestAPv6Frame(unittest.TestCase):
         self.assertEqual(f.src, b"")
         self.assertEqual(f.dst, b"")
 
-    def test_nhc_uncompressed(self,):
+    def test_nhc_uncompressed(self):
         # Only compressed next-headers are supported at this time
         # Uncompressed headers should raise an AssertionError
         with self.assertRaises(AssertionError):
             f = heymac.APv6Frame(iphc_nhc=0)
 
 
-    def test_nhc_extreme_value(self,):
+    def test_nhc_extreme_value(self):
         # Pack
         with self.assertRaises(AssertionError):
             f = heymac.APv6Frame(iphc_nhc=999)
 
 
-    def test_hlim_1(self,):
+    def test_hlim_1(self):
         # Pack
         f = heymac.APv6Frame(iphc_hlim=0b01)
         b = bytes(f)
@@ -72,7 +72,7 @@ class TestAPv6Frame(unittest.TestCase):
         self.assertEqual(f.src, b"")
         self.assertEqual(f.dst, b"")
 
-    def test_hlim_2(self,):
+    def test_hlim_2(self):
         # Pack
         f = heymac.APv6Frame(iphc_hlim=0b10)
         b = bytes(f)
@@ -88,7 +88,7 @@ class TestAPv6Frame(unittest.TestCase):
         self.assertEqual(f.src, b"")
         self.assertEqual(f.dst, b"")
 
-    def test_hlim_3(self,):
+    def test_hlim_3(self):
         # Pack
         f = heymac.APv6Frame(iphc_hlim=0b11)
         b = bytes(f)
@@ -104,13 +104,13 @@ class TestAPv6Frame(unittest.TestCase):
         self.assertEqual(f.src, b"")
         self.assertEqual(f.dst, b"")
 
-    def test_hlim_extreme_value(self,):
+    def test_hlim_extreme_value(self):
         # Pack
         with self.assertRaises(AssertionError):
             f = heymac.APv6Frame(iphc_hlim=999)
 
 
-    def test_sam_default(self,):
+    def test_sam_default(self):
         # Pack
         f = heymac.APv6Frame(iphc_sam=1)
         b = bytes(f)
@@ -126,13 +126,13 @@ class TestAPv6Frame(unittest.TestCase):
         self.assertEqual(f.src, b"")
         self.assertEqual(f.dst, b"")
 
-    def test_sam_extreme_value(self,):
+    def test_sam_extreme_value(self):
         # Pack
         with self.assertRaises(AssertionError):
             f = heymac.APv6Frame(iphc_sam=999)
 
 
-    def test_dam_default(self,):
+    def test_dam_default(self):
         # Pack
         f = heymac.APv6Frame(iphc_dam=1)
         b = bytes(f)
@@ -148,13 +148,13 @@ class TestAPv6Frame(unittest.TestCase):
         self.assertEqual(f.src, b"")
         self.assertEqual(f.dst, b"")
 
-    def test_dam_extreme_value(self,):
+    def test_dam_extreme_value(self):
         # Pack
         with self.assertRaises(AssertionError):
             f = heymac.APv6Frame(iphc_dam=999)
 
 
-    def test_hops_special_1(self,):
+    def test_hops_special_1(self):
         # Pack
         f = heymac.APv6Frame(hops=b"\x01")
         b = bytes(f)
@@ -170,7 +170,7 @@ class TestAPv6Frame(unittest.TestCase):
         self.assertEqual(f.src, b"")
         self.assertEqual(f.dst, b"")
 
-    def test_hops_special_64(self,):
+    def test_hops_special_64(self):
         # Pack
         f = heymac.APv6Frame(hops=b"\x40")
         b = bytes(f)
@@ -186,7 +186,7 @@ class TestAPv6Frame(unittest.TestCase):
         self.assertEqual(f.src, b"")
         self.assertEqual(f.dst, b"")
 
-    def test_hops_special_255(self,):
+    def test_hops_special_255(self):
         # Pack
         f = heymac.APv6Frame(hops=b"\xFF")
         b = bytes(f)
@@ -202,7 +202,7 @@ class TestAPv6Frame(unittest.TestCase):
         self.assertEqual(f.src, b"")
         self.assertEqual(f.dst, b"")
 
-    def test_hops_2(self,):
+    def test_hops_2(self):
         # Pack
         f = heymac.APv6Frame(hops=b"\x02")
         b = bytes(f)
@@ -218,7 +218,7 @@ class TestAPv6Frame(unittest.TestCase):
         self.assertEqual(f.src, b"")
         self.assertEqual(f.dst, b"")
 
-    def test_hops_32(self,):
+    def test_hops_32(self):
         # Pack
         f = heymac.APv6Frame(hops=b"\x20")
         b = bytes(f)
@@ -235,7 +235,7 @@ class TestAPv6Frame(unittest.TestCase):
         self.assertEqual(f.dst, b"")
 
 
-    def test_src_addr(self,):
+    def test_src_addr(self):
         # Pack
         f = heymac.APv6Frame(src=b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f")
         b = bytes(f)
@@ -252,7 +252,7 @@ class TestAPv6Frame(unittest.TestCase):
         self.assertEqual(f.dst, b"")
 
 
-    def test_dst_addr(self,):
+    def test_dst_addr(self):
         # Pack
         f = heymac.APv6Frame(dst=b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f")
         b = bytes(f)
@@ -269,7 +269,7 @@ class TestAPv6Frame(unittest.TestCase):
         self.assertEqual(f.dst, b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f")
 
 
-    def test_src_dst_addrs(self,):
+    def test_src_dst_addrs(self):
         # Pack
         f = heymac.APv6Frame(
                 src=b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f",
@@ -288,7 +288,7 @@ class TestAPv6Frame(unittest.TestCase):
         self.assertEqual(f.dst, b"\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDa\xDb\xDc\xDd\xDe\xDf")
 
 
-    def test_hops_src_dst_addrs(self,):
+    def test_hops_src_dst_addrs(self):
         # Pack
         f = heymac.APv6Frame(
                 hops=b"\x33",
@@ -308,7 +308,7 @@ class TestAPv6Frame(unittest.TestCase):
         self.assertEqual(f.dst, b"\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDa\xDb\xDc\xDd\xDe\xDf")
 
 
-    def test_regression_hops_from_int(self,):
+    def test_regression_hops_from_int(self):
         """Allow hops to be given as an int
         """
         # Pack

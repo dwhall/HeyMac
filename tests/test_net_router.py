@@ -5,7 +5,7 @@ from heymac import net_router
 
 class TestNetRouter(unittest.TestCase):
 
-    def test_get_route(self,):
+    def test_get_route(self):
         # Happy cases
         self.assertEqual(net_router.get_route(b"\x00\x00", b"\x00\x00"), [b"\x00\x00"])
         self.assertEqual(net_router.get_route(b"\x10\x00", b"\x00\x00"), [b"\x10\x00", b"\x00\x00"])
@@ -18,7 +18,7 @@ class TestNetRouter(unittest.TestCase):
                                             b"\xB0\x00", b"\xBB\x00", b"\xBB\x20", b"\xBB\x29", ])
 
 
-    def test_should_route(self,):
+    def test_should_route(self):
         # Routing
         self.assertTrue(net_router.should_route(b"\x11\x00", b"\x00\x00", b"\x10\x00"))
         self.assertTrue(net_router.should_route(b"\x11\x11", b"\x00\x00", b"\x11\x10"))

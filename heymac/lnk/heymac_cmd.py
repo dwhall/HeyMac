@@ -97,7 +97,7 @@ class HeymacCmdTxt(HeymacCmd):
     def __init__(self, *args, **kwargs):
         super().__init__(self.CMD_ID, **kwargs)
 
-    def __bytes__(self,):
+    def __bytes__(self):
         b = bytearray()
         b.append(HeymacCmd.PREFIX | HeymacCmdTxt.CMD_ID)
         b.extend(self.field[HeymacCmd.FLD_MSG])
@@ -124,7 +124,7 @@ class HeymacCmdCsmaBcn(HeymacCmd):
     def __init__(self, *args, **kwargs):
         super().__init__(self.CMD_ID, **kwargs)
 
-    def __bytes__(self,):
+    def __bytes__(self):
         """Serializes the beacon into bytes to send over the air."""
         b = bytearray()
         b.append(HeymacCmd.PREFIX | HeymacCmdCsmaBcn.CMD_ID)
@@ -176,7 +176,7 @@ class HeymacCmdJoin(HeymacCmd):
     def __init__(self, *args, **kwargs):
         super().__init__(self.CMD_ID, **kwargs)
 
-    def __bytes__(self,):
+    def __bytes__(self):
         """Serializes the join-command into bytes."""
         b = bytearray()
         b.append(HeymacCmd.PREFIX | self.CMD_ID)

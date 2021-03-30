@@ -11,7 +11,7 @@ class TestValidatedDict(unittest.TestCase):
     """Tests the heymac.vdict.ValidatedDict
     """
 
-    def test_happy(self,):
+    def test_happy(self):
         d = heymac.vdict.ValidatedDict()
         d[0] = "zero"
         d[1] = "one"
@@ -33,7 +33,7 @@ class TestValidatedDict(unittest.TestCase):
         self.assertEqual(d[1].value, "one")
         self.assertEqual(d[1].valid, False)
 
-    def test_str(self,):
+    def test_str(self):
         d = heymac.vdict.ValidatedDict()
         d[0] = "zero"
         d[1] = "one"

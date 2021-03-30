@@ -36,7 +36,7 @@ class SX127xHsm(farc.Ahsm):
         self._dflt_rx_stngs = ()
 
 
-    def get_stngs(self,):
+    def get_stngs(self):
         """Returns the current settings"""
         return self._dflt_stngs
 
@@ -552,7 +552,7 @@ class SX127xHsm(farc.Ahsm):
             self._tm_queue[tm] = action_args
 
 
-    def _on_lora_rx_done(self,):
+    def _on_lora_rx_done(self):
         """Reads received bytes and meta data from the radio.
 
         Checks and logs any errors.
@@ -572,7 +572,7 @@ class SX127xHsm(farc.Ahsm):
             # TODO: incr phy_data stats rx payld crc err
 
 
-    def _pop_soon_action(self,):
+    def _pop_soon_action(self):
         """Returns the next (time, action) pair from the queue and removes it.
 
         Returns None if the queue is empty.
@@ -592,7 +592,7 @@ class SX127xHsm(farc.Ahsm):
         return None
 
 
-    def _top_soon_action(self,):
+    def _top_soon_action(self):
         """Returns the next (time, action) pair from the queue without removal.
 
         Returns None if the queue is empty.

@@ -108,7 +108,7 @@ class HeymacFrame(object):
         self.field[HeymacFrame.FLD_FCTL] = fctl
 
 
-    def __bytes__(self,):
+    def __bytes__(self):
         """Returns the HeymacFrame serialized into a bytes object.
 
         Raises a HeymacFrameError if some bits and fields
@@ -243,7 +243,7 @@ class HeymacFrame(object):
         return self.field.get(fld_nm, None)
 
 
-    def get_sender(self,):
+    def get_sender(self):
         """Returns the sender of the frame (source or re-transmitter)."""
         if self.is_mhop():
             sender = self.get_field(HeymacFrame.FLD_TADDR)
@@ -252,7 +252,7 @@ class HeymacFrame(object):
         return sender
 
 
-    def is_heymac(self,):
+    def is_heymac(self):
         """Returns True if the PID Ident subfield indicates Heymac protocol.
         Note, this only checks the first four bits and does not check
         the rest of the frame for validity.
@@ -260,34 +260,34 @@ class HeymacFrame(object):
         return (self.field[HeymacFrame.FLD_PID] & HeymacFrame._PID_IDENT_MASK
                 == HeymacFrame.PID_IDENT_HEYMAC)
 
-    def is_extended(self,):
+    def is_extended(self):
         return 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_X)
 
-    def is_long_addrs(self,):
+    def is_long_addrs(self):
         return (0 == (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_X)
             and 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_L))
 
-    def is_netid_present(self,):
+    def is_netid_present(self):
         return (0 == (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_X)
             and 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_N))
 
-    def is_daddr_present(self,):
+    def is_daddr_present(self):
         return (0 == (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_X)
             and 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_D))
 
-    def is_ies_present(self,):
+    def is_ies_present(self):
         return (0 == (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_X)
             and 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_I))
 
-    def is_saddr_present(self,):
+    def is_saddr_present(self):
         return (0 == (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_X)
             and 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_S))
 
-    def is_mhop(self,):
+    def is_mhop(self):
         return (0 == (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_X)
             and 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_M))
 
-    def is_pending_set(self,):
+    def is_pending_set(self):
         return (0 == (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_X)
             and 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_P))
 
@@ -345,10 +345,10 @@ class HeymacFrame(object):
     # _SUPPORTED_CSMA_VRSNS = (0,)
 
 
-    def _get_addr_sz(self,):
+    def _get_addr_sz(self):
         return (2, 8)[self.is_long_addrs()]
 
-    def _validate_fctl_and_fields(self,):
+    def _validate_fctl_and_fields(self):
         """Validates this HeymacFrame
 
         Always returns None.  Raises a HeymacFrameError if

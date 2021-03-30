@@ -10,7 +10,7 @@ class TestHeyMacFrame(unittest.TestCase):
     """Tests the HeymacFrame building and serializing.
     """
 
-    def test_mac(self,):
+    def test_mac(self):
         # Build and serialize
         f = HeymacFrame(
                 HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
@@ -29,14 +29,14 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertIsNone(f.get_field(HeymacFrame.FLD_TADDR))
 
 
-    def test_not_mac(self,):
+    def test_not_mac(self):
         b = b"\x00\x00"
         # Parse and test
         # expect that parser raises an exception due to invalid frame header
         self.assertRaises(HeymacFrameError, HeymacFrame.parse, b)
 
 
-    def test_csma(self,):
+    def test_csma(self):
         # Build and serialize
         f = HeymacFrame(
                 HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
@@ -54,7 +54,7 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertIsNone(f.get_field(HeymacFrame.FLD_TADDR))
 
 
-    def test_min_payld(self,):
+    def test_min_payld(self):
         # Build and serialize
         f = HeymacFrame(
                 HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
@@ -73,7 +73,7 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertIsNone(f.get_field(HeymacFrame.FLD_TADDR))
 
 
-    def test_saddr64b(self,):
+    def test_saddr64b(self):
         # Build and serialize
         f = HeymacFrame(
                 HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
@@ -92,7 +92,7 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertIsNone(f.get_field(HeymacFrame.FLD_TADDR))
 
 
-    def test_saddr64b_daddr64b(self,):
+    def test_saddr64b_daddr64b(self):
         # Build and serialize
         f = HeymacFrame(
                 HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
@@ -113,7 +113,7 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertIsNone(f.get_field(HeymacFrame.FLD_TADDR))
 
 
-    def test_saddr16b_daddr16b(self,):
+    def test_saddr16b_daddr16b(self):
         # Build and serialize
         f = HeymacFrame(
                 HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
@@ -134,7 +134,7 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertIsNone(f.get_field(HeymacFrame.FLD_TADDR))
 
 
-    def test_netid_daddr(self,):
+    def test_netid_daddr(self):
         # Build and serialize
         f = HeymacFrame(
                 HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,

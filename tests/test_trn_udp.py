@@ -11,7 +11,7 @@ class TestAPv6Udp(unittest.TestCase):
     Each test function should test pack and unpack of the same data.
     """
 
-    def test_min(self,):
+    def test_min(self):
         # Pack
         f = heymac.APv6Udp(
             src_port=0xF0B0,
@@ -27,7 +27,7 @@ class TestAPv6Udp(unittest.TestCase):
         self.assertEqual(f.src_port, 0xF0B0)
         self.assertEqual(f.dst_port, 0xF0B0)
 
-    def test_chksum(self,):
+    def test_chksum(self):
         # Pack
         f = heymac.APv6Udp(
             chksum=0x2A3B,
@@ -44,7 +44,7 @@ class TestAPv6Udp(unittest.TestCase):
         self.assertEqual(f.src_port, 0xF0B0)
         self.assertEqual(f.dst_port, 0xF0B0)
 
-    def test_src_port_f0b3(self,):
+    def test_src_port_f0b3(self):
         # Pack
         f = heymac.APv6Udp(
             src_port=0xF0B3,
@@ -60,7 +60,7 @@ class TestAPv6Udp(unittest.TestCase):
         self.assertEqual(f.src_port, 0xF0B3)
         self.assertEqual(f.dst_port, 0xF0B0)
 
-    def test_src_port_f009(self,):
+    def test_src_port_f009(self):
         # Pack
         f = heymac.APv6Udp(
             src_port=0xF009,
@@ -76,7 +76,7 @@ class TestAPv6Udp(unittest.TestCase):
         self.assertEqual(f.src_port, 0xF009)
         self.assertEqual(f.dst_port, 0xF0B0)
 
-    def test_src_port_abcd(self,):
+    def test_src_port_abcd(self):
         # Pack
         f = heymac.APv6Udp(
             src_port=0xABCD,
@@ -92,7 +92,7 @@ class TestAPv6Udp(unittest.TestCase):
         self.assertEqual(f.src_port, 0xABCD)
         self.assertEqual(f.dst_port, 0xF0B0)
 
-    def test_dst_port_f009(self,):
+    def test_dst_port_f009(self):
         # Pack
         f = heymac.APv6Udp(
             src_port=0xF0B0,
@@ -108,7 +108,7 @@ class TestAPv6Udp(unittest.TestCase):
         self.assertEqual(f.src_port, 0xF0B0)
         self.assertEqual(f.dst_port, 0xF009)
 
-    def test_dst_port_abcd(self,):
+    def test_dst_port_abcd(self):
         # Pack
         f = heymac.APv6Udp(
             src_port=0xF0B0,
@@ -124,7 +124,7 @@ class TestAPv6Udp(unittest.TestCase):
         self.assertEqual(f.src_port, 0xF0B0)
         self.assertEqual(f.dst_port, 0xABCD)
 
-    def test_chksum_src_dst(self,):
+    def test_chksum_src_dst(self):
         # Pack
         f = heymac.APv6Udp(
             chksum=0xC1C2,
@@ -141,7 +141,7 @@ class TestAPv6Udp(unittest.TestCase):
         self.assertEqual(f.src_port, 0x1112)
         self.assertEqual(f.dst_port, 0x2122)
 
-    def test_regression_serialize_without_port(self,):
+    def test_regression_serialize_without_port(self):
         """An assertion should be thrown if
         the coder does not give src/dst ports
         """
@@ -157,7 +157,7 @@ class TestAPv6Udp(unittest.TestCase):
             b = bytes(f)
 
 
-    def test_regression_serialize_twice(self,):
+    def test_regression_serialize_twice(self):
         """Problem: serializing an APv6Udp() a second time
         caused an assertion::
 
@@ -180,7 +180,7 @@ class TestAPv6Udp(unittest.TestCase):
         b2 = bytes(f)
 
 
-    def test_regression_give_chksum_as_bytes(self,):
+    def test_regression_give_chksum_as_bytes(self):
         f = heymac.APv6Udp(
             src_port=0x1234,
             dst_port=0x5678,

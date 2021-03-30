@@ -11,7 +11,7 @@ class TestHeyMacCmdJoin(unittest.TestCase):
     Each test function should test pack and unpack of the same data.
     """
 
-    def test_join_rqst(self,):
+    def test_join_rqst(self):
         # Pack
         cmd_join_rqst = heymac.HeyMacCmdJoinRequest()
         cmd_join_rqst.net_id = 0x1234
@@ -30,7 +30,7 @@ class TestHeyMacCmdJoin(unittest.TestCase):
         self.assertEqual(f.net_id, 0x1234)
 
 
-    def test_join_rspd(self,):
+    def test_join_rspd(self):
         # Pack
         cmd_join_rqst = heymac.HeyMacCmdJoinRespond()
         cmd_join_rqst.short_addr = 0x1000
@@ -49,7 +49,7 @@ class TestHeyMacCmdJoin(unittest.TestCase):
         self.assertEqual(f.short_addr, 0x1000)
 
 
-    def test_join_cnfm(self,):
+    def test_join_cnfm(self):
         # Pack
         cmd_join_cnfm = heymac.HeyMacCmdJoinConfirm()
         cmd_join_cnfm.short_addr = 0x2000
@@ -68,7 +68,7 @@ class TestHeyMacCmdJoin(unittest.TestCase):
         self.assertEqual(f.short_addr, 0x2000)
 
 
-    def test_join_rjct(self,):
+    def test_join_rjct(self):
         # Pack
         cmd_join_rjct = heymac.HeyMacCmdJoinReject()
         b = bytes(cmd_join_rjct)
@@ -84,7 +84,7 @@ class TestHeyMacCmdJoin(unittest.TestCase):
         self.assertEqual(f.mid, heymac.HeyMacCmdJoin.MID_RJCT)
 
 
-    def test_join_leav(self,):
+    def test_join_leav(self):
         # Pack
         cmd_join_leav = heymac.HeyMacCmdJoinLeave()
         b = bytes(cmd_join_leav)
@@ -100,7 +100,7 @@ class TestHeyMacCmdJoin(unittest.TestCase):
         self.assertEqual(f.mid, heymac.HeyMacCmdJoin.MID_LEAV)
 
 
-    def test_join_drop(self,):
+    def test_join_drop(self):
         # Pack
         cmd_join_drop = heymac.HeyMacCmdJoinDrop()
         b = bytes(cmd_join_drop)

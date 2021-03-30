@@ -10,7 +10,7 @@ class TestLinearRegression(unittest.TestCase):
     """Tests the mth_lr.LinearRegression
     """
 
-    def test_happy(self,):
+    def test_happy(self):
         """Test values come from "Why all the math?", Jack Crenshaw, embedded.com, 2009/06/05
         """
         linreg = mth_lr.LinearRegression(4)

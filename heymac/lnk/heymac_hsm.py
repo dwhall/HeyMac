@@ -280,7 +280,7 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
         self.post_fifo(farc.Event(farc.Signal._LNK_RXD_FROM_PHY, frame))
 
 
-    def _post_bcn(self,):
+    def _post_bcn(self):
         """Builds a Heymac CsmaBeacon and posts it to the PHY for transmit."""
         bcn = heymac_cmd.HeymacCmdCsmaBcn(
             # TODO: Fill with real data

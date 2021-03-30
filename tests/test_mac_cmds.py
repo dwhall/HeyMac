@@ -11,7 +11,7 @@ class TestHeyMacCmds(unittest.TestCase):
     Each test function should test pack and unpack of the same data.
     """
 
-    def test_sbcn(self,):
+    def test_sbcn(self):
         # Pack
         bcn = heymac.HeyMacCmdSbcn(
             bcn_en=1,
@@ -33,7 +33,7 @@ class TestHeyMacCmds(unittest.TestCase):
         self.assertEqual(f.asn, 42)
 
 
-    def test_sbcn_slots(self,):
+    def test_sbcn_slots(self):
         # Pack
         bcn = heymac.HeyMacCmdSbcn(
             bcn_en=1,
@@ -57,7 +57,7 @@ class TestHeyMacCmds(unittest.TestCase):
         self.assertEqual(f.asn, 42)
 
 
-    def test_ebcn(self,):
+    def test_ebcn(self):
         # Pack
         ebcn = heymac.HeyMacCmdEbcn(
             bcn_en=1,
@@ -86,7 +86,7 @@ class TestHeyMacCmds(unittest.TestCase):
         self.assertEqual(f.ntwks, [])
 
 
-    def test_ebcn_ngbrs(self,):
+    def test_ebcn_ngbrs(self):
         # Pack
         ebcn = heymac.HeyMacCmdEbcn(
             bcn_en=1,
@@ -117,7 +117,7 @@ class TestHeyMacCmds(unittest.TestCase):
         self.assertEqual(f.ntwks, [])
 
 
-    def test_ebcn_ngbrs_ntwks(self,):
+    def test_ebcn_ngbrs_ntwks(self):
         # Pack
         ebcn = heymac.HeyMacCmdEbcn(
             bcn_en=1,
@@ -152,7 +152,7 @@ class TestHeyMacCmds(unittest.TestCase):
         self.assertEqual(f.ntwks, [(0x1001, b"\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8", 0x4321),])
 
 
-    def test_txt_empty(self,):
+    def test_txt_empty(self):
         # Pack
         txt = heymac.HeyMacCmdTxt(msg=b"")
         b = bytes(txt)
@@ -163,7 +163,7 @@ class TestHeyMacCmds(unittest.TestCase):
         self.assertEqual(f.msg, b"")
 
 
-    def test_txt(self,):
+    def test_txt(self):
         # Pack
         txt = heymac.HeyMacCmdTxt(msg=b"Hell, oh! whirled")
         b = bytes(txt)

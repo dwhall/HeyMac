@@ -4,7 +4,7 @@ from heymac.net import honr
 
 
 class TestNetHonr(unittest.TestCase):
-    def test_to_internal_repr(self,):
+    def test_to_internal_repr(self):
         # Bad data type
         with self.assertRaises(AssertionError): honr.to_internal_repr([0, 0])
         # Good data types
@@ -12,13 +12,13 @@ class TestNetHonr(unittest.TestCase):
         self.assertEqual(honr.to_internal_repr(b"\x01\x02\x03\x04\x05\x06\x07\x08"), bytearray([0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0, 8,]))
 
 
-    def test_to_external_addr(self,):
+    def test_to_external_addr(self):
         with self.assertRaises(AssertionError): honr.to_external_addr([0, 0])
         self.assertEqual(honr.to_external_addr(bytearray([0, 1, 0, 2])), b"\x01\x02")
         self.assertEqual(honr.to_external_addr(bytearray([0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0, 8,])), b"\x01\x02\x03\x04\x05\x06\x07\x08")
 
 
-    def test_get_nearest_common_ancestor(self,):
+    def test_get_nearest_common_ancestor(self):
         # Happy cases
         self.assertEqual(honr.get_nearest_common_ancestor(b"\x00\x00", b"\x00\x00"), b"\x00\x00")
         self.assertEqual(honr.get_nearest_common_ancestor(b"\x00\x00\x00\x00\x00\x00\x00\x00", b"\x00\x00\x00\x00\x00\x00\x00\x00"), b"\x00\x00\x00\x00\x00\x00\x00\x00")
@@ -44,7 +44,7 @@ class TestNetHonr(unittest.TestCase):
         with self.assertRaises(AssertionError): honr.get_nearest_common_ancestor(b"\x00\x00\x00\x00\x00\x00\x00\x00", b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01")
 
 
-    def test_get_parent(self,):
+    def test_get_parent(self):
         # Ensure a constant
         self.assertEqual(honr.ROOT2, b"\x00\x00")
         # Parent of Root is None
@@ -66,7 +66,7 @@ class TestNetHonr(unittest.TestCase):
         with self.assertRaises(AssertionError): honr.get_parent(b"\x1F\x30")
 
 
-    def test_get_rank(self,):
+    def test_get_rank(self):
         # Happy cases
         self.assertEqual(honr.get_rank(b"\x00\x00"), 0)
         self.assertEqual(honr.get_rank(b"\x10\x00"), 1)
@@ -86,7 +86,7 @@ class TestNetHonr(unittest.TestCase):
         with self.assertRaises(AssertionError): honr.get_rank(b"\x00\x0F")
 
 
-    def test_is_addr_valid(self,):
+    def test_is_addr_valid(self):
         # Valid addresses
         self.assertTrue(honr.is_addr_valid(b"\x00\x00"))
         self.assertTrue(honr.is_addr_valid(b"\x00\x00\x00\x00\x00\x00\x00\x00"))
@@ -117,7 +117,7 @@ class TestNetHonr(unittest.TestCase):
         self.assertFalse(honr.is_addr_valid(b"\xF1\xF0"))
 
 
-    def test_is_addr_valid_bcast(self,):
+    def test_is_addr_valid_bcast(self):
         # Valid broadcast addresses
         self.assertTrue(honr.is_addr_valid_bcast(b"\xF0\x00"))
         self.assertTrue(honr.is_addr_valid_bcast(b"\x1F\x00"))
@@ -142,7 +142,7 @@ class TestNetHonr(unittest.TestCase):
         self.assertFalse(honr.is_addr_valid_bcast(b"\xF1\xF0"))
 
 
-    def test_is_addr_valid_node(self,):
+    def test_is_addr_valid_node(self):
         # Valid addresses
         self.assertTrue(honr.is_addr_valid(b"\x00\x00"))
         self.assertTrue(honr.is_addr_valid(b"\x00\x00\x00\x00\x00\x00\x00\x00"))
