@@ -21,7 +21,7 @@ from tui_stngs import RadioStngsModel, RadioStngsView
 UI_ANIMATE_PERIOD = 0.050  # Taken from asciimatics screen.py
 
 
-class TxtUiAhsm(farc.Ahsm):
+class TxtUiHsm(farc.Ahsm):
     def __init__(self, phy_sm, lnk_sm):
         """Language-specific initialization."""
         super().__init__()
