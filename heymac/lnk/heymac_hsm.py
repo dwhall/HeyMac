@@ -232,9 +232,8 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
 
         # Attach the Heymac command, if present
         try:
-            cmd = heymac_cmd.HeymacCmd.parse(
-                frame.get_field(HeymacFrame.FLD_PAYLD))
-        except heymac_cmd.HeymacCmdError:
+            cmd = HeymacCmd.parse(frame.get_field(HeymacFrame.FLD_PAYLD))
+        except HeymacCmdError:
             cmd = None
         frame.cmd = cmd
 
@@ -282,7 +281,7 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
 
     def _post_bcn(self):
         """Builds a Heymac CsmaBeacon and posts it to the PHY for transmit."""
-        bcn = heymac_cmd.HeymacCmdCsmaBcn(
+        bcn = HeymacCmdCsmaBcn(
             # TODO: Fill with real data
             FLD_CAPS=Heymac.LNK_CAP_RXCONT,
             FLD_STATUS=0,

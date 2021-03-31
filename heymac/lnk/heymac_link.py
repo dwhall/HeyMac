@@ -4,9 +4,8 @@
 
 import farc
 
-from . import heymac_hsm
-from . import heymac_frame
-from . import heymac_cmd
+from .heymac_frame import HeymacFrame
+from .heymac_cmd import HeymacCmd, HeymacCmdCsmaBcn
 
 
 class HeymacLink(object):
@@ -59,15 +58,15 @@ class HeymacLink(object):
         for data in self._ngbr_data.values():
             frame = data["BCN_FRAME"]
             bcn = frame.cmd
-            assert type(bcn) is heymac_cmd.HeymacCmdCsmaBcn
-            ngbrs = bcn.get_field(heymac_cmd.HeymacCmd.FLD_NGBRS)
+            assert type(bcn) is HeymacCmdCsmaBcn
+            ngbrs = bcn.get_field(HeymacCmd.FLD_NGBRS)
             return self._lnk_addr in ngbrs
         return False
 
 
     def process_frame(self, frame):
         """Update link data with info from the given frame."""
-        assert type(frame) is heymac_frame.HeymacFrame
+        assert type(frame) is HeymacFrame
 
         # Init space for a new neighbor
         lnk_addr = frame.get_sender()
@@ -80,7 +79,7 @@ class HeymacLink(object):
         self._ngbr_data[lnk_addr]["LATEST_RX_SNR"] = frame.rx_meta[2]
 
         # Process a beacon
-        if frame.cmd and type(frame.cmd) is heymac_cmd.HeymacCmdCsmaBcn:
+        if frame.cmd and type(frame.cmd) is HeymacCmdCsmaBcn:
             self._process_bcn(frame)
 
 
