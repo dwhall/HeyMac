@@ -44,9 +44,16 @@ class TxtUiHsm(farc.Ahsm):
         screen.clear()
         scenes = [
             Scene([MsgsView(screen, self._msgs_model, self._ident_model, self._stngs_model, self._status_model)], -1, name="Messages"),
-            Scene([IdentView(screen, self._ident_model)], -1, name="Identity"),
             Scene([RadioStngsView(screen, self._stngs_model)], -1, name="Settings"),
         ]
+
+        # If the Identity files are not present, show the Ident page first
+        ident_scene = Scene([IdentView(screen, self._ident_model)], -1, name="Identity")
+        if self._ident_model.device_cred_exists() and self._ident_model.personal_cert_exists():
+            scenes.append(ident_scene)
+        else:
+            scenes.insert(0, ident_scene)
+
         screen.set_scenes(scenes)
         self._screen = screen
         return self.tran(self._running)
