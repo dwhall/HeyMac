@@ -7,7 +7,7 @@ The Text User Interface Identity model and view
 """
 
 from asciimatics.widgets import Button, CheckBox, Divider, Frame, Label, \
-        Layout, Text, Widget
+        Layout, Text, TextBox, Widget
 from asciimatics.exceptions import NextScene
 
 from heymac.utl.ham_ident import HamIdent
@@ -84,12 +84,14 @@ class IdentView(Frame):
         MAX_LEN_COUNTRY = 3
 
         # Personal input fields
-        layout1 = Layout([1,3,1], fill_frame=True)
+        # Col 0
+        layout1 = Layout([1,4,4], fill_frame=True)
         self.add_layout(layout1)
         layout1.add_widget(Label("Personal:"), 0)
         layout1.add_widget(Divider(draw_line=False, height=7), 0)
         layout1.add_widget(Divider(draw_line=True, height=1), 0)
 
+        # Col 1
         layout1.add_widget(Text(label="Common name:",
                                 on_change=self._on_change,
                                 name="cmn_name"), 1)
@@ -118,11 +120,22 @@ class IdentView(Frame):
                                 hide_char='*'), 1)
         layout1.add_widget(Divider(draw_line=True, height=1), 1)
 
+        # Col 2
+        txt = TextBox(8, line_wrap=True, readonly=True)
+        txt.disabled = True
+        txt.value = ["Info to create a personal X.509 crypto certficate.  "
+                    "You must input your callsign and should input "
+                    "correct data in the other fields to increase trust."]
+        layout1.add_widget(txt, 2)
+        layout1.add_widget(Divider(draw_line=True, height=1), 2)
+
         # Device input fields
+        # Col 0
         layout1.add_widget(Label("Device:"), 0)
         layout1.add_widget(Divider(draw_line=False, height=2), 0)
         layout1.add_widget(Divider(draw_line=True, height=1), 0)
 
+        # Col 1
         layout1.add_widget(Text(label="SSID:",
                                 on_change=self._on_change,
                                 name="ssid",
@@ -134,6 +147,15 @@ class IdentView(Frame):
                                 validator=self._validate_pwd,
                                 hide_char='*'), 1)
         layout1.add_widget(Divider(draw_line=True, height=1), 1)
+
+        # Col 2
+        txt = TextBox(3, line_wrap=True, readonly=True)
+        txt.disabled = True
+        txt.value = ["This information is used to create device credentials. "
+                    "Each device should have its own three-digit SSID."]
+        layout1.add_widget(txt, 2)
+        layout1.add_widget(Divider(draw_line=True, height=1), 2)
+
 
         # Output fields
         layout1.add_widget(Label("Output:"), 0)
