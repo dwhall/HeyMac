@@ -131,7 +131,7 @@ class IdentView(Frame):
 
         # Device input fields
         # Col 0
-        layout1.add_widget(Label("Device:"), 0)
+        layout1.add_widget(Label("Device:", name="dev_lbl"), 0)
         layout1.add_widget(Divider(draw_line=False, height=2), 0)
         layout1.add_widget(Divider(draw_line=True, height=1), 0)
 
@@ -192,7 +192,7 @@ class IdentView(Frame):
     def _update_disabled(self):
         # Disable device fields until personal cert exists
         dev_disabled = not self._ident_model.personal_cert_exists()
-        #self.find_widget("dev_lbl").disabled = dev_disabled
+        self.find_widget("dev_lbl").disabled = dev_disabled
         self.find_widget("ssid").disabled = dev_disabled
         self.find_widget("dev_pass").disabled = dev_disabled
 
