@@ -73,9 +73,9 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
         super().__init__()
 
         # Init the lower layer
-        self.phy_ahsm = phy
-        self.phy_ahsm.set_dflt_stngs(Heymac._PHY_STNGS_DFLT)
-        self.phy_ahsm.set_dflt_rx_clbk(self._phy_rx_clbk)
+        self.phy_hsm = phy
+        self.phy_hsm.set_dflt_stngs(Heymac._PHY_STNGS_DFLT)
+        self.phy_hsm.set_dflt_rx_clbk(self._phy_rx_clbk)
 
         self._rx_clbk = None
 
@@ -294,16 +294,16 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
             | HeymacFrame.FCTL_S)
         frame.set_field(HeymacFrame.FLD_SADDR, self._lnk_addr)
         frame.set_field(HeymacFrame.FLD_PAYLD, bytes(bcn))
-        self.phy_ahsm.post_tx_action(
-            self.phy_ahsm.TM_NOW,
-            Heymac._PHY_STNGS_TX,
-            bytes(frame))
+        self.phy_hsm.post_tx_action(
+                self.phy_hsm.TM_NOW,
+                Heymac._PHY_STNGS_TX,
+                bytes(frame))
 
 
     def _post_frm(self, frame):
         """Posts the frame to the PHY for transmit."""
         assert type(frame) is HeymacFrame
-        self.phy_ahsm.post_tx_action(
-            self.phy_ahsm.TM_NOW,
-            Heymac._PHY_STNGS_TX,
-            bytes(frame))
+        self.phy_hsm.post_tx_action(
+                self.phy_hsm.TM_NOW,
+                Heymac._PHY_STNGS_TX,
+                bytes(frame))

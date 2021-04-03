@@ -93,11 +93,6 @@ class SX127xHsm(farc.Ahsm):
         self._dflt_stngs = dflt_stngs
 
 
-    def start_stack(self, ahsm_prio):
-        """PHY is the bottom of the protocol stack, so just start this Ahsm"""
-        self.start(ahsm_prio)
-
-
 # State machine
 
 
@@ -501,7 +496,7 @@ class SX127xHsm(farc.Ahsm):
 # Private
 
 
-    # The margin within which the Ahsm will transition to
+    # The margin within which the Hsm will transition to
     # the action's state if there is an entry in the action queue;
     # otherwise, transitions to the default state, listening or sleeping.
     _TM_SOON = 0.040

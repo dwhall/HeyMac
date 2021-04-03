@@ -109,14 +109,13 @@ Callable                Description
                           pairs.  This should be called once before the
                           state machine is started.  See `Settings`_
                           for more details.
-----------------------  ------------------------------------------------
-``start_stack()``       Starts the PHY layer state machine with the
-                        given ``farc.Ahsm`` priority.
 ======================  ================================================
 
 
 State Machine
 -------------
+
+.. image:: ../../docs/SX127xHsm.png
 
 After initialization, the behavior of the state machine (SM) is
 to run in a loop that applies settings and then performs an action.
@@ -279,6 +278,8 @@ Reference
 Ahsm
     Augmented Hierarchical State Machine.  A statechart capable of nested states
     with entry and exit handlers and having a message queue to serialize incoming events.
+    In the code we use "HSM" or "Hsm" because it is a more well-known
+    acronym and is shorter.
 
 This project contains design files and documentation that may be opened with
 open source applications.  The following table gives an application that will

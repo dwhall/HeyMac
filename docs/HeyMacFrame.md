@@ -9,11 +9,9 @@ HeyMac offers 16- and 64-bit addressing, multi-network and multi-hop capabilitie
 Extensions for cryptographic authentication and encryption are possible.
 
 
-This implementation of HeyMac:
-* is written in Python3 using the [farc](https://github.com/dwhall/farc)
+This implementation of HeyMac is written in Python3 using the [farc](https://github.com/dwhall/farc)
   hierarchical state machine framework.
-* uses the submodule [sx127x_ahsm](https://github.com/dwhall/sx127x_ahsm)
-  for the Physical Layer (Layer 1) LoRa radio driver
+
 
 ## HeyMac Frame
 

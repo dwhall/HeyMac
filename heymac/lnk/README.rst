@@ -24,7 +24,7 @@ Software
 --------
 
 heymac_hsm.py
-    Contains LnkHeymacAhsm, the link layer state machine.
+    Contains HeymacHsm, the link layer state machine.
 
 heymac_frame.py
     Contains HeymacFrame, which has methods to build or parse a link layer frame.
@@ -40,7 +40,7 @@ that instantiates the LNK layer.
 ======================  ================================================
 Callable                Description
 ======================  ================================================
-``LnkHeymacAhsm()``     Constructor for the state machine
+``HeymacHsm()``     Constructor for the state machine
                         accepts one argument.
 
                         - *arg* tbd
@@ -58,7 +58,7 @@ Callable                Description
 State Machine
 -------------
 
-.. image:: ../docs/LnkHeymacAhsm.png
+.. image:: ../../docs/HeymacCsmaHsm.png
 
 
 Settings
