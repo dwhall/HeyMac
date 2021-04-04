@@ -85,16 +85,16 @@ class RadioStngsView(Frame):
                          can_scroll=True,
                          title="Radio Settings",
                          reduce_cpu=True)
-        # Save reference to the model
         self._stngs_model = model
 
-        # Create the form for displaying the list of contacts.
+        # Layout the settings widgets
         layout1 = Layout([1,2,1], fill_frame=True)
         self.add_layout(layout1)
         layout1.add_widget(DropdownList(
                             [("LoRa", 1),],
                             label="Radio Mode:",
-                            name="radio_mode"), 1)
+                            name="radio_mode",
+                            disabled=True), 1)
         layout1.add_widget(Text(
                             label="RF Freq [KHz]:",
                             name="rf_freq",
@@ -149,11 +149,11 @@ class RadioStngsView(Frame):
         self.data = self._stngs_model.get_stngs()
 
 
-    def _is_valid_freq(self, freq_str_khz):
+    def _is_valid_freq(self, freq_khz_str):
         try:
-            freq = 1000 * int(freq_str_khz)
+            freq_hz = 1000 * int(freq_khz_str)
             return (PhySX127xSettings.STNG_RF_FREQ_MIN
-                    <= freq
+                    <= freq_hz
                     <= PhySX127xSettings.STNG_RF_FREQ_MAX)
         except:
             return False
@@ -167,3 +167,4 @@ class RadioStngsView(Frame):
 
     def _on_click_cancel(self):
         raise NextScene("Messages")
+
