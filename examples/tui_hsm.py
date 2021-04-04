@@ -39,25 +39,6 @@ class TxtUiHsm(farc.Ahsm):
         """
         farc.Signal.register("_UI_KEYCODE")
         self._tmout_evt = farc.TimeEvent("_UI_TMOUT")
-
-        # UI one-time setup
-        screen = Screen.open()
-        screen.clear()
-        scenes = [
-            Scene([MsgsView(screen, self._msgs_model, self._ident_model, self._stngs_model, self._status_model)], -1, name="Messages"),
-            Scene([RadioStngsView(screen, self._stngs_model)], -1, name="Settings"),
-            Scene([RadioStatusView(screen, self._stngs_model)], -1, name="Status"),
-        ]
-
-        # If the Identity files are not present, show the Ident page first
-        ident_scene = Scene([IdentView(screen, self._ident_model)], -1, name="Identity")
-        if self._ident_model.device_cred_exists() and self._ident_model.personal_cert_exists():
-            scenes.append(ident_scene)
-        else:
-            scenes.insert(0, ident_scene)
-
-        screen.set_scenes(scenes)
-        self._screen = screen
         return self.tran(self._running)
 
 
@@ -72,15 +53,24 @@ class TxtUiHsm(farc.Ahsm):
             logging.debug("UI._running")
             self._tmout_evt.post_in(self, 0)
             self._prev_tick = farc.Framework._event_loop.time()
+
+            if (self._ident_model.device_cred_exists() and
+                self._ident_model.personal_cert_exists()):
+                start_scene = None
+            else:
+                start_scene = Scene([], -1, name="Identity")
+            self._new_screen(start_scene)
             return self.handled(event)
 
         elif sig == farc.Signal._UI_TMOUT:
-            # Draw frame
             try:
                 self._screen.draw_next_frame()
+
             except ResizeScreenError as e:
-                self._last_scene = e.scene # FIXME: this does nothing
+                self._new_screen(e.scene)
+
             except StopApplication:
+                self._screen.close()
                 return self.tran(self._exiting)
 
             # Iterate immediately if this step took too long
@@ -107,8 +97,24 @@ class TxtUiHsm(farc.Ahsm):
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             logging.debug("UI._exiting")
-            self._screen.close()
             sys.exit(0)
             return self.handled(event)
 
         return self.super(self.top)
+
+
+    def _new_screen(self, start_scene):
+        screen = Screen.open()
+        screen.clear()
+        scenes = [
+            Scene([MsgsView(screen,
+                            self._msgs_model,
+                            self._ident_model,
+                            self._stngs_model,
+                            self._status_model)], -1, name="Messages"),
+            Scene([IdentView(screen, self._ident_model)], -1, name="Identity"),
+            Scene([RadioStngsView(screen, self._stngs_model)], -1, name="Settings"),
+            Scene([RadioStatusView(screen, self._stngs_model)], -1, name="Status"),
+        ]
+        screen.set_scenes(scenes, start_scene=start_scene)
+        self._screen = screen
