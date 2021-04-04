@@ -83,6 +83,17 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
         self._lnk_data = HeymacLink(self._lnk_addr)
 
 
+    def send_cmd(self, cmd):
+        assert issubclass(type(cmd), HeymacCmd)
+        f = HeymacFrame(
+                HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
+                HeymacFrame.FCTL_L | HeymacFrame.FCTL_S)
+        #f.set_field(HeymacFrame.FLD_DADDR, dest)
+        f.set_field(HeymacFrame.FLD_SADDR, self._lnk_addr)
+        f.set_field(HeymacFrame.FLD_PAYLD, bytes(cmd))
+        self._phy_hsm.post_tx_action(self._phy_hsm.TM_NOW, None, bytes(f))
+
+
     def set_rx_clbk(self, rx_clbk):
         self._rx_clbk = rx_clbk
 
