@@ -98,6 +98,7 @@ class RadioStngsView(Frame):
         layout1.add_widget(Text(
                             label="RF Freq [KHz]:",
                             name="rf_freq",
+                            on_change=self._on_change,
                             validator=self._is_valid_freq), 1)
         layout1.add_widget(DropdownList(
                             [
@@ -138,7 +139,9 @@ class RadioStngsView(Frame):
 
         layout2 = Layout([1, 1, 1, 1])
         self.add_layout(layout2)
-        layout2.add_widget(Button("Apply", self._on_click_apply), 1)
+        layout2.add_widget(Button("Apply",
+                                  name="apply_btn",
+                                  on_click=self._on_click_apply), 1)
         layout2.add_widget(Button("Cancel", self._on_click_cancel), 2)
 
         self.fix()
@@ -157,6 +160,14 @@ class RadioStngsView(Frame):
                     <= PhySX127xSettings.STNG_RF_FREQ_MAX)
         except:
             return False
+
+
+    def _on_change(self):
+        self.save()
+        self._update_disabled()
+
+    def _update_disabled(self):
+        pass
 
 
     def _on_click_apply(self):
