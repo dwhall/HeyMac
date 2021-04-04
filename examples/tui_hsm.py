@@ -15,7 +15,8 @@ from asciimatics.screen import Screen
 import farc
 
 from tui_ident import IdentModel, IdentView
-from tui_msgs import MsgsModel, MsgsView, StatusModel
+from tui_msgs import MsgsModel, MsgsView
+from tui_status import RadioStatusModel, RadioStatusView
 from tui_stngs import RadioStngsModel, RadioStngsView
 
 UI_ANIMATE_PERIOD = 0.050  # Taken from asciimatics screen.py
@@ -27,7 +28,7 @@ class TxtUiHsm(farc.Ahsm):
         super().__init__()
         self._ident_model = IdentModel()
         self._msgs_model = MsgsModel(lnk_hsm)
-        self._status_model = StatusModel(phy_hsm)
+        self._status_model = RadioStatusModel(phy_hsm)
         self._stngs_model = RadioStngsModel(phy_hsm)
 
     @farc.Hsm.state
@@ -45,6 +46,7 @@ class TxtUiHsm(farc.Ahsm):
         scenes = [
             Scene([MsgsView(screen, self._msgs_model, self._ident_model, self._stngs_model, self._status_model)], -1, name="Messages"),
             Scene([RadioStngsView(screen, self._stngs_model)], -1, name="Settings"),
+            Scene([RadioStatusView(screen, self._stngs_model)], -1, name="Status"),
         ]
 
         # If the Identity files are not present, show the Ident page first

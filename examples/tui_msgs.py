@@ -16,22 +16,6 @@ from asciimatics.widgets import Button, Frame, Label, Layout, \
         MultiColumnListBox, Text, Widget
 from asciimatics.screen import Screen
 
-class StatusModel(object):
-    def __init__(self, phy_hsm):
-        self._phy_hsm = phy_hsm
-
-    def get_status(self):
-        # TODO: get data dynamically
-        data = {"time": "14:56:42",
-                "stngs": "(9000 8N1)",
-                "flags": "[--------]",
-                "txrx": "--/rx",
-                }
-        return data
-
-    def get_status_flags(self):
-        data = self.get_status()
-        return data["flags"]
 from heymac.lnk import HeymacCmdCsmaBcn, HeymacCmdTxt
 
 
@@ -120,7 +104,7 @@ class MsgsView(Frame):
             self._on_click_stngs,
             name="stngs")
         self._status = Button(
-            "No Status",
+            self._status_model.get_summary(),
             self._on_click_status)
         self._txrx = Label("--/--", name="txrx")
         layout3.add_widget(self._time, 0)
@@ -157,7 +141,7 @@ class MsgsView(Frame):
         raise NextScene("Identity")
 
     def _on_click_status(self):
-        pass
+        raise NextScene("Status")
 
     def _on_click_stngs(self):
         raise NextScene("Settings")
