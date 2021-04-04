@@ -14,13 +14,13 @@ from tui_hsm import TxtUiHsm
 
 
 def main():
-    phy_sm = SX127xHsm(True)
-    lnk_sm = HeymacCsmaHsm(phy_sm)
-    tui_sm = TxtUiHsm(phy_sm, lnk_sm)
+    phy_hsm = SX127xHsm(True)
+    lnk_hsm = HeymacCsmaHsm(phy_hsm)
+    tui_hsm = TxtUiHsm(phy_hsm, lnk_hsm)
 
-    lnk_sm.start(50)
-    phy_sm.start(40)
-    tui_sm.start(30)
+    lnk_hsm.start(50)
+    phy_hsm.start(40)
+    tui_hsm.start(30)
 
     farc.run_forever()
 

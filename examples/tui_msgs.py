@@ -17,8 +17,8 @@ import heymac
 
 
 class StatusModel(object):
-    def __init__(self, phy_sm):
-        self._phy_sm = phy_sm
+    def __init__(self, phy_hsm):
+        self._phy_hsm = phy_hsm
 
     def get_status(self):
         # TODO: get data dynamically
@@ -35,9 +35,9 @@ class StatusModel(object):
 
 
 class MsgsModel(object):
-    def __init__(self, lnk_sm):
-        self._lnk_sm = lnk_sm
-        self._lnk_sm.set_rx_clbk(self._rx_clbk)
+    def __init__(self, lnk_hsm):
+        self._lnk_hsm = lnk_hsm
+        self._lnk_hsm.set_rx_clbk(self._rx_clbk)
         self._bcn_ident = {}
         self._msg_model = []
 
@@ -161,6 +161,5 @@ class MsgsView(Frame):
     def _on_click_stngs(self):
         raise NextScene("Settings")
 
-    @staticmethod
-    def _quit():
+    def _quit(self):
         raise StopApplication("User quit")

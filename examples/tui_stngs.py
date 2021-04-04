@@ -16,8 +16,8 @@ from heymac.phy import PhySX127xSettings
 
 
 class RadioStngsModel(object):
-    def __init__(self, phy_sm):
-        self._phy_sm = phy_sm
+    def __init__(self, phy_hsm):
+        self._phy_hsm = phy_hsm
 
 
     def apply_stngs(self, model_stngs):
@@ -35,7 +35,7 @@ class RadioStngsModel(object):
             stngs.append((stng_fld[model_name], val))
         # FIXME: phy is expecting a complete list stngs (not just what the model can adjust)
         #       ? change phy to use dict as stngs container ?
-        self._phy_sm.set_dflt_stngs(stngs)
+        self._phy_hsm.set_dflt_stngs(stngs)
 
 
     def get_stngs(self):
@@ -48,7 +48,7 @@ class RadioStngsModel(object):
         }
         model_flds = model_name.keys()
         model_stngs = {}
-        for stng_fld, val in self._phy_sm.get_stngs():
+        for stng_fld, val in self._phy_hsm.get_stngs():
             if stng_fld in model_flds:
                 if model_name[stng_fld] == "rf_freq":
                     val = str(val // 1000)

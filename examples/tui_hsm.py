@@ -22,13 +22,13 @@ UI_ANIMATE_PERIOD = 0.050  # Taken from asciimatics screen.py
 
 
 class TxtUiHsm(farc.Ahsm):
-    def __init__(self, phy_sm, lnk_sm):
+    def __init__(self, phy_hsm, lnk_hsm):
         """Language-specific initialization."""
         super().__init__()
         self._ident_model = IdentModel()
-        self._msgs_model = MsgsModel(lnk_sm)
-        self._status_model = StatusModel(phy_sm)
-        self._stngs_model = RadioStngsModel(phy_sm)
+        self._msgs_model = MsgsModel(lnk_hsm)
+        self._status_model = StatusModel(phy_hsm)
+        self._stngs_model = RadioStngsModel(phy_hsm)
 
     @farc.Hsm.state
     def _initial(self, event):
