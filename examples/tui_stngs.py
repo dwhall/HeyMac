@@ -140,7 +140,6 @@ class RadioStngsView(Frame):
         layout2 = Layout([1, 1, 1, 1])
         self.add_layout(layout2)
         layout2.add_widget(Button("Apply",
-                                  name="apply_btn",
                                   on_click=self._on_click_apply), 1)
         layout2.add_widget(Button("Cancel", self._on_click_cancel), 2)
 
