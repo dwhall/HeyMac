@@ -10,12 +10,14 @@ import farc
 
 from heymac.lnk import HeymacCsmaHsm
 from heymac.phy import SX127xHsm
+from heymac.utl import HamIdent
+
 from tui_hsm import TxtUiHsm
 
 
 def main():
     phy_hsm = SX127xHsm(True)
-    lnk_hsm = HeymacCsmaHsm(phy_hsm)
+    lnk_hsm = HeymacCsmaHsm(phy_hsm, HamIdent)
     tui_hsm = TxtUiHsm(phy_hsm, lnk_hsm)
 
     lnk_hsm.start(50)

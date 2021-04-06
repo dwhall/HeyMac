@@ -15,7 +15,6 @@ import farc
 from .heymac_link import HeymacLink
 from .heymac_frame import HeymacFrame, HeymacFrameError
 from .heymac_cmd import HeymacCmd, HeymacCmdError, HeymacCmdCsmaBcn
-from heymac.utl.ham_ident import HamIdent
 
 
 class Heymac(object):
@@ -68,7 +67,7 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
 
     Automates beaconing and frame processing.
     """
-    def __init__(self, phy):
+    def __init__(self, phy, ident):
         """Class intialization"""
         super().__init__()
 
@@ -79,7 +78,7 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
 
         self._rx_clbk = None
 
-        self._lnk_addr = HamIdent.get_long_addr("HeyMac")
+        self._lnk_addr = ident.get_long_addr("HeyMac")
         self._lnk_data = HeymacLink(self._lnk_addr)
 
 
