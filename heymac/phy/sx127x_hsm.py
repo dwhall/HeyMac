@@ -204,7 +204,7 @@ class SX127xHsm(farc.Ahsm):
                     st = self._txing
                 else:
                     # Placeholder for CAD, sleep
-                    assert True, "Got here by accident"
+                    assert False, "Got here by accident"
 
             # Otherwise, go to the default
             elif self._lstn_by_dflt:
