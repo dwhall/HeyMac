@@ -6,11 +6,8 @@ Copyright 2021 Dean Hall.  See LICENSE for details.
 The Text User Interface Radio Settings model and view.
 """
 
-from asciimatics.event import KeyboardEvent
 from asciimatics.exceptions import NextScene
-from asciimatics.widgets import Button, DropdownList, Frame, Label, Layout, \
-    MultiColumnListBox, Text, Widget
-from asciimatics.screen import Screen
+from asciimatics.widgets import Button, DropdownList, Frame, Layout, Text
 
 from heymac.phy import PhySX127xSettings
 

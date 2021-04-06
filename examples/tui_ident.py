@@ -10,7 +10,7 @@ from asciimatics.widgets import Button, CheckBox, Divider, Frame, Label, \
         Layout, Text, TextBox, Widget
 from asciimatics.exceptions import NextScene
 
-from heymac.utl.ham_ident import HamIdent
+from heymac.utl import HamIdent
 
 
 class IdentModel(object):

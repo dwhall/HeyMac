@@ -14,7 +14,7 @@ while device files go in the HeyMac application folder.
 import argparse
 import getpass
 
-from heymac.utl.ham_ident import HamIdent
+from heymac.utl import HamIdent
 
 
 WARNING = """WARNING: This tool does not protect the private key!
