@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Copyright 2021 Dean Hall.  See LICENSE for details.
 
