@@ -1,14 +1,15 @@
 HeyMac
 ======
 
-HeyMac is a combination of a `frame definition <docs/HeyMacFrame.md>`_,
-protocol and and data communication stack
+HeyMac is a a `frame definition <docs/HeyMacFrame.md>`_,
+a protocol and and data communication stack
 designed to carry Data Link (Layer 2) and Network (Layer 3) frames
 between modest data rate, small payload radio modems such as the Semtech SX127x.
 
-HeyMac is written in Python 3 using the `farc <https://github.com/dwhall/farc>`_
-state machine framework and is intended to run on a Raspberry Pi 3
-running Linux.  HeyMac requires Python 3.5 or later.
+This prototype implementation of HeyMac is written in Python 3
+using the `farc <https://github.com/dwhall/farc>`_ state machine framework 
+and is intended to run on a Raspberry Pi 3 running Linux.
+HeyMac requires Python 3.5 or later.
 
 I am a licensed amateur radio operator in the USA.  So I am using frequencies,
 modulations and antenna gains that are not allowed by unlicensed individuals
@@ -23,15 +24,15 @@ During the prototyping stage of development, I'm using a Raspberry Pi 3 Model B.
 The radio board is a
 `Dragino LoRa/GPS Hat <http://wiki.dragino.com/index.php?title=Lora/GPS_HAT>`_
 that I bought `here <https://www.tindie.com/products/edwin/loragps-hat/>`_.
-They sent me version 1.3 of the PCB eventhough there are later versions.
+They sent me version 1.3 of the PCB even though there are later versions.
 So I had to make a couple fixes and a few additions.  The first and most
 important fix is to connect the radio's SPI Chip Select (CS) signal to the Pi's
 SPI0 CS0.  Without that, you have to programmatically control the radio's CS
 before and after every transaction (that's a PITA that slows hardware and
 software).  It's better to connect the Pi's CS so the Pi's SPI peripheral
-(hardware) can control the CS signal automatically. The additions are direct
-connections from the radio's DIOn pins to the Pi's GPIO and the GPS's Pulse Per
-Second (PPS) signal to the Pi.
+(hardware) can control the CS signal automatically. The other additions
+to the PCB are direct connections from the radio's DIOn pins to the Pi's GPIO
+and the GPS's Pulse Per Second (PPS) signal to the Pi.
 
 Below is a table of the connections between the Raspberry Pi, the
 LoRa radio and the GPS.  The "Mod" column indicates where I needed to solder
@@ -76,7 +77,7 @@ where some of the hardware peripherals are mocked.
 
 The following steps will get you going on a PC or a Pi:
 
-1. Use git to clone this project and its submodules.
+1. Use git to clone this project.
 2. Use Python's pip tool to install dependencies (see requirements.txt).
-3. Run scripts/heymac_gen_creds.py via CLI and answer its questions to generate local credential files.
-4. Run example/tui_main.py from the command line for a Text UI.
+3. Put the path heymac in your PYTHONPATH.
+4. Run example/tui_main.py from the command line for a text UI.

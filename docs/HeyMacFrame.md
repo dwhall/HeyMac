@@ -91,7 +91,7 @@ Furthermore, the Pending flag is an indication of more frames to follow.
       7   6   5   4   3   2   1   0 (bit)
     +---+---+---+---+---+---+---+---+
     | X | L | N | D | I | S | M | P |
-    +-------+---+---+-------+-------+
+    +---+---+---+---+---+---+---+---+
 
     X := eXtended frame indicator
     L := Long addressing
