@@ -8,8 +8,6 @@ from asciimatics.exceptions import NextScene
 from asciimatics.widgets import Button, Divider, Frame, Label, Layout, Text, Widget
 from asciimatics.screen import Screen
 
-from heymac.phy import PhySX127xSettings
-
 
 class RadioStatusModel(object):
     def __init__(self, phy_hsm):

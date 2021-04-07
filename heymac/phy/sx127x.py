@@ -129,7 +129,7 @@ class SX127x(object):
         assert 0 <= cfg.reset_cfg <= 48, "Not a valid RPi GPIO number"
         self.reset_cfg = cfg.reset_cfg
 
-        self._stngs = PhySX127xSettings()
+        self._stngs = SX127xSettings()
 
 # Public
 
@@ -348,9 +348,9 @@ class SX127x(object):
     def write_stng(self, fld):
         """Writes one setting to its register(s)"""
         if self._stngs.changed(fld):
-            reg = self._read(PhySX127xSettings.get_reg(fld))[0]
+            reg = self._read(SX127xSettings.get_reg(fld))[0]
             reg = self._stngs.modify(fld, reg)
-            self._write(PhySX127xSettings.get_reg(fld), reg)
+            self._write(SX127xSettings.get_reg(fld), reg)
             self._stngs.apply(fld)
 
 
@@ -359,7 +359,7 @@ class SX127x(object):
         assert type(for_rx) is bool
 
         self._write_errata(for_rx)
-        for fld in PhySX127xSettings.get_field_names():
+        for fld in SX127xSettings.get_field_names():
             self.write_stng(fld)
 
 
@@ -472,7 +472,7 @@ class SX127x(object):
         # Apply Errata 2.3 for LoRa mode receving
         if for_rx and bool(self._stngs.get("FLD_RDO_LORA_MODE")):
             bw = self._stngs.get("FLD_LORA_BW")
-            if bw >= PhySX127xSettings.STNG_LORA_BW_500K:
+            if bw >= SX127xSettings.STNG_LORA_BW_500K:
                 auto_if_on = True
             else:
                 # Adjust the intermediate freq per errata
@@ -504,7 +504,7 @@ class SX127x(object):
             self._stngs_freq_applied = freq
 
 
-class PhySX127xSettings(object):
+class SX127xSettings(object):
     """Tracks the register settings for a SX127x radio.
     A settings field is one or more bits that come from a SX127x register,
     but is abstracted out of the register and bit position.  You simply use
@@ -647,7 +647,7 @@ class PhySX127xSettings(object):
         for the given field and put the requested value in their place.
         """
         # FIXME: for fields that span >1 register
-        if PhySX127xSettings._fld_info[fld].reg_cnt > 1: return val
+        if SX127xSettings._fld_info[fld].reg_cnt > 1: return val
 
         bit_start = self._fld_info[fld].bit_start
         bitf = self._bit_fld(bit_start,
@@ -675,32 +675,32 @@ class PhySX127xSettings(object):
         Once all the fields have been set, call write_stngs() to write
         all of the settings to the register(s).
         """
-        minval = PhySX127xSettings._fld_info[fld].val_min
-        maxval = PhySX127xSettings._fld_info[fld].val_max
+        minval = SX127xSettings._fld_info[fld].val_min
+        maxval = SX127xSettings._fld_info[fld].val_max
         assert minval <= val <= maxval, "Invalid value"
 
         self._stngs[fld] = val
 
         # Settings special cases for multi-reg values
         if fld == "FLD_RDO_FREQ":
-            assert PhySX127xSettings._fld_info[fld].reg_cnt == 3
+            assert SX127xSettings._fld_info[fld].reg_cnt == 3
             # Errata 2.3: store freq so rejection offset may be applied later
             self._rdo_stngs_freq = val
 
         elif fld == "FLD_LORA_RX_TMOUT":
-            assert PhySX127xSettings._fld_info[fld].reg_cnt == 2
+            assert SX127xSettings._fld_info[fld].reg_cnt == 2
             self._stngs["FLD_LORA_RX_TMOUT"] = (val >> 8) & 0xFF
             self._stngs["_FLD_LORA_RX_TMOUT_2"] = (val >> 0) & 0xFF
 
         elif fld == "FLD_LORA_PREAMBLE_LEN":
-            assert PhySX127xSettings._fld_info[fld].reg_cnt == 2
+            assert SX127xSettings._fld_info[fld].reg_cnt == 2
             self._stngs["FLD_LORA_PREAMBLE_LEN"] = (val >> 8) & 0xFF
             self._stngs["_FLD_LORA_PREAMBLE_LEN_2"] = (val >> 0) & 0xFF
 
         # Settings normal case for single-reg values
         else:
-            assert PhySX127xSettings._fld_info[fld].reg_cnt == 1
-            mask = self._bit_fld(0, PhySX127xSettings._fld_info[fld].bit_cnt)
+            assert SX127xSettings._fld_info[fld].reg_cnt == 1
+            mask = self._bit_fld(0, SX127xSettings._fld_info[fld].bit_cnt)
             self._stngs[fld] = val & mask
 
 # Private
