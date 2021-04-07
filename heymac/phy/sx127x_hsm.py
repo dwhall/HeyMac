@@ -32,13 +32,14 @@ class SX127xHsm(farc.Ahsm):
         super().__init__()
         self._sx127x = SX127x()
         self._lstn_by_dflt = lstn_by_dflt
-        self._dflt_stngs = ()
-        self._dflt_rx_stngs = ()
+        self._base_stngs = {}
+        self._rx_stngs = {}
+        self._tx_stngs = {}
 
 
     def get_stngs(self):
         """Returns the current settings"""
-        return self._dflt_stngs
+        return self._sx127x.get_applied_stngs()
 
 
     def post_rx_action(self, rx_time, rx_stngs, rx_durxn, rx_clbk):
@@ -84,13 +85,16 @@ class SX127xHsm(farc.Ahsm):
         self._dflt_rx_clbk = rx_clbk
 
 
-    def set_dflt_stngs(self, dflt_stngs):
-        """Stores the default settings for the PHY.
+    def update_base_stngs(self, stngs):
+        """Stores the base settings for the PHY.
 
-        This must be called before start() so they
+        This must be called before start() so the settings
         can be written to the device during initilizing.
+        Base settings are the ones that are usually the
+        same throughout operation and do not vary
+        during TX, RX or any other action.
         """
-        self._dflt_stngs = dflt_stngs
+        self._base_stngs.update(stngs)
 
 
 # State machine
@@ -160,9 +164,9 @@ class SX127xHsm(farc.Ahsm):
 
         elif sig == farc.Signal._PHY_TMOUT:
             if self._sx127x.open(self._dio_isr_clbk):
-                assert len(self._dflt_stngs) > 0, \
-                    "Default settings must be set before initializing"
-                self._sx127x.set_flds(self._dflt_stngs)
+                assert len(self._base_stngs) > 0, \
+                    "Base settings must be set before initializing"
+                self._sx127x.set_flds(self._base_stngs)
                 self._sx127x.write_stngs(False)
                 return self.tran(self._scheduling)
 
@@ -273,41 +277,33 @@ class SX127xHsm(farc.Ahsm):
         if sig == farc.Signal.ENTRY:
             logging.debug("PHY._lingering._listening")
             action = self._pop_soon_action()
+            stngs = self._base_stngs
             if action:
                 rx_time, rx_action = action
                 (action_str, rx_stngs, rx_durxn, rx_clbk) = rx_action
                 assert action_str == "rx"
                 self._rx_clbk = rx_clbk
+                stngs.update(rx_stngs)
             else:
-                rx_stngs = self._dflt_rx_stngs
                 self._rx_clbk = self._dflt_rx_clbk
 
-            # Convert given settings to a mutable list
-            if rx_stngs:
-                stngs = list(rx_stngs)
-            else:
-                # Accept "None" as an argument for rx_stngs
-                stngs = []
-
             # Combine and write RX settings
-            stngs.extend((("FLD_RDO_DIO0", 0),      # _DIO_RX_DONE
-                          ("FLD_RDO_DIO1", 0),      # _DIO_RX_TMOUT
-                          ("FLD_RDO_DIO3", 1)))     # _DIO_VALID_HDR
+            stngs.update({"FLD_RDO_DIO0": 0,    # _DIO_RX_DONE
+                          "FLD_RDO_DIO1": 0,    # _DIO_RX_TMOUT
+                          "FLD_RDO_DIO3": 1})   # _DIO_VALID_HDR
             self._sx127x.set_flds(stngs)
             self._sx127x.write_stngs(True)
 
             # Prep interrupts for RX
             self._sx127x.write_lora_irq_mask(
-                SX127x.IRQ_FLAGS_ALL,
-                SX127x.IRQ_FLAGS_RXDONE |
-                SX127x.IRQ_FLAGS_PAYLDCRCERROR |
-                SX127x.IRQ_FLAGS_VALIDHEADER
-            )
+                    SX127x.IRQ_FLAGS_ALL,
+                    SX127x.IRQ_FLAGS_RXDONE |
+                    SX127x.IRQ_FLAGS_PAYLDCRCERROR |
+                    SX127x.IRQ_FLAGS_VALIDHEADER)
             self._sx127x.write_lora_irq_flags(
-                SX127x.IRQ_FLAGS_RXDONE |
-                SX127x.IRQ_FLAGS_PAYLDCRCERROR |
-                SX127x.IRQ_FLAGS_VALIDHEADER
-            )
+                    SX127x.IRQ_FLAGS_RXDONE |
+                    SX127x.IRQ_FLAGS_PAYLDCRCERROR |
+                    SX127x.IRQ_FLAGS_VALIDHEADER)
             self._sx127x.write_fifo_ptr(0x00)
 
             # Start periodic event for update_rng()
@@ -416,29 +412,23 @@ class SX127xHsm(farc.Ahsm):
         if sig == farc.Signal.ENTRY:
             logging.debug("PHY._txing")
             action = self._pop_soon_action()
+            stngs = self._base_stngs
             assert action is not None, "Mutation between top() and pop()"
             (tx_time, tx_action) = action
             assert tx_action[0] == "tx", "Mutation between top() and pop()"
             (_, tx_stngs, tx_bytes) = tx_action
-
-            # Convert given settings to a mutable list
-            if tx_stngs:
-                stngs = list(tx_stngs)
-            else:
-                # Accept "None" as an argument for tx_stngs
-                stngs = []
+            stngs.update(tx_stngs)
 
             # Write TX settings from higher layer and
             # one setting needed for this PHY operation
-            stngs.append(("FLD_RDO_DIO0", 1))   # _DIO_TX_DONE
+            stngs.update({"FLD_RDO_DIO0": 1})   # _DIO_TX_DONE
             self._sx127x.set_flds(stngs)
             self._sx127x.write_stngs(False)
 
             # Prep interrupts for TX
             self._sx127x.write_lora_irq_mask(
-                SX127x.IRQ_FLAGS_ALL,     # disable these
-                SX127x.IRQ_FLAGS_TXDONE   # enable these
-            )
+                    SX127x.IRQ_FLAGS_ALL,     # disable these
+                    SX127x.IRQ_FLAGS_TXDONE)  # enable these
 
             # Write payload into radio's FIFO
             self._sx127x.write_fifo_ptr(0x00)

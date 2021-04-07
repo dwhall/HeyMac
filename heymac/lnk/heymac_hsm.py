@@ -73,7 +73,7 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
 
         # Init the lower layer
         self._phy_hsm = phy
-        self._phy_hsm.set_dflt_stngs(Heymac._PHY_STNGS_DFLT)
+        self._phy_hsm.update_base_stngs(Heymac._PHY_STNGS_DFLT)
         self._phy_hsm.set_dflt_rx_clbk(self._phy_rx_clbk)
 
         self._rx_clbk = None

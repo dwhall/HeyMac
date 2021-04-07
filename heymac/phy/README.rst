@@ -103,12 +103,14 @@ Callable                Description
                         - ``tx_bytes`` The Python ``bytes`` object
                           containing the literal payload to transmit.
 ----------------------  ------------------------------------------------
-``set_dflt_stngs()``    Sets the default PHY settings.
+``update_base_stngs()`` Updates the base PHY settings.
 
-                        - *dflt_stngs* is a sequence of ``(name, value)``
-                          pairs.  This should be called once before the
-                          state machine is started.  See `Settings`_
-                          for more details.
+                        - *stngs* is a dict, where the key is the
+                          settings field name and the item is the value.
+                          This should be called once before the
+                          state machine is started and may be called
+                          after init as needed.
+                          See `Settings`_ for more details.
 ======================  ================================================
 
 
@@ -163,7 +165,7 @@ The field is a bit field, but you only need to know its name.
 **With one exception**, the value you use is exactly the value that would
 go into the bit field (you don't do any shifting).  The exception is
 the radio frequency setting, "FLD_RDO_FREQ", in which case you give
-the desired frequency in Hertz.  Here are some examples::
+the desired frequency as an integer in Hertz.  Here are some examples::
 
     # Set the frequency to 432.550 Mhz
     set_fld("FLD_RDO_FREQ", 432550000)
@@ -174,14 +176,14 @@ the desired frequency in Hertz.  Here are some examples::
     # Set the LoRa Spread Factor to 128 chips per sec
     set_fld("FLD_LORA_SF", sx127x.SX127x.STNG_LORA_SF_128_CPS)
 
-If you have a batch of settings to apply, put the (name, value) tuples
-into a sequence and call set_flds().::
+If you have a batch of settings to apply, put the field name and value pairs
+into a dict and call update_base_stngs().::
 
-    set_flds((
-        ("FLD_RDO_FREQ", 432550000),
-        ("FLD_LORA_CR", 1),
-        ("FLD_LORA_SF", sx127x.SX127x.STNG_LORA_SF_128_CPS),
-    ))
+    update_base_stngs({
+        "FLD_RDO_FREQ": 432550000,
+        "FLD_LORA_CR": 1,
+        "FLD_LORA_SF": sx127x.SX127x.STNG_LORA_SF_128_CPS,
+    })
 
 SX127x does not write these values to the device registers immediately.
 Instead, it keeps the data until SX127xHsm enters a safe state when the

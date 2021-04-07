@@ -23,14 +23,12 @@ class RadioStngsModel(object):
             "bandwidth": "FLD_LORA_BW",
             "spread_factor": "FLD_LORA_SF",
         }
-        stngs = []
+        stngs = {}
         for model_name, val in model_stngs.items():
             if model_name == "rf_freq":
                 val = 1000*int(val)
-            stngs.append((stng_fld[model_name], val))
-        # FIXME: phy is expecting a complete list stngs (not just what the model can adjust)
-        #       ? change phy to use dict as stngs container ?
-        self._phy_hsm.set_dflt_stngs(stngs)
+            stngs[stng_fld[model_name]] = val
+        self._phy_hsm.update_base_stngs(stngs)
 
 
     def get_stngs(self):
@@ -41,13 +39,13 @@ class RadioStngsModel(object):
             "FLD_LORA_BW": "bandwidth",
             "FLD_LORA_SF": "spread_factor",
         }
-        model_flds = model_name.keys()
         model_stngs = {}
-        for stng_fld, val in self._phy_hsm.get_stngs():
-            if stng_fld in model_flds:
-                if model_name[stng_fld] == "rf_freq":
+        phy_stngs = self._phy_hsm.get_stngs()
+        for fld, val in phy_stngs.items():
+            if fld in model_name:
+                if model_name[fld] == "rf_freq":
                     val = str(val // 1000)
-                model_stngs[model_name[stng_fld]] = val
+                model_stngs[model_name[fld]] = val
         return model_stngs
 
 

@@ -149,6 +149,11 @@ class SX127x(object):
         self.spi.close()
 
 
+    def get_applied_stngs(self):
+        """Returns the applied settings"""
+        return self._stngs.get_applied_stngs()
+
+
     def in_sim_mode(self):
         """Returns True if this driver is simulating the radio interface."""
         return "mock" in str(spidev)
@@ -268,14 +273,13 @@ class SX127x(object):
 
 
     def set_flds(self, stngs):
-        """Sets all of the (field name, value) pairs in stngs.
+        """Sets all of the (field, value) pairs in stngs.
         The fields are not written to the register(s) in this procedure.
         Once all the fields have been set, call write_stngs() to write
         all of the settings to the register(s).
         """
-        for stng_pair in stngs:
-            fld_nm, val = stng_pair
-            self.set_fld(fld_nm, val)
+        for fld, val in stngs.items():
+            self.set_fld(fld, val)
 
 
     def stngs_require_sleep(self):
@@ -355,7 +359,7 @@ class SX127x(object):
 
 
     def write_stngs(self, for_rx):
-        """Writes the settings values that are changed to the registers"""
+        """Writes changed settings to the registers"""
         assert type(for_rx) is bool
 
         self._write_errata(for_rx)
@@ -641,6 +645,9 @@ class SX127xSettings(object):
 
     def get_applied(self, fld):
         return self._stngs_applied[fld]
+
+    def get_applied_stngs(self):
+        return self._stngs_applied
 
     def modify(self, fld, val):
         """Modifies the given value to clear out the former bits
