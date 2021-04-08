@@ -25,7 +25,7 @@ class RadioStatusView(Frame):
                          screen.width,
                          hover_focus=True,
                          can_scroll=True,
-                         title="Radio Settings",
+                         title="Radio Status",
                          reduce_cpu=True)
         self._status_model = model
 

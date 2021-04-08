@@ -78,16 +78,24 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
 
         self._rx_clbk = None
 
-        self._lnk_addr = ident.get_long_addr("HeyMac")
+        # FIXME: This asserts due to lack of credentials
+        try:
+            self._lnk_addr = ident.get_long_addr("HeyMac")
+        except:
+            self._lnk_addr = b"\xfd1234567"
         self._lnk_data = HeymacLink(self._lnk_addr)
 
 
-    def send_cmd(self, cmd):
+    def send_cmd(self, cmd, dest=None):
         assert issubclass(type(cmd), HeymacCmd)
+        fctl_bits = HeymacFrame.FCTL_L | HeymacFrame.FCTL_S
+        if dest:
+            fctl_bits |= HeymacFrame.FCTL_D
         f = HeymacFrame(
                 HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
-                HeymacFrame.FCTL_L | HeymacFrame.FCTL_S)
-        #f.set_field(HeymacFrame.FLD_DADDR, dest)
+                fctl_bits)
+        if dest:
+            f.set_field(HeymacFrame.FLD_DADDR, dest)
         f.set_field(HeymacFrame.FLD_SADDR, self._lnk_addr)
         f.set_field(HeymacFrame.FLD_PAYLD, bytes(cmd))
         self._phy_hsm.post_tx_action(self._phy_hsm.TM_NOW, None, bytes(f))
