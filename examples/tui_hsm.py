@@ -95,7 +95,7 @@ class TxtUiHsm(farc.Ahsm):
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             logging.debug("UI._exiting")
-            sys.exit(0)
+            farc.Framework.stop()
             return self.handled(event)
 
         return self.super(self.top)
