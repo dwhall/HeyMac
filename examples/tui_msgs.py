@@ -44,9 +44,8 @@ class MsgsModel(object):
 
     def send_msg(self, msg):
         """Requests the link layer transmit the given message"""
-        # TODO: also updates the msgs view with the sent msg
         txt_cmd = HeymacCmdTxt(FLD_MSG=msg.encode())
-        #self._lnk_hsm.send_cmd(txt_cmd)
+        self._lnk_hsm.send_cmd(txt_cmd)
 
 
     def get_msgs(self):
@@ -55,13 +54,14 @@ class MsgsModel(object):
 
 class MsgsView(Frame):
     def __init__(self, screen, msgs_model, ident_model, stngs_model, status_model):
-        super().__init__(screen,
-                         screen.height,
-                         screen.width,
-                         title="HeyMac",
-                         on_load=self._updt_msgs,
-                         hover_focus=True,
-                         can_scroll=True)
+        super().__init__(
+                screen,
+                screen.height,
+                screen.width,
+                title="HeyMac",
+                on_load=self._updt_msgs,
+                hover_focus=True,
+                can_scroll=True)
         self._msgs_model = msgs_model
         self._ident_model = ident_model
         self._stngs_model = stngs_model
@@ -71,11 +71,11 @@ class MsgsView(Frame):
         layout1 = Layout([100], fill_frame=True)
         self.add_layout(layout1)
         self._msgs_box = MultiColumnListBox(
-            Widget.FILL_FRAME,
-            [9, 12, 0],
-            [],
-            name="msgs",
-            titles=["Time", "From", "Message"])
+                Widget.FILL_FRAME,
+                [9, 12, 0],
+                [],
+                name="msgs",
+                titles=["Time", "From", "Message"])
         self._msgs_box.disabled = True
         layout1.add_widget(self._msgs_box)
 
@@ -83,33 +83,35 @@ class MsgsView(Frame):
         layout2 = Layout([100])
         self.add_layout(layout2)
         self._msg_input = Text(
-            label="Input:",
-            name="msg_input",
-            on_change=self._on_input_change,
-            max_length=200)
+                label="Input:",
+                name="msg_input",
+                on_change=self._on_input_change,
+                max_length=200)
         layout2.add_widget(self._msg_input)
 
         # Activity bar
-        layout3 = Layout([1, 1, 1, 1, 1])
+        layout3 = Layout([1, 1, 1, 1, 1, 1])
         self.add_layout(layout3)
         self._time = Label("00:00:00", name="time")
         self._ident = Button(
-            self._ident_model.get_summary(),
-            self._on_click_ident,
-            name="ident")
+                self._ident_model.get_summary(),
+                self._on_click_ident,
+                name="ident")
         self._stngs = Button(
-            self._stngs_model.get_summary(),
-            self._on_click_stngs,
-            name="stngs")
+                self._stngs_model.get_summary(),
+                self._on_click_stngs,
+                name="stngs")
         self._status = Button(
-            self._status_model.get_summary(),
-            self._on_click_status)
+                self._status_model.get_summary(),
+                self._on_click_status)
         self._txrx = Label("--/--", name="txrx")
+        self._quit = Button("Quit", self._on_click_quit)
         layout3.add_widget(self._time, 0)
         layout3.add_widget(self._ident, 1)
         layout3.add_widget(self._stngs, 2)
         layout3.add_widget(self._status, 3)
         layout3.add_widget(self._txrx, 4)
+        layout3.add_widget(self._quit, 5)
 
         self.fix()
         self._on_input_change()
@@ -144,7 +146,7 @@ class MsgsView(Frame):
     def _on_click_stngs(self):
         raise NextScene("Settings")
 
-    def _quit(self):
+    def _on_click_quit(self):
         raise StopApplication("User quit")
 
 
