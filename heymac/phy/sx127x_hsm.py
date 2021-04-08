@@ -283,7 +283,8 @@ class SX127xHsm(farc.Ahsm):
                 (action_str, rx_stngs, rx_durxn, rx_clbk) = rx_action
                 assert action_str == "rx"
                 self._rx_clbk = rx_clbk
-                stngs.update(rx_stngs)
+                if rx_stngs:
+                    stngs.update(rx_stngs)
             else:
                 self._rx_clbk = self._dflt_rx_clbk
 
@@ -417,7 +418,8 @@ class SX127xHsm(farc.Ahsm):
             (tx_time, tx_action) = action
             assert tx_action[0] == "tx", "Mutation between top() and pop()"
             (_, tx_stngs, tx_bytes) = tx_action
-            stngs.update(tx_stngs)
+            if tx_stngs:
+                stngs.update(tx_stngs)
 
             # Write TX settings from higher layer and
             # one setting needed for this PHY operation
