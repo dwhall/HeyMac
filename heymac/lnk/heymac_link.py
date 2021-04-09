@@ -43,8 +43,9 @@ class HeymacLink(object):
         nets = set()
         for data in self._ngbr_data.values():
             frame = data["BCN_FRAME"]
-            for net in frame.get_field(HeymacCmd.FLD_NETS):
-                nets.add(net)
+            if frame:
+                for net in frame.get_field(HeymacCmd.FLD_NETS):
+                    nets.add(net)
         return list(nets)
 
 
