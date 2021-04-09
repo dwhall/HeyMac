@@ -227,7 +227,7 @@ class HamIdent(object):
         dev_info["callsign"] = person_info["callsign"] + '-' + ssid
         dev_info["cmn_name"] = person_info["cmn_name"]
 
-        prv_key, pub_key = self.gen_device_keypair()
+        prv_key, pub_key = HamIdent.gen_device_keypair()
         self._write_prv_key_to_pem(prv_key, dev_info, passphrase)
         self._write_pub_key_to_der(pub_key, dev_info)
         self._write_cred_to_json(pub_key, dev_info)
@@ -240,7 +240,7 @@ class HamIdent(object):
         an X.509 self-signed certificate, a private key .pem file
         a public key .der file and an application specific credential .json file
         """
-        prv_key, pub_key = self.gen_personal_keypair()
+        prv_key, pub_key = HamIdent.gen_personal_keypair()
         self._write_cert_to_x509(pub_key, prv_key, person_info)
         self._write_prv_key_to_pem(prv_key, person_info, passphrase)
         self._write_pub_key_to_der(pub_key, person_info)
