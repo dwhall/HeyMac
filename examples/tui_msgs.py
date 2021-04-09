@@ -154,7 +154,7 @@ class MsgsView(Frame):
         if tui_event is not None and isinstance(tui_event, KeyboardEvent):
             if tui_event.key_code == Screen.KEY_F2:
                 self._on_click_stngs()
-            elif tui_event.key_code == 13:
+            elif tui_event.key_code in (10, 13):
                 if self.find_widget("msg_input") == self.focussed_widget:
                     self._send_msg()
         return super().process_event(tui_event)
