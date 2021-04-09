@@ -77,13 +77,14 @@ class MsgsView(Frame):
                 name="msgs",
                 titles=["Time", "From", "Message"])
         self._msgs_box.disabled = True
+        self._msgs_box.custom_colour = "title"
         layout1.add_widget(self._msgs_box)
 
         # Message-to-send input area
         layout2 = Layout([100])
         self.add_layout(layout2)
         self._msg_input = Text(
-                label="Input:",
+                label="Send:",
                 name="msg_input",
                 on_change=self._on_input_change,
                 max_length=200)
