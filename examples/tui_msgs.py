@@ -22,24 +22,31 @@ class MsgsModel(object):
         self._lnk_hsm = lnk_hsm
         self._lnk_hsm.set_rx_clbk(self._rx_clbk)
         self._bcn_ident = {}
+        self._callsigns = {}
         self._msg_data = []
 
+
     def _rx_clbk(self, hm_frame):
-        # TODO: blip status RX indicator
-        if isinstance(hm_frame, HeymacCmdCsmaBcn):
+        # TODO: blink status RX indicator
+        if isinstance(hm_frame.cmd, HeymacCmdCsmaBcn):
+            # FIXME: get callsign from beacon (doesn't exist in std beacon)
             longaddr = hm_frame.get_field(hm_frame.FLD_SADDR)
-            callsign = "TODO"  # FIXME: get callsign from beacon (doesn't exist in std beacon)
-            self._bcn_ident[longaddr] = callsign
+            callsign = "GOTIT"
+            self._callsigns[longaddr] = callsign
 
-        elif isinstance(hm_frame, HeymacCmdTxt):
-            rxtime = hm_frame.rx_meta[0]
-            src = hm_frame.saddr
+        elif isinstance(hm_frame.cmd, HeymacCmdTxt):
+            rxtime = time.time()
+            saddr = hm_frame.get_field(hm_frame.FLD_SADDR)
             msg = hm_frame.cmd.get_field(hm_frame.cmd.FLD_MSG)
-            self.add_msg(rxtime, src, msg)
+            bisect.insort(self._msg_data, (rxtime, saddr, msg.decode()))
 
 
-    def add_msg(self, tm, src, msg):
-        bisect.insort(self._msg_data, (tm, src, msg))
+    def get_callsigns(self):
+        return self._callsigns
+
+
+    def get_latest_msgs(self, n=0):
+        return self._msg_data[-n:]
 
 
     def send_msg(self, msg):
@@ -47,9 +54,9 @@ class MsgsModel(object):
         txt_cmd = HeymacCmdTxt(FLD_MSG=msg.encode())
         self._lnk_hsm.send_cmd(txt_cmd)
 
-
-    def get_msgs(self):
-        return self._msg_data.copy()
+        txtime = time.time()
+        saddr = self._lnk_hsm.get_lnk_addr()
+        bisect.insort(self._msg_data, (txtime, saddr, msg))
 
 
 class MsgsView(Frame):
@@ -121,22 +128,22 @@ class MsgsView(Frame):
         pass
 
     def _updt_msgs(self):
-        msgs = self._msgs_model.get_msgs()
         msgs_widget = self.find_widget("msgs")
-        msgs_widget.options = self._format_msgs(msgs)
+        msgs_widget.options = self._format_msgs()
 
-    def _format_msgs(self, msgs):
+    def _format_msgs(self):
         height = self.find_widget("msgs")._h
-        msgs_data = self._msgs_model.get_msgs()
-        len_msgs_data = len(msgs_data)
-        if len_msgs_data < height:
-            msgs_to_show = msgs_data
-        else:
-            msgs_to_show = msgs_data[len_msgs_data - height + 1:]
+        msgs_data = self._msgs_model.get_latest_msgs(height)
+        callsigns = self._msgs_model.get_callsigns()
         msg_list = []
-        for n, msg_data in enumerate(msgs_to_show):
-            msg_list.append((msg_data, n+1))
+        for n, msg_data in enumerate(msgs_data):
+            tm, saddr, msg = msg_data
+            display_tm = time.strftime("%H:%M:%S", time.localtime(tm))
+            display_src = callsigns.get(saddr, saddr.hex()[:8])
+            display_msg_data = (display_tm, display_src, msg)
+            msg_list.append((display_msg_data, n+1))
         return msg_list
+
 
     def _on_click_ident(self):
         raise NextScene("Identity")
@@ -164,10 +171,6 @@ class MsgsView(Frame):
         msg = self._get_and_clear_msg_input()
         if msg:
             self._msgs_model.send_msg(msg)
-
-            tm_str = time.strftime("%H:%M:%S", time.localtime())
-            ident = self._ident_model.get_ident()
-            self._msgs_model.add_msg(tm_str, ident["callsign"], msg)
             self._updt_msgs()
 
     def _get_and_clear_msg_input(self):

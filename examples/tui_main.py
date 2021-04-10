@@ -6,6 +6,9 @@ Copyright 2018 Dean Hall.  See LICENSE for details.
 Runs the HeyMac stack with a text user interface.
 """
 
+import sys
+#import logging
+
 import farc
 
 from heymac.lnk import HeymacCsmaHsm
@@ -16,6 +19,11 @@ from tui_hsm import TxtUiHsm
 
 
 def main():
+    #logging.basicConfig(
+    #    stream=sys.stdout,
+    #    format="%(asctime)s %(message)s",
+    #    level=logging.INFO)
+
     phy_hsm = SX127xHsm(True)
     lnk_hsm = HeymacCsmaHsm(phy_hsm, HamIdent)
     tui_hsm = TxtUiHsm(phy_hsm, lnk_hsm)

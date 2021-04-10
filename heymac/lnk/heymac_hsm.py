@@ -86,6 +86,10 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
         self._lnk_data = HeymacLink(self._lnk_addr)
 
 
+    def get_lnk_addr(self):
+        return self._lnk_addr
+
+
     def send_cmd(self, cmd, dest=None):
         assert issubclass(type(cmd), HeymacCmd)
         fctl_bits = HeymacFrame.FCTL_L | HeymacFrame.FCTL_S

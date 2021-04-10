@@ -136,9 +136,11 @@ class HeymacCmdCsmaBcn(HeymacCmd):
             b.extend(struct.pack("!H", net[0]))
             b.extend(struct.pack("8s", net[1]))
         # Ngbrs
-        b.append(len(self.field[HeymacCmd.FLD_NGBRS]))
-        for lnk_addr in self.field[HeymacCmd.FLD_NGBRS]:
-            b.extend(lnk_addr)
+        ngbrs = self.field[HeymacCmd.FLD_NGBRS]
+        b.append(len(ngbrs))
+        for lnk_addr in ngbrs:
+            if lnk_addr:
+                b.extend(lnk_addr)
         return bytes(b)
 
     @staticmethod
