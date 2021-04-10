@@ -142,7 +142,7 @@ class MsgsView(Frame):
 
     def _format_msgs(self):
         height = self.find_widget("msgs")._h
-        msgs_data = self._msgs_model.get_latest_msgs(height)
+        msgs_data = self._msgs_model.get_latest_msgs(height-1)
         callsigns = self._msgs_model.get_callsigns()
         ident = self._ident_model.get_ident()
         callsigns[ident["saddr"]] = ident["callsign_ssid"]
