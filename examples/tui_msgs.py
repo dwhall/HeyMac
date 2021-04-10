@@ -24,6 +24,7 @@ class MsgsModel(object):
         self._bcn_ident = {}
         self._callsigns = {}
         self._msg_data = []
+        self._update_view = None
 
 
     def _rx_clbk(self, hm_frame):
@@ -39,6 +40,9 @@ class MsgsModel(object):
             saddr = hm_frame.get_field(hm_frame.FLD_SADDR)
             msg = hm_frame.cmd.get_field(hm_frame.cmd.FLD_MSG)
             bisect.insort(self._msg_data, (rxtime, saddr, msg.decode()))
+
+            if self._update_view:
+                self._update_view()
 
 
     def get_callsigns(self):
@@ -57,6 +61,10 @@ class MsgsModel(object):
         txtime = time.time()
         saddr = self._lnk_hsm.get_lnk_addr()
         bisect.insort(self._msg_data, (txtime, saddr, msg))
+
+
+    def set_update_clbk(self, clbk):
+        self._update_view = clbk
 
 
 class MsgsView(Frame):
@@ -86,6 +94,7 @@ class MsgsView(Frame):
         self._msgs_box.disabled = True
         self._msgs_box.custom_colour = "title"
         layout1.add_widget(self._msgs_box)
+        self._msgs_model.set_update_clbk(self._updt_msgs)
 
         # Message-to-send input area
         layout2 = Layout([100])
