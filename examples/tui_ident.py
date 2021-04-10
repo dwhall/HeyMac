@@ -36,6 +36,7 @@ class IdentModel(object):
             cred = {}
         if '-' in cred.get("callsign", ""):
             cred["ssid"] = cred["callsign"].split("-")[1]
+            cred["callsign_ssid"] = cred["callsign"]
             del cred["callsign"]
         ident.update(cred)
         return ident
@@ -43,7 +44,7 @@ class IdentModel(object):
 
     def get_summary(self):
         ident = self.get_ident()
-        return ident.get("callsign", "No Ident")
+        return ident.get("callsign_ssid", ident.get("callsign", "No Ident"))
 
 
     def apply(self, info):
