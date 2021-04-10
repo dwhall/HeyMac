@@ -41,8 +41,8 @@ class MsgsModel(object):
             msg = hm_frame.cmd.get_field(hm_frame.cmd.FLD_MSG)
             bisect.insort(self._msg_data, (rxtime, saddr, msg.decode()))
 
-            if self._update_view:
-                self._update_view()
+        if self._update_view:
+            self._update_view()
 
 
     def get_callsigns(self):
