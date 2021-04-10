@@ -144,6 +144,8 @@ class MsgsView(Frame):
         height = self.find_widget("msgs")._h
         msgs_data = self._msgs_model.get_latest_msgs(height)
         callsigns = self._msgs_model.get_callsigns()
+        ident = self._ident_model.get_ident()
+        callsigns[ident["saddr"]] = ident["callsign_ssid"]
         msg_list = []
         for n, msg_data in enumerate(msgs_data):
             tm, saddr, msg = msg_data

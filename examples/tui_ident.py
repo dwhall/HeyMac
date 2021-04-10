@@ -28,6 +28,7 @@ class IdentModel(object):
     def get_ident(self):
         try:
             ident = HamIdent.get_info_from_cert()
+            ident["saddr"] = HamIdent.get_long_addr("HeyMac")
         except:
             ident = {}
         try:
