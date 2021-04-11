@@ -26,12 +26,12 @@ class HeymacLink(object):
     """
     def __init__(self, lnk_addr):
         self._lnk_addr = lnk_addr
-        self._ngbr_data = {}
+        self._ngbrs = {}
 
 
     def get_ngbrs_lnk_addrs(self):
         """Returns a list of neighbors' link addresses."""
-        return self._ngbr_data.keys()
+        return self._ngbrs.keys()
 
 
     def get_ngbrs_nets(self):
@@ -41,9 +41,9 @@ class HeymacLink(object):
         and the link address of the network's root (also a bytes object).
         """
         nets = set()
-        for data in self._ngbr_data.values():
-            frame = data["BCN_FRAME"]
-            if frame:
+        for ngbr_data in self._ngbrs.values():
+            if ngbr_data["BCN_CNT"] > 0:
+                frame = ngbr_data["BCN_FRAME"]
                 for net in frame.get_field(HeymacCmd.FLD_NETS):
                     nets.add(net)
         return list(nets)
@@ -57,13 +57,14 @@ class HeymacLink(object):
         has taken place.
         """
         found_me = False
-        for ngbr_lnk_addr in self._ngbr_data:
-            frame = self._ngbr_data[ngbr_lnk_addr]["BCN_FRAME"]
-            bcn = frame.cmd
-            assert type(bcn) is HeymacCmdCsmaBcn
-            ngbrs_ngbrs = bcn.get_field(HeymacCmd.FLD_NGBRS)
-            if self._lnk_addr in ngbrs_ngbrs:
-                found_me = True
+        for ngbr_data in self._ngbrs.values():
+            if ngbr_data["BCN_CNT"] > 0:
+                frame = ngbr_data["BCN_FRAME"]
+                bcn = frame.cmd
+                assert type(bcn) is HeymacCmdCsmaBcn
+                ngbrs_ngbrs = bcn.get_field(HeymacCmd.FLD_NGBRS)
+                if self._lnk_addr in ngbrs_ngbrs:
+                    found_me = True
         return found_me
 
 
@@ -71,15 +72,16 @@ class HeymacLink(object):
         """Update link data with info from the given frame."""
         assert type(frame) is HeymacFrame
 
-        # Init space for a new neighbor
+        # Init data for a new neighbor
         lnk_addr = frame.get_sender()
-        if lnk_addr not in self._ngbr_data:
-            self._ngbr_data[lnk_addr] = {}
+        if lnk_addr not in self._ngbrs:
+            self._ngbrs[lnk_addr] = {"BCN_CNT": 0}
 
         # Update rx meta data
-        self._ngbr_data[lnk_addr]["LATEST_RX_TM"] = frame.rx_meta[0]
-        self._ngbr_data[lnk_addr]["LATEST_RX_RSSI"] = frame.rx_meta[1]
-        self._ngbr_data[lnk_addr]["LATEST_RX_SNR"] = frame.rx_meta[2]
+        d = self._ngbrs[lnk_addr]
+        d["LATEST_RX_TM"] = frame.rx_meta[0]
+        d["LATEST_RX_RSSI"] = frame.rx_meta[1]
+        d["LATEST_RX_SNR"] = frame.rx_meta[2]
 
         # Process a beacon
         if frame.cmd and type(frame.cmd) is HeymacCmdCsmaBcn:
@@ -91,13 +93,13 @@ class HeymacLink(object):
         now = farc.Framework._event_loop.time()
         # Collect and prune expired neighbors
         expired_ngbrs = []
-        for ngbr_addr, data in self._ngbr_data.items():
-            frame = data["BCN_FRAME"]
+        for ngbr_addr, ngbr_data in self._ngbrs.items():
+            frame = ngbr_data["BCN_FRAME"]
             rx_time = frame.rx_meta[0]
             if now > rx_time + self._EXPIRATION_PRD:
                 expired_ngbrs.append(ngbr_addr)
         for ngbr_addr in expired_ngbrs:
-            del self._ngbr_data[ngbr_addr]
+            del self._ngbrs[ngbr_addr]
 
 
 # Private
@@ -112,9 +114,8 @@ class HeymacLink(object):
     def _process_bcn(self, frame):
         """Process a Heymac beacon and keeps relevant link data."""
         lnk_addr = frame.get_sender()
-        self._ngbr_data[lnk_addr] = {"BCN_CNT": 0}
         # TODO: create and use _NGBR_FLD_* names
-        self._ngbr_data[lnk_addr]["BCN_FRAME"] = frame
-        self._ngbr_data[lnk_addr]["BCN_CNT"] += 1
+        self._ngbrs[lnk_addr]["BCN_FRAME"] = frame
+        self._ngbrs[lnk_addr]["BCN_CNT"] += 1
 
         # TODO: process nets[] to build list of known nets
