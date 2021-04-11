@@ -277,7 +277,7 @@ class SX127xHsm(farc.Ahsm):
         if sig == farc.Signal.ENTRY:
             logging.debug("PHY._lingering._listening")
             action = self._pop_soon_action()
-            stngs = self._base_stngs
+            stngs = self._base_stngs.copy()
             if action:
                 rx_time, rx_action = action
                 (action_str, rx_stngs, rx_durxn, rx_clbk) = rx_action
@@ -413,7 +413,7 @@ class SX127xHsm(farc.Ahsm):
         if sig == farc.Signal.ENTRY:
             logging.debug("PHY._txing")
             action = self._pop_soon_action()
-            stngs = self._base_stngs
+            stngs = self._base_stngs.copy()
             assert action is not None, "Mutation between top() and pop()"
             (tx_time, tx_action) = action
             assert tx_action[0] == "tx", "Mutation between top() and pop()"
