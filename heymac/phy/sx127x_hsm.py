@@ -412,12 +412,9 @@ class SX127xHsm(farc.Ahsm):
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             logging.debug("PHY._txing")
-            action = self._pop_soon_action()
+            (tx_time, (_, tx_stngs, tx_bytes)) = self._pop_soon_action()
+
             stngs = self._base_stngs.copy()
-            assert action is not None, "Mutation between top() and pop()"
-            (tx_time, tx_action) = action
-            assert tx_action[0] == "tx", "Mutation between top() and pop()"
-            (_, tx_stngs, tx_bytes) = tx_action
             if tx_stngs:
                 stngs.update(tx_stngs)
 
