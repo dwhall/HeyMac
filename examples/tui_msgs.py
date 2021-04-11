@@ -137,8 +137,8 @@ class MsgsView(Frame):
         pass
 
     def _updt_msgs(self):
-        msgs_widget = self.find_widget("msgs")
-        msgs_widget.options = self._format_msgs()
+        self._msgs_box.options = self._format_msgs()
+        self._stngs.text = self._stngs_model.get_summary()
 
     def _format_msgs(self):
         height = self.find_widget("msgs")._h
