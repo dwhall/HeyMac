@@ -56,13 +56,15 @@ class HeymacLink(object):
         in its neighbor data.  This proves two-way transmission
         has taken place.
         """
-        for data in self._ngbr_data.values():
-            frame = data["BCN_FRAME"]
+        found_me = False
+        for ngbr_lnk_addr in self._ngbr_data:
+            frame = self._ngbr_data[ngbr_lnk_addr]["BCN_FRAME"]
             bcn = frame.cmd
             assert type(bcn) is HeymacCmdCsmaBcn
-            ngbrs = bcn.get_field(HeymacCmd.FLD_NGBRS)
-            return self._lnk_addr in ngbrs
-        return False
+            ngbrs_ngbrs = bcn.get_field(HeymacCmd.FLD_NGBRS)
+            if self._lnk_addr in ngbrs_ngbrs:
+                found_me = True
+        return found_me
 
 
     def process_frame(self, frame):
