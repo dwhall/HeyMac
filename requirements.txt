@@ -9,7 +9,8 @@
 asciimatics @ git+https://github.com/peterbrittain/asciimatics.git@e7152f08
 asn1 >= 2.2.0           # https://pypi.org/project/asn1/
 cryptography >= 2.8     # https://pypi.org/project/cryptography/
-farc >= 0.2.0           # https://pypi.org/project/farc/
+#farc >= 0.2.0           # https://pypi.org/project/farc/
+farc @ git+https://github.com/dwhall/farc.git@6c0a33de
 spidev >= 2.0.0 # https://pypi.org/project/spidev
 
 # This version (or later) of RPi is needed because of the "chnl"
