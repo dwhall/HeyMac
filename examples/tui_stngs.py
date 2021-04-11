@@ -51,22 +51,23 @@ class RadioStngsModel(object):
 
     def get_summary(self):
         bw = {
-            SX127xSettings.STNG_LORA_BW_7K8: b", 7.8 KHz",
-            SX127xSettings.STNG_LORA_BW_10K4: b", 10.4 KHz",
-            SX127xSettings.STNG_LORA_BW_15K6: b", 15.6 KHz",
-            SX127xSettings.STNG_LORA_BW_20K8: b", 20.8 KHz",
-            SX127xSettings.STNG_LORA_BW_31K25: b", 31.25 KHz",
-            SX127xSettings.STNG_LORA_BW_41K7: b", 41.7 KHz",
-            SX127xSettings.STNG_LORA_BW_62K5: b", 62.5 KHz",
-            SX127xSettings.STNG_LORA_BW_125K: b", 125 KHz",
-            SX127xSettings.STNG_LORA_BW_250K: b", 250 KHz",
-            SX127xSettings.STNG_LORA_BW_500K: b", 500 KHz",
+            SX127xSettings.STNG_LORA_BW_7K8: ", 7.8 KHz",
+            SX127xSettings.STNG_LORA_BW_10K4: ", 10.4 KHz",
+            SX127xSettings.STNG_LORA_BW_15K6: ", 15.6 KHz",
+            SX127xSettings.STNG_LORA_BW_20K8: ", 20.8 KHz",
+            SX127xSettings.STNG_LORA_BW_31K25: ", 31.25 KHz",
+            SX127xSettings.STNG_LORA_BW_41K7: ", 41.7 KHz",
+            SX127xSettings.STNG_LORA_BW_62K5: ", 62.5 KHz",
+            SX127xSettings.STNG_LORA_BW_125K: ", 125 KHz",
+            SX127xSettings.STNG_LORA_BW_250K: ", 250 KHz",
+            SX127xSettings.STNG_LORA_BW_500K: ", 500 KHz",
         }
         stngs = self.get_stngs()
-        summary = bytearray()
-        summary.extend(stngs["rf_freq"].encode())
-        summary.extend(bw[stngs["bandwidth"]])
-        return summary.decode()
+        if stngs:
+            freq = stngs.get("rf_freq", "NoFreq")
+            bw = bw.get(stngs.get("bandwidth", None), ", NoBW")
+            return freq + bw
+        return "NoStngs"
 
 
 class RadioStngsView(Frame):
