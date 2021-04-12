@@ -9,25 +9,25 @@ from asciimatics.widgets import Button, Divider, Frame, Label, Layout, Text, Wid
 from asciimatics.screen import Screen
 
 
-class RadioStatusModel(object):
-    def __init__(self, phy_hsm):
+class StatusModel(object):
+    def __init__(self, phy_hsm, lnk_hsm):
         self._phy_hsm = phy_hsm
+        self._lnk_hsm = lnk_hsm
 
 
     def get_summary(self):
         return "--------"
 
 
-class RadioStatusView(Frame):
-    def __init__(self, screen, model):
+class StatusView(Frame):
+    def __init__(self, screen, status_model):
         super().__init__(screen,
                          screen.height,
                          screen.width,
-                         hover_focus=True,
+                         title="Status",
                          can_scroll=True,
-                         title="Radio Status",
                          reduce_cpu=True)
-        self._status_model = model
+        self._status_model = status_model
 
         # Layout the status widgets
         layout1 = Layout([1,2,1], fill_frame=False)

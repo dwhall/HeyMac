@@ -6,8 +6,7 @@ Copyright 2018 Dean Hall.  See LICENSE for details.
 Runs the HeyMac stack with a text user interface.
 """
 
-import sys
-#import logging
+#import logging, sys
 
 import farc
 

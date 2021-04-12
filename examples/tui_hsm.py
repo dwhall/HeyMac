@@ -14,7 +14,7 @@ import farc
 
 from tui_ident import IdentModel, IdentView
 from tui_msgs import MsgsModel, MsgsView
-from tui_status import RadioStatusModel, RadioStatusView
+from tui_status import StatusModel, StatusView
 from tui_stngs import RadioStngsModel, RadioStngsView
 
 UI_ANIMATE_PERIOD = 0.050  # Taken from asciimatics screen.py
@@ -26,7 +26,7 @@ class TxtUiHsm(farc.Ahsm):
         super().__init__()
         self._ident_model = IdentModel()
         self._msgs_model = MsgsModel(lnk_hsm)
-        self._status_model = RadioStatusModel(phy_hsm)
+        self._status_model = StatusModel(phy_hsm, lnk_hsm)
         self._stngs_model = RadioStngsModel(phy_hsm)
 
     @farc.Hsm.state
@@ -112,7 +112,7 @@ class TxtUiHsm(farc.Ahsm):
                             self._status_model)], -1, name="Messages"),
             Scene([IdentView(screen, self._ident_model)], -1, name="Identity"),
             Scene([RadioStngsView(screen, self._stngs_model)], -1, name="Settings"),
-            Scene([RadioStatusView(screen, self._stngs_model)], -1, name="Status"),
+            Scene([StatusView(screen, self._stngs_model)], -1, name="Status"),
         ]
         screen.set_scenes(scenes, start_scene=start_scene)
         self._screen = screen

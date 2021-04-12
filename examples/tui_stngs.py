@@ -75,9 +75,8 @@ class RadioStngsView(Frame):
         super().__init__(screen,
                          screen.height,
                          screen.width,
-                         hover_focus=True,
-                         can_scroll=True,
                          title="Radio Settings",
+                         can_scroll=True,
                          reduce_cpu=True)
         self._stngs_model = model
 

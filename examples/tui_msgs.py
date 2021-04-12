@@ -75,8 +75,7 @@ class MsgsView(Frame):
                 screen.width,
                 title="HeyMac",
                 on_load=self._updt_msgs,
-                hover_focus=True,
-                can_scroll=True)
+                can_scroll=False)
         self._msgs_model = msgs_model
         self._ident_model = ident_model
         self._stngs_model = stngs_model
