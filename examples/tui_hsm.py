@@ -12,9 +12,10 @@ from asciimatics.scene import Scene
 from asciimatics.screen import Screen
 import farc
 
+from heymac.ui import MsgsModel
 from heymac.utl import IdentModel
 from tui_ident import IdentView
-from tui_msgs import MsgsModel, MsgsView
+from tui_msgs import MsgsView
 from tui_status import StatusModel, StatusView
 from tui_stngs import RadioStngsModel, RadioStngsView
 
