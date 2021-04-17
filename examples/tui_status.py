@@ -1,22 +1,12 @@
 """
 Copyright 2021 Dean Hall.  See LICENSE for details.
 
-The Text User Interface Radio Status model and view.
+The Text User Interface Radio Status view.
 """
 
 from asciimatics.exceptions import NextScene
 from asciimatics.widgets import Button, Divider, Frame, Label, Layout, Text, Widget
 from asciimatics.screen import Screen
-
-
-class StatusModel(object):
-    def __init__(self, phy_hsm, lnk_hsm):
-        self._phy_hsm = phy_hsm
-        self._lnk_hsm = lnk_hsm
-
-
-    def get_summary(self):
-        return "--------"
 
 
 class StatusView(Frame):
