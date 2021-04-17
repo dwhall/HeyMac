@@ -80,7 +80,7 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
 
         # FIXME: This asserts due to lack of credentials
         try:
-            self._lnk_addr = ident.get_long_addr("HeyMac")
+            self._lnk_addr = ident.get_addr("HeyMac", 64)
         except:
             self._lnk_addr = b"\xfd1234567"
         self._lnk_data = HeymacLink(self._lnk_addr)

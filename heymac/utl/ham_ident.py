@@ -120,13 +120,14 @@ class HamIdent(object):
 
 
     @staticmethod
-    def get_long_addr(app_name):
-        """Returns a long address that is computed from
+    def get_addr(app_name, nmbr_bits):
+        """Returns an address that is computed from
         the public key found in the app's pre-made JSON file.
         The callsign_ssid may or may not have the SSID.
         """
+        assert nmbr_bits % 8 == 0
         pub_key = HamIdent._get_key_from_json(app_name)
-        saddr = HamIdent._get_addr_from_key(pub_key)
+        saddr = HamIdent._get_addr_from_key(pub_key, nmbr_bits//8)
         assert saddr[0] in (0xfc, 0xfd), "Credential not valid"
         return saddr
 
@@ -136,11 +137,11 @@ class HamIdent(object):
         return bytearray.fromhex(json_info['pub_key'])
 
     @staticmethod
-    def _get_addr_from_key(pub_key):
+    def _get_addr_from_key(pub_key, nmbr_bytes=8):
         h = hashlib.sha512()
         h.update(pub_key)
         h.update(h.digest())
-        return h.digest()[:8]
+        return h.digest()[:nmbr_bytes]
 
 
     @staticmethod
@@ -344,7 +345,7 @@ class IdentModel(object):
     def get_ident(self):
         try:
             ident = HamIdent.get_info_from_cert()
-            ident["saddr"] = HamIdent.get_long_addr("HeyMac")
+            ident["saddr"] = HamIdent.get_addr("HeyMac", 64)
         except:
             ident = {}
         try:
