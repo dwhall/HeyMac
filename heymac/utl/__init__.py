@@ -1,2 +1,2 @@
 from . import app_data
-from .ham_ident import HamIdent
+from .ham_ident import HamIdent, IdentModel

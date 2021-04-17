@@ -320,3 +320,68 @@ class HamIdent(object):
         with open(fn, "w") as f:
             json.dump(cred, f)
         return fn
+
+
+class IdentModel(object):
+    """Abstract model of Identity
+
+    UI modules should use this class
+    instead of interacting with HamIdent directly.
+    """
+
+    def device_cred_exists(self):
+        try:
+            info = HamIdent.get_info_from_json_cred("HeyMac")
+        except:
+            return False
+        return bool(info)
+
+
+    def personal_cert_exists(self):
+        return HamIdent.cert_file_exists()
+
+
+    def get_ident(self):
+        try:
+            ident = HamIdent.get_info_from_cert()
+            ident["saddr"] = HamIdent.get_long_addr("HeyMac")
+        except:
+            ident = {}
+        try:
+            cred = HamIdent.get_info_from_json_cred("HeyMac")
+        except:
+            cred = {}
+        if '-' in cred.get("callsign", ""):
+            cred["ssid"] = cred["callsign"].split("-")[1]
+            cred["callsign_ssid"] = cred["callsign"]
+            del cred["callsign"]
+        ident.update(cred)
+        return ident
+
+
+    def get_summary(self):
+        ident = self.get_ident()
+        return ident.get("callsign_ssid", ident.get("callsign", "No Ident"))
+
+
+    def apply(self, info):
+        if self.personal_cert_exists():
+            ident = HamIdent("HeyMac")
+            ssid = info["ssid"]
+            passphrase = info["dev_pass"].encode()
+            ident.gen_device_credentials(ssid, passphrase)
+        else:
+            ident = HamIdent()
+            passphrase = info["person_pass"].encode()
+            ident.gen_personal_credentials(info, passphrase)
+
+
+    def fields_are_equal_to(self, d):
+        ident_fields = (
+                "cmn_name", "callsign", "email", "country", "province",
+                "postalcode", "ssid")
+        ident = self.get_ident()
+        for fld in ident_fields:
+            if ident.get(fld) != d.get(fld):
+                return False
+        return True
