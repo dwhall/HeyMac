@@ -7,7 +7,7 @@ The Heymac Messages model.
 import bisect
 import time
 
-from heymac.lnk import HeymacCmdCsmaBcn, HeymacCmdTxt
+from ..lnk import HeymacCmdCsmaBcn, HeymacCmdTxt
 
 
 class MsgsModel(object):
