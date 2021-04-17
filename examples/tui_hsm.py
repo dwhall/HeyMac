@@ -12,12 +12,12 @@ from asciimatics.scene import Scene
 from asciimatics.screen import Screen
 import farc
 
-from heymac.ui import MsgsModel, StatusModel
+from heymac.ui import MsgsModel, RadioStngsModel, StatusModel
 from heymac.utl import IdentModel
 from tui_ident import IdentView
 from tui_msgs import MsgsView
 from tui_status import StatusView
-from tui_stngs import RadioStngsModel, RadioStngsView
+from tui_stngs import RadioStngsView
 
 UI_ANIMATE_PERIOD = 0.050  # Taken from asciimatics screen.py
 
