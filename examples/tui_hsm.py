@@ -39,6 +39,8 @@ class TxtUiHsm(farc.Ahsm):
         """
         farc.Signal.register("_UI_KEYCODE")
         self._tmout_evt = farc.TimeEvent("_UI_TMOUT")
+        self._one_sec_evt = farc.TimeEvent("_UI_ONE_SEC")
+        farc.Framework.subscribe("GPS_GPRMC", self)
         return self.tran(self._running)
 
 
@@ -52,6 +54,7 @@ class TxtUiHsm(farc.Ahsm):
         if sig == farc.Signal.ENTRY:
             logging.debug("UI._running")
             self._tmout_evt.post_in(self, 0)
+            self._one_sec_evt.post_every(self, 1.0)
             self._prev_tick = farc.Framework._event_loop.time()
 
             if (self._ident_model.device_cred_exists() and
@@ -85,8 +88,17 @@ class TxtUiHsm(farc.Ahsm):
                 self._tmout_evt.post_at(self, self._prev_tick)
             return self.handled(event)
 
+        elif sig == farc.Signal._UI_ONE_SEC:
+            self._msgs_view.update_time()
+            return self.handled(event)
+
+        elif sig == farc.Signal.GPS_GPRMC:
+            self._status_view.update_gps(event.value)
+            return self.handled(event)
+
         elif sig == farc.Signal.EXIT:
             self._tmout_evt.disarm()
+            self._one_sec_evt.disarm()
             return self.handled(event)
 
         return self.super(self.top)
@@ -106,15 +118,19 @@ class TxtUiHsm(farc.Ahsm):
     def _new_screen(self, start_scene):
         screen = Screen.open()
         screen.clear()
-        scenes = [
-            Scene([MsgsView(screen,
+        self._msgs_view = MsgsView(screen,
                             self._msgs_model,
                             self._ident_model,
                             self._stngs_model,
-                            self._status_model)], -1, name="Messages"),
-            Scene([IdentView(screen, self._ident_model)], -1, name="Identity"),
-            Scene([RadioStngsView(screen, self._stngs_model)], -1, name="Settings"),
-            Scene([StatusView(screen, self._stngs_model)], -1, name="Status"),
+                            self._status_model)
+        self._ident_view = IdentView(screen, self._ident_model)
+        self._stngs_view = RadioStngsView(screen, self._stngs_model)
+        self._status_view = StatusView(screen, self._stngs_model)
+        scenes = [
+            Scene([self._msgs_view], -1, name="Messages"),
+            Scene([self._ident_view], -1, name="Identity"),
+            Scene([self._stngs_view], -1, name="Settings"),
+            Scene([self._status_view], -1, name="Status"),
         ]
         screen.set_scenes(scenes, start_scene=start_scene)
         self._screen = screen

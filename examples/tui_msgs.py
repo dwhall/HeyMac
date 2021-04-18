@@ -135,3 +135,8 @@ class MsgsView(Frame):
         msg = widget.value
         widget.value = ""
         return msg
+
+
+    def update_time(self):
+        display_tm = time.strftime("%H:%M:%S", time.localtime(time.time()))
+        self._time.text = display_tm
