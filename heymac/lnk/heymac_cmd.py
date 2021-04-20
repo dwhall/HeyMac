@@ -27,12 +27,12 @@ class HeymacCmd(object):
     # Heymac commands' self.field dict.
     FLD_CAPS = "FLD_CAPS"       # int (0..65535)
     FLD_MSG = "FLD_MSG"         # bytes
-    FLD_NETS = "FLD_NETS"       # sequence of bytes
     FLD_NGBRS = "FLD_NGBRS"     # sequence of bytes
     FLD_STATUS = "FLD_STATUS"   # int (0..65535)
     FLD_NET_ID = "FLD_NET_ID"   # int (0..65535)
     FLD_NET_ADDR = "FLD_NET_ADDR"   # int (0..65535)
-
+    FLD_CALLSIGN_SSID = "FLD_CALLSIGN_SSID" # bytes[16]
+    FLD_PUB_KEY = "FLD_PUB_KEY" # bytes[96]
 
     def __init__(self, *args, **kwargs):
         """Instantiates a subclass of HeymacCmd
@@ -49,15 +49,14 @@ class HeymacCmd(object):
 
         if kwargs:
             assert type(args[0]) is int, "Expecting Command ID int"
-            # If keyword arguments, expect certain field names
+            # Validate fields
             for key in kwargs.keys():
                 if key not in self._FLD_LIST:
-                    raise HeymacCmdError("Unknown field: %s" % key)
-            # kwargs become the command's fields
+                    raise HeymacCmdError("Improper field: %s" % key)
             self.field = kwargs
         else:
             if type(args[0]) is bytes:
-                cmd_bytes = args[0]
+                cmd_bytes = args[0]     # FIXME: unused local
             elif type(args[0]) is int:
                 self.field = {}
             else:
@@ -111,15 +110,51 @@ class HeymacCmdTxt(HeymacCmd):
         return HeymacCmdTxt(HeymacCmdTxt.CMD_ID, **field)
 
 
-class HeymacCmdCsmaBcn(HeymacCmd):
-    """Heymac CSMA Beacon: { 4, caps, status, nets[], ngbrs[] }"""
-    # NOTE: form not finalized
+class HeymacCmdBcn(HeymacCmd):
+    """Heymac Beacon: { 4, caps, status, callsign_ssid, pub_key }"""
     CMD_ID = 4
     _FLD_LIST = (
-        HeymacCmd.FLD_CAPS,
-        HeymacCmd.FLD_STATUS,
-        HeymacCmd.FLD_NETS,
-        HeymacCmd.FLD_NGBRS)
+            HeymacCmd.FLD_CAPS,
+            HeymacCmd.FLD_STATUS,
+            HeymacCmd.FLD_CALLSIGN_SSID,
+            HeymacCmd.FLD_PUB_KEY)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(self.CMD_ID, **kwargs)
+
+    def __bytes__(self):
+        """Serializes the beacon into bytes to send over the air."""
+        padded_callsign = self.field[HeymacCmd.FLD_CALLSIGN_SSID].ljust(16)
+        b = bytearray()
+        b.append(HeymacCmd.PREFIX | HeymacCmdBcn.CMD_ID)
+        b.extend(struct.pack("!HH16s96s",
+                self.field[HeymacCmd.FLD_CAPS],
+                self.field[HeymacCmd.FLD_STATUS],
+                padded_callsign,
+                self.field[HeymacCmd.FLD_PUB_KEY]))
+        return bytes(b)
+
+    @staticmethod
+    def parse(cmd_bytes):
+        """Parses the bytes into a beacon object."""
+        assert cmd_bytes[0] == HeymacCmd.PREFIX | HeymacCmdBcn.CMD_ID
+        field = {}
+        caps, status, callsign_ssid, pub_key = struct.unpack("!HH16s96s", cmd_bytes[1:])
+        field[HeymacCmd.FLD_CAPS] = caps
+        field[HeymacCmd.FLD_STATUS] = status
+        field[HeymacCmd.FLD_CALLSIGN_SSID] = callsign_ssid.decode().strip()
+        field[HeymacCmd.FLD_PUB_KEY] = pub_key
+        return HeymacCmdBcn(HeymacCmdBcn.CMD_ID, **field)
+
+
+# UNTESTED:
+class HeymacCmdLnkData(HeymacCmd):
+    """Heymac Link Data: {N, sub_id, ...}
+
+    This class should not be instantiated outside this module.
+    """
+    CMD_ID = 5
+    _FLD_LIST = (HeymacCmd.FLD_NGBRS)
 
     def __init__(self, *args, **kwargs):
         super().__init__(self.CMD_ID, **kwargs)
@@ -127,15 +162,7 @@ class HeymacCmdCsmaBcn(HeymacCmd):
     def __bytes__(self):
         """Serializes the beacon into bytes to send over the air."""
         b = bytearray()
-        b.append(HeymacCmd.PREFIX | HeymacCmdCsmaBcn.CMD_ID)
-        b.extend(struct.pack("!H", self.field[HeymacCmd.FLD_CAPS]))
-        b.extend(struct.pack("!H", self.field[HeymacCmd.FLD_STATUS]))
-        # Nets
-        b.append(len(self.field[HeymacCmd.FLD_NETS]))
-        for net in self.field[HeymacCmd.FLD_NETS]:
-            b.extend(struct.pack("!H", net[0]))
-            b.extend(struct.pack("8s", net[1]))
-        # Ngbrs
+        b.append(HeymacCmd.PREFIX | HeymacCmdLnkData.CMD_ID)
         ngbrs = self.field[HeymacCmd.FLD_NGBRS]
         b.append(len(ngbrs))
         for lnk_addr in ngbrs:
@@ -146,27 +173,17 @@ class HeymacCmdCsmaBcn(HeymacCmd):
     @staticmethod
     def parse(cmd_bytes):
         """Parses the bytes into a beacon object."""
-        SIZEOF_NET = 2 + 8
-        assert cmd_bytes[0] == HeymacCmd.PREFIX | HeymacCmdCsmaBcn.CMD_ID
         field = {}
-        caps, status = struct.unpack("!HH", cmd_bytes[1:5])
-        field[HeymacCmd.FLD_CAPS] = caps
-        field[HeymacCmd.FLD_STATUS] = status
-        # Nets
-        nets_cnt = cmd_bytes[5]
-        fmt = "!" + "H8s" * nets_cnt
-        nets_sz = struct.calcsize(fmt)
-        nets = struct.unpack(fmt, cmd_bytes[6:6 + nets_sz])
-        field[HeymacCmd.FLD_NETS] = nets
-        offset = 6 + nets_sz
-        # Ngbrs
-        ngbrs_cnt = cmd_bytes[offset]
+        ngbrs_cnt = cmd_bytes[0]
         fmt = "!" + "8s" * ngbrs_cnt
-        ngbrs = struct.unpack(fmt, cmd_bytes[offset + 1:])
+        ngbrs = struct.unpack(fmt, cmd_bytes[1:])
         field[HeymacCmd.FLD_NGBRS] = ngbrs
-        return HeymacCmdCsmaBcn(HeymacCmdCsmaBcn.CMD_ID, **field)
+        return HeymacCmdBcn(HeymacCmdBcn.CMD_ID, **field)
 
 
+#### Create next-higher-layer cmd to convey net_data, net-join
+
+# DEPRECATED:
 class HeymacCmdJoin(HeymacCmd):
     """Heymac Join: {5, sub_id, ...}
 
@@ -176,6 +193,7 @@ class HeymacCmdJoin(HeymacCmd):
     CMD_ID = 5
 
     def __init__(self, *args, **kwargs):
+        raise DeprecationWarning()
         super().__init__(self.CMD_ID, **kwargs)
 
     def __bytes__(self):

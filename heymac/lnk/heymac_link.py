@@ -5,7 +5,7 @@
 import farc
 
 from .heymac_frame import HeymacFrame
-from .heymac_cmd import HeymacCmd, HeymacCmdCsmaBcn
+from .heymac_cmd import HeymacCmd, HeymacCmdBcn
 
 
 class HeymacLink(object):
@@ -18,7 +18,7 @@ class HeymacLink(object):
     Key                 Value
     ==================  =======================================================
     "BCN_CNT"           the number of beacons received since link established
-    "BCN_FRAME"         instance of HeymacCmdCsmaBcn
+    "BCN_FRAME"         instance of HeymacCmdBcn
     "LATEST_RX_TM"      time of latest RX of any valid HeymacFrame from ngbr
     "LATEST_RX_RSSI"    RSSI of latest RX of any valid HeymacFrame from ngbr
     "LATEST_RX_SNR"     SNR of latest RX of any valid HeymacFrame from ngbr
@@ -34,21 +34,6 @@ class HeymacLink(object):
         return self._ngbrs.keys()
 
 
-    def get_ngbrs_nets(self):
-        """Returns a list of neighbors' net data.
-
-        Net data is a tuple of the net_id as a bytes object
-        and the link address of the network's root (also a bytes object).
-        """
-        nets = set()
-        for ngbr_data in self._ngbrs.values():
-            if ngbr_data["BCN_CNT"] > 0:
-                frame = ngbr_data["BCN_FRAME"]
-                for net in frame.get_field(HeymacCmd.FLD_NETS):
-                    nets.add(net)
-        return list(nets)
-
-
     def ngbr_hears_me(self):
         """Does a neighbor node hear this node.
 
@@ -60,11 +45,12 @@ class HeymacLink(object):
         for ngbr_data in self._ngbrs.values():
             if ngbr_data["BCN_CNT"] > 0:
                 frame = ngbr_data["BCN_FRAME"]
-                bcn = frame.cmd
-                assert type(bcn) is HeymacCmdCsmaBcn
-                ngbrs_ngbrs = bcn.get_field(HeymacCmd.FLD_NGBRS)
-                if self._lnk_addr in ngbrs_ngbrs:
-                    found_me = True
+                # FIXME: bcn frame no longer carries ngbr list
+                #bcn = frame.cmd
+                #assert type(bcn) is HeymacCmdBcn
+                #ngbrs_ngbrs = bcn.get_field(HeymacCmd.FLD_NGBRS)
+                #if self._lnk_addr in ngbrs_ngbrs:
+                #    found_me = True
         return found_me
 
 
@@ -84,7 +70,7 @@ class HeymacLink(object):
         d["LATEST_RX_SNR"] = frame.rx_meta[2]
 
         # Process a beacon
-        if frame.cmd and type(frame.cmd) is HeymacCmdCsmaBcn:
+        if frame.cmd and type(frame.cmd) is HeymacCmdBcn:
             self._process_bcn(frame)
 
 
@@ -114,8 +100,6 @@ class HeymacLink(object):
     def _process_bcn(self, frame):
         """Process a Heymac beacon and keeps relevant link data."""
         lnk_addr = frame.get_sender()
-        # TODO: create and use _NGBR_FLD_* names
-        self._ngbrs[lnk_addr]["BCN_FRAME"] = frame
-        self._ngbrs[lnk_addr]["BCN_CNT"] += 1
-
-        # TODO: process nets[] to build list of known nets
+        d = self._ngbrs[lnk_addr]
+        d["BCN_FRAME"] = frame
+        d["BCN_CNT"] += 1

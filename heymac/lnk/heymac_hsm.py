@@ -14,7 +14,7 @@ import farc
 
 from .heymac_link import HeymacLink
 from .heymac_frame import HeymacFrame, HeymacFrameError
-from .heymac_cmd import HeymacCmd, HeymacCmdError, HeymacCmdCsmaBcn
+from .heymac_cmd import HeymacCmd, HeymacCmdError, HeymacCmdBcn
 
 
 class Heymac(object):
@@ -77,6 +77,8 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
         self._phy_hsm.set_dflt_rx_clbk(self._phy_rx_clbk)
 
         self._rx_clbk = None
+
+        self._ident = ident
 
         # FIXME: This asserts due to lack of credentials
         try:
@@ -303,17 +305,21 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
 
     def _post_bcn(self):
         """Builds a Heymac CsmaBeacon and posts it to the PHY for transmit."""
-        bcn = HeymacCmdCsmaBcn(
-            # TODO: Fill with real data
-            FLD_CAPS=Heymac.LNK_CAP_RXCONT,
-            FLD_STATUS=0,
-            FLD_NETS=(),
-            FLD_NGBRS=self._lnk_data.get_ngbrs_lnk_addrs())
+        cred = self._ident.get_info_from_json_cred("HeyMac")
+        callsign = cred["callsign"].ljust(16).encode()
+        pub_key = bytes.fromhex(cred["pub_key"])
+
+        bcn = HeymacCmdBcn(
+                # TODO: Fill with real data
+                FLD_CAPS=Heymac.LNK_CAP_RXCONT,
+                FLD_STATUS=0,
+                FLD_CALLSIGN_SSID=callsign,
+                FLD_PUB_KEY=pub_key)
         frame = HeymacFrame(
-            HeymacFrame.PID_IDENT_HEYMAC
-            | HeymacFrame.PID_TYPE_CSMA,
-            HeymacFrame.FCTL_L
-            | HeymacFrame.FCTL_S)
+                HeymacFrame.PID_IDENT_HEYMAC
+                | HeymacFrame.PID_TYPE_CSMA,
+                HeymacFrame.FCTL_L
+                | HeymacFrame.FCTL_S)
         frame.set_field(HeymacFrame.FLD_SADDR, self._lnk_addr)
         frame.set_field(HeymacFrame.FLD_PAYLD, bytes(bcn))
         self._phy_hsm.post_tx_action(

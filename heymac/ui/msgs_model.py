@@ -7,7 +7,7 @@ The Heymac Messages model.
 import bisect
 import time
 
-from ..lnk import HeymacCmdCsmaBcn, HeymacCmdTxt
+from ..lnk import HeymacCmdBcn, HeymacCmdTxt
 
 
 class MsgsModel(object):
@@ -28,10 +28,9 @@ class MsgsModel(object):
 
     def _rx_clbk(self, hm_frame):
         # TODO: blink status RX indicator
-        if isinstance(hm_frame.cmd, HeymacCmdCsmaBcn):
-            # FIXME: get callsign from beacon (doesn't exist in std beacon)
+        if isinstance(hm_frame.cmd, HeymacCmdBcn):
             longaddr = hm_frame.get_field(hm_frame.FLD_SADDR)
-            callsign = "GOTIT"
+            callsign = hm_frame.cmd.get_field(HeymacCmdBcn.FLD_CALLSIGN_SSID)
             self._callsigns[longaddr] = callsign
 
         elif isinstance(hm_frame.cmd, HeymacCmdTxt):

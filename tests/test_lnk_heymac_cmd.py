@@ -6,6 +6,9 @@ import unittest
 from heymac.lnk.heymac_cmd import *
 
 
+PUB_KEY = b"\xb2R\x96\xff\xdeb\x84S\xe6\xcd\x8cU\x84W!\xaf\xa8,Vf\\\x8c\x03\x7f'\x1d\x88^8\x07?U\xbbl\x18\xec\xc8*PC\x88}'\xf1\x84\xd7\xed\xc6\x9bH9\xfa\xa0\xe0\xbdS5\xbf\x16h\xc8\x0f}\x9d\xc3\xe9\x10:beb~\xf5\x9d\x1b\xcf}\xdd\x93\xbc(\xf8\x19\x1e\xb0Hf\xaf1\xd3\x9e\xbb\xcaG\t\n"
+
+
 class TestHeyMacCmd(unittest.TestCase):
     """Tests the HeymacCmd building and serializing."""
 
@@ -22,22 +25,22 @@ class TestHeyMacCmd(unittest.TestCase):
 
     def test_bcn(self):
         # Build and serialize
-        c = HeymacCmdCsmaBcn(
+        c = HeymacCmdBcn(
             FLD_CAPS=0x0102,
             FLD_STATUS=0x0304,
-            FLD_NETS=((0x0001, b"\xfdnetroot"),),
-            FLD_NGBRS=(b"\xfd2345678",))
+            FLD_CALLSIGN_SSID=b"EX4MPL-227",
+            FLD_PUB_KEY=PUB_KEY)
         b = bytes(c)
-        self.assertEqual(b, b"\x84\x01\x02\x03\x04\x01\x00\x01\xfdnetroot\x01\xfd2345678")
+        self.assertEqual(b, b"\x84\x01\x02\x03\x04EX4MPL-227      " + PUB_KEY)
         # Parse and test
         c = HeymacCmd.parse(b)
-        self.assertIs(type(c), HeymacCmdCsmaBcn)
+        self.assertIs(type(c), HeymacCmdBcn)
         self.assertEqual(c.get_field(HeymacCmd.FLD_CAPS), 0x0102)
         self.assertEqual(c.get_field(HeymacCmd.FLD_STATUS), 0x0304)
-        self.assertEqual(c.get_field(HeymacCmd.FLD_NETS), (0x0001, b"\xfdnetroot"))
-        self.assertEqual(c.get_field(HeymacCmd.FLD_NGBRS), (b"\xfd2345678",))
+        self.assertEqual(c.get_field(HeymacCmd.FLD_CALLSIGN_SSID), "EX4MPL-227")
+        self.assertEqual(c.get_field(HeymacCmd.FLD_PUB_KEY), PUB_KEY)
 
-
+class _Deprecated_MovingToNetLayer:
     def test_join_rqst(self):
         # Build and serialize
         c = HeymacCmdJoinRqst(FLD_NET_ID=0x0102)
