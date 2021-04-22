@@ -297,14 +297,14 @@ class SX127xHsm(farc.Ahsm):
 
             # Prep interrupts for RX
             self._sx127x.write_lora_irq_mask(
-                    SX127x.IRQ_FLAGS_ALL,
-                    SX127x.IRQ_FLAGS_RXDONE |
-                    SX127x.IRQ_FLAGS_PAYLDCRCERROR |
-                    SX127x.IRQ_FLAGS_VALIDHEADER)
+                SX127x.IRQ_FLAGS_ALL,
+                SX127x.IRQ_FLAGS_RXDONE
+                | SX127x.IRQ_FLAGS_PAYLDCRCERROR
+                | SX127x.IRQ_FLAGS_VALIDHEADER)
             self._sx127x.write_lora_irq_flags(
-                    SX127x.IRQ_FLAGS_RXDONE |
-                    SX127x.IRQ_FLAGS_PAYLDCRCERROR |
-                    SX127x.IRQ_FLAGS_VALIDHEADER)
+                SX127x.IRQ_FLAGS_RXDONE
+                | SX127x.IRQ_FLAGS_PAYLDCRCERROR
+                | SX127x.IRQ_FLAGS_VALIDHEADER)
             self._sx127x.write_fifo_ptr(0x00)
 
             # Start periodic event for update_rng()
@@ -426,8 +426,8 @@ class SX127xHsm(farc.Ahsm):
 
             # Prep interrupts for TX
             self._sx127x.write_lora_irq_mask(
-                    SX127x.IRQ_FLAGS_ALL,     # disable these
-                    SX127x.IRQ_FLAGS_TXDONE)  # enable these
+                SX127x.IRQ_FLAGS_ALL,     # disable these
+                SX127x.IRQ_FLAGS_TXDONE)  # enable these
 
             # Write payload into radio's FIFO
             self._sx127x.write_fifo_ptr(0x00)

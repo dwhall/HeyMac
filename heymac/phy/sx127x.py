@@ -113,7 +113,8 @@ class SX127x(object):
         assert spi_port in (0, 1), "SPI port index must be 0 or 1"
         assert spi_cs in (0, 1), "SPI chip select must be 0 or 1"
         spi_freq = int(spi_freq)
-        assert SX127x.SPI_FREQ_MIN <= spi_freq <= SX127x.SPI_FREQ_MAX, "SPI clock frequency must be within 1-20 MHz"
+        assert SX127x.SPI_FREQ_MIN <= spi_freq <= SX127x.SPI_FREQ_MAX, \
+            "SPI clock frequency must be within 1-20 MHz"
         self.spi = spidev.SpiDev()
         self.spi.open(spi_port, spi_cs)
         self.spi.max_speed_hz = spi_freq
@@ -167,7 +168,9 @@ class SX127x(object):
         and initializes callbacks for DIOx pin inputs.
         Returns chip comms validity (True/False)
         """
-        dio_isr_lut = (self._dio0_isr, self._dio1_isr, self._dio2_isr, self._dio3_isr, self._dio4_isr, self._dio5_isr)
+        dio_isr_lut = (
+            self._dio0_isr, self._dio1_isr, self._dio2_isr, self._dio3_isr,
+            self._dio4_isr, self._dio5_isr)
         self._dio_isr_clbk = dio_isr_clbk
 
         GPIO.setwarnings(False)
@@ -177,7 +180,7 @@ class SX127x(object):
 
         valid = self._validate_chip()
 
-        # Put the radio in LoRa mode so DIO5 outputs ModeReady (instead of ClkOut)
+        # Put radio in LoRa mode so DIO5 outputs ModeReady instead of ClkOut
         # This is needed so the state machine receives the ModeReady event
         self.write_opmode(SX127x.OPMODE_SLEEP, False)
         self.set_fld("FLD_RDO_LORA_MODE", 1)
@@ -191,7 +194,8 @@ class SX127x(object):
             for pin_nmbr in self.dio_cfg:
                 if type(pin_nmbr) is int and pin_nmbr != 0:
                     GPIO.setup(pin_nmbr, GPIO.IN)
-                    GPIO.add_event_detect(pin_nmbr, edge=GPIO.RISING, callback=dio_isr_lut[n])
+                    GPIO.add_event_detect(
+                        pin_nmbr, edge=GPIO.RISING, callback=dio_isr_lut[n])
                 n += 1
 
         return valid
@@ -206,16 +210,16 @@ class SX127x(object):
         """
         # Clear rx-related IRQ flags in the reg
         reg = self._read(SX127x.REG_LORA_IRQ_FLAGS)[0]
-        flags = reg & ( SX127x.IRQ_FLAGS_RXTIMEOUT
-                      | SX127x.IRQ_FLAGS_RXDONE
-                      | SX127x.IRQ_FLAGS_PAYLDCRCERROR
-                      | SX127x.IRQ_FLAGS_VALIDHEADER )
+        flags = reg & (
+            SX127x.IRQ_FLAGS_RXTIMEOUT
+            | SX127x.IRQ_FLAGS_RXDONE
+            | SX127x.IRQ_FLAGS_PAYLDCRCERROR
+            | SX127x.IRQ_FLAGS_VALIDHEADER)
         self._write(SX127x.REG_LORA_IRQ_FLAGS, flags)
 
         # Determine rx status from flags
         good_rx = bool(flags & SX127x.IRQ_FLAGS_RXDONE)
-        flags &= ( SX127x.IRQ_FLAGS_RXTIMEOUT
-                 | SX127x.IRQ_FLAGS_PAYLDCRCERROR)
+        flags &= (SX127x.IRQ_FLAGS_RXTIMEOUT | SX127x.IRQ_FLAGS_PAYLDCRCERROR)
         if flags:
             good_rx = False
 
@@ -228,7 +232,8 @@ class SX127x(object):
         if good_rx:
             # Read the index into the FIFO of where the pkt starts
             # and the length of the data received
-            pkt_start, _, _, nbytes = self._read(SX127x.REG_LORA_FIFO_CURR_ADDR, 4)
+            pkt_start, _, _, nbytes = \
+                self._read(SX127x.REG_LORA_FIFO_CURR_ADDR, 4)
             assert pkt_start == 0, "rxd pkt_start was not at 0"
 
             # Read the payload
@@ -258,7 +263,7 @@ class SX127x(object):
         GPIO.output(self.reset_cfg, GPIO.LOW)
         time.sleep(0.000110)  # >100us
         GPIO.output(self.reset_cfg, GPIO.HIGH)
-        time.sleep(0.005) # >5ms
+        time.sleep(0.005)   # >5ms
 
         self._stngs.reset()
 
@@ -307,7 +312,7 @@ class SX127x(object):
 
     def write_fifo_ptr(self, offset):
         assert 0 <= offset < 256
-        self._write(SX127x.REG_LORA_FIFO_ADDR_PTR, [offset]*3)
+        self._write(SX127x.REG_LORA_FIFO_ADDR_PTR, [offset] * 3)
 
 
     def write_lora_irq_flags(self, clear_these):
@@ -376,7 +381,7 @@ class SX127x(object):
             SX127x.DIO_CAD_DONE,
         )
         self._dio_isr_clbk(
-                dio0_to_sig_lut[self._stngs.get_applied("FLD_RDO_DIO0")])
+            dio0_to_sig_lut[self._stngs.get_applied("FLD_RDO_DIO0")])
 
 
     def _dio1_isr(self, chnl):
@@ -386,7 +391,7 @@ class SX127x(object):
             SX127x.DIO_CAD_DETECTED,
         )
         self._dio_isr_clbk(
-                dio1_to_sig_lut[self._stngs.get_applied("FLD_RDO_DIO1")])
+            dio1_to_sig_lut[self._stngs.get_applied("FLD_RDO_DIO1")])
 
 
     def _dio2_isr(self, chnl):
@@ -396,7 +401,7 @@ class SX127x(object):
             SX127x.DIO_FHSS_CHG_CHNL,
         )
         self._dio_isr_clbk(
-                dio2_to_sig_lut[self._stngs.get_applied("FLD_RDO_DIO2")])
+            dio2_to_sig_lut[self._stngs.get_applied("FLD_RDO_DIO2")])
 
 
     def _dio3_isr(self, chnl):
@@ -406,7 +411,7 @@ class SX127x(object):
             SX127x.DIO_PAYLD_CRC_ERR,
         )
         self._dio_isr_clbk(
-                dio3_to_sig_lut[self._stngs.get_applied("FLD_RDO_DIO3")])
+            dio3_to_sig_lut[self._stngs.get_applied("FLD_RDO_DIO3")])
 
 
     def _dio4_isr(self, chnl):
@@ -416,7 +421,7 @@ class SX127x(object):
             SX127x.DIO_PLL_LOCK,
         )
         self._dio_isr_clbk(
-                dio4_to_sig_lut[self._stngs.get_applied("FLD_RDO_DIO4")])
+            dio4_to_sig_lut[self._stngs.get_applied("FLD_RDO_DIO4")])
 
 
     def _dio5_isr(self, chnl):
@@ -427,7 +432,7 @@ class SX127x(object):
         )
         if self._en_dio5_clbk:
             self._dio_isr_clbk(
-                    dio5_to_sig_lut[self._stngs.get_applied("FLD_RDO_DIO5")])
+                dio5_to_sig_lut[self._stngs.get_applied("FLD_RDO_DIO5")])
 
 
     def _read(self, reg_addr, nbytes=1):
@@ -436,8 +441,8 @@ class SX127x(object):
         """
         assert type(nbytes) is int
         assert nbytes > 0
-        b = [reg_addr,]
-        b.extend([0,] * nbytes)
+        b = [reg_addr]
+        b.extend([0] * nbytes)
         return self.spi.xfer2(b)[1:]
 
 
@@ -462,7 +467,7 @@ class SX127x(object):
             data &= 0xff
             b = [reg_addr, data]
         else:
-            b = [reg_addr,]
+            b = [reg_addr]
             b.extend(data)
 
         return self.spi.xfer2(b)[1:]
@@ -480,13 +485,17 @@ class SX127x(object):
                 auto_if_on = True
             else:
                 # Adjust the intermediate freq per errata
-                if_freq2_lut = ( 0x48, 0x44, 0x44, 0x44, 0x44, 0x44, 0x40, 0x40, 0x40, )
+                if_freq2_lut = (
+                    0x48, 0x44, 0x44, 0x44, 0x44, 0x44, 0x40, 0x40, 0x40)
                 reg_if_freq2 = if_freq2_lut[bw]
-                # Add the rejection offset to the carrier freq and fill the stngs holding array with that
-                rejection_offset_hz_lut = ( 7810, 10420, 15620, 20830, 31250, 41670, 0, 0, 0, )
+                # Add the rejection offset to the carrier freq 
+                # and fill the stngs holding array with that
+                rejection_offset_hz_lut = (
+                    7810, 10420, 15620, 20830, 31250, 41670, 0, 0, 0)
                 freq += rejection_offset_hz_lut[bw]
 
-        # If LoRa mode or LoRa BW has changed, apply the errata values to their regs
+        # If LoRa mode or LoRa BW has changed, 
+        # apply the errata values to their regs
         if(self._stngs.changed("FLD_RDO_LORA_MODE") or
            self._stngs.changed("FLD_LORA_BW")):
             self._write(SX127x.REG_LORA_IF_FREQ_2, reg_if_freq2)
