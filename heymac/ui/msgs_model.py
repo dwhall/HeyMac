@@ -63,5 +63,3 @@ class MsgsModel(object):
 
     def set_update_clbk(self, clbk):
         self._update_view = clbk
-
-

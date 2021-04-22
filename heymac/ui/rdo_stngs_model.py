@@ -23,7 +23,7 @@ class RadioStngsModel(object):
         stngs = {}
         for model_name, val in model_stngs.items():
             if model_name == "rf_freq":
-                val = 1000*int(val)
+                val = 1000 * int(val)
             stngs[stng_fld[model_name]] = val
         self._phy_hsm.update_base_stngs(stngs)
 
@@ -65,5 +65,3 @@ class RadioStngsModel(object):
             bw = bw.get(stngs.get("bandwidth", None), ", NoBW")
             return freq + bw
         return "NoStngs"
-
-

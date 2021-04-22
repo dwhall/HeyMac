@@ -4,6 +4,7 @@ Copyright 2021 Dean Hall.  See LICENSE for details.
 The Heymac Radio Status model.
 """
 
+
 class StatusModel(object):
     def __init__(self, phy_hsm, lnk_hsm):
         self._phy_hsm = phy_hsm
