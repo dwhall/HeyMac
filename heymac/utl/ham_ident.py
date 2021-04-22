@@ -44,8 +44,8 @@ import hashlib
 import json
 import os.path
 
-import asn1 # pip install asn1
-from cryptography import x509 # pip install cryptography
+import asn1     # pip install asn1
+from cryptography import x509   # pip install cryptography
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
@@ -80,12 +80,15 @@ class HamIdent(object):
         with open(fn, "rb") as f:
             pem_data = f.read()
             cert = x509.load_pem_x509_certificate(pem_data, default_backend())
-            person_info["cmn_name"] = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
-            person_info["callsign"] = cert.subject.get_attributes_for_oid(NameOID.PSEUDONYM)[0].value
-            person_info["email"] = cert.subject.get_attributes_for_oid(NameOID.EMAIL_ADDRESS)[0].value
-            person_info["country"] = cert.subject.get_attributes_for_oid(NameOID.COUNTRY_NAME)[0].value
-            person_info["province"] = cert.subject.get_attributes_for_oid(NameOID.STATE_OR_PROVINCE_NAME)[0].value
-            person_info["postalcode"] = cert.subject.get_attributes_for_oid(NameOID.POSTAL_CODE)[0].value
+            for fld_str, oid in (
+                ("cmn_name", NameOID.COMMON_NAME),
+                ("callsign", NameOID.PSEUDONYM),
+                ("email", NameOID.EMAIL_ADDRESS),
+                ("country", NameOID.COUNTRY_NAME),
+                ("province", NameOID.STATE_OR_PROVINCE_NAME),
+                ("postalcode", NameOID.POSTAL_CODE)):
+                    person_info[fld_str] = \
+                        cert.subject.get_attributes_for_oid(oid)[0].value
         return person_info
 
     @staticmethod
@@ -127,7 +130,7 @@ class HamIdent(object):
         """
         assert nmbr_bits % 8 == 0
         pub_key = HamIdent._get_key_from_json(app_name)
-        saddr = HamIdent._get_addr_from_key(pub_key, nmbr_bits//8)
+        saddr = HamIdent._get_addr_from_key(pub_key, nmbr_bits // 8)
         assert saddr[0] in (0xfc, 0xfd), "Credential not valid"
         return saddr
 
@@ -169,11 +172,12 @@ class HamIdent(object):
         """
         done = False
         while not done:
-            prv_key = ec.generate_private_key(ec.SECP384R1(), default_backend())
+            prv_key = ec.generate_private_key(
+                ec.SECP384R1(), default_backend())
             pub_key = prv_key.public_key()
             der_bytes = pub_key.public_bytes(
-                    serialization.Encoding.DER,
-                    serialization.PublicFormat.SubjectPublicKeyInfo)
+                serialization.Encoding.DER,
+                serialization.PublicFormat.SubjectPublicKeyInfo)
             pub_key_bytes = HamIdent._get_key_from_asn1(der_bytes)
             h = hashlib.sha512()
             h.update(pub_key_bytes)
@@ -209,8 +213,8 @@ class HamIdent(object):
         decoder.start(der_bytes)
         pub_key_bytes = rdparse_asn1(decoder)
         # FIXME: pub_key_bytes is 98 bytes and always begins with "\x00\x04".
-        #        So I remove those two leading bytes and use the remaining 96 bytes.
-        #        Size agreement: 96 bytes == 768 bits == two 384 bit numbers (SECP384R1)
+        # So I remove those two leading bytes and use the remaining 96 bytes.
+        # Size agrees: 96 bytes == 768 bits == two 384 bit numbers (SECP384R1)
         pub_key_bytes = pub_key_bytes[2:]
         return pub_key_bytes
 
@@ -236,10 +240,13 @@ class HamIdent(object):
 
     def gen_personal_credentials(self, person_info, passphrase):
         """Generates a set of personal credential files.
-        Generates a new keypair, asks for a passphrase
-        to protect the private key and writes
-        an X.509 self-signed certificate, a private key .pem file
-        a public key .der file and an application specific credential .json file
+
+        Generates a new keypair, uses the passphrase to protect
+        the private key and writes
+        - an X.509 self-signed certificate
+        - a private key .pem file
+        - a public key .der file and
+        - an application specific credential .json file
         """
         prv_key, pub_key = HamIdent.gen_personal_keypair()
         self._write_cert_to_x509(pub_key, prv_key, person_info)
@@ -258,7 +265,8 @@ class HamIdent(object):
             f.write(prv_key.private_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PrivateFormat.TraditionalOpenSSL,
-                encryption_algorithm=serialization.BestAvailableEncryption(passphrase)))
+                encryption_algorithm=serialization.BestAvailableEncryption(
+                    passphrase)))
         return fn
 
 
@@ -281,22 +289,32 @@ class HamIdent(object):
         """
         # Generate a self-signed certificate (subject and issuer are the same)
         subject = issuer = x509.Name([
-            x509.NameAttribute(NameOID.COMMON_NAME, person_info["cmn_name"]),
-            x509.NameAttribute(NameOID.PSEUDONYM, person_info["callsign"]),
-            x509.NameAttribute(NameOID.EMAIL_ADDRESS, person_info["email"]),
-            x509.NameAttribute(NameOID.COUNTRY_NAME, person_info["country"]),
-            x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, person_info["province"]),
-            x509.NameAttribute(NameOID.POSTAL_CODE, person_info["postalcode"]),])
+            x509.NameAttribute(
+                NameOID.COMMON_NAME, person_info["cmn_name"]),
+            x509.NameAttribute(
+                NameOID.PSEUDONYM, person_info["callsign"]),
+            x509.NameAttribute(
+                NameOID.EMAIL_ADDRESS, person_info["email"]),
+            x509.NameAttribute(
+                NameOID.COUNTRY_NAME, person_info["country"]),
+            x509.NameAttribute(
+                NameOID.STATE_OR_PROVINCE_NAME, person_info["province"]),
+            x509.NameAttribute(
+                NameOID.POSTAL_CODE, person_info["postalcode"])])
         now = datetime.datetime.utcnow()
-        cert = x509.CertificateBuilder().subject_name( subject
-            ).issuer_name( issuer
-            ).public_key( pub_key
-            ).serial_number( x509.random_serial_number()
-            ).not_valid_before( now
-            ).not_valid_after( now + datetime.timedelta(days=self.cert_duration)
-            ).add_extension( x509.SubjectAlternativeName([x509.DNSName(u"localhost")]), critical=False,
-            # Sign the certificate with the private key
-            ).sign(prv_key, hashes.SHA256(), default_backend())
+        # Sign the certificate with the private key
+        cert = x509.CertificateBuilder() \
+            .subject_name(subject) \
+            .issuer_name(issuer) \
+            .public_key(pub_key) \
+            .serial_number(x509.random_serial_number()) \
+            .not_valid_before(now) \
+            .not_valid_after(
+                now + datetime.timedelta(days=self.cert_duration)) \
+            .add_extension(
+                x509.SubjectAlternativeName([x509.DNSName(u"localhost")]),
+                critical=False) \
+            .sign(prv_key, hashes.SHA256(), default_backend())
         # Save the certificate to a file.
         fn = os.path.join(self.app_path, person_info["callsign"] + "_cert.pem")
         with open(fn, "wb") as f:
@@ -333,7 +351,7 @@ class IdentModel(object):
     def device_cred_exists(self):
         try:
             info = HamIdent.get_info_from_json_cred("HeyMac")
-        except:
+        except AssertionError:
             return False
         return bool(info)
 
@@ -379,8 +397,8 @@ class IdentModel(object):
 
     def fields_are_equal_to(self, d):
         ident_fields = (
-                "cmn_name", "callsign", "email", "country", "province",
-                "postalcode", "ssid")
+            "cmn_name", "callsign", "email", "country", "province",
+            "postalcode", "ssid")
         ident = self.get_ident()
         for fld in ident_fields:
             if ident.get(fld) != d.get(fld):

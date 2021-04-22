@@ -16,8 +16,15 @@ def get_app_data_path(app_name):
     assert type(app_name) == str
 
     if sys.platform == 'darwin':
-        from AppKit import NSSearchPathForDirectoriesInDomains, NSApplicationSupportDirectory, NSUserDomainMask # pip install pyobjc
-        app_data_path = os.path.join(NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, True)[0], app_name)
+        from AppKit import \
+            NSSearchPathForDirectoriesInDomains, \
+            NSApplicationSupportDirectory, \
+            NSUserDomainMask    # pip install pyobjc
+        app_data_path = os.path.join(
+            NSSearchPathForDirectoriesInDomains(
+                NSApplicationSupportDirectory,
+                NSUserDomainMask,
+                True)[0], app_name)
     elif sys.platform == 'win32':
         app_data_path = os.path.join(os.environ['APPDATA'], app_name)
     else:
@@ -36,5 +43,3 @@ def get_app_data_shelve(app_name):
     fn = app_name + ".shelve"
     file_path = os.path.join(get_app_data_path(app_name), fn)
     return shelve.open(file_path, flag='c', writeback=True)
-
-

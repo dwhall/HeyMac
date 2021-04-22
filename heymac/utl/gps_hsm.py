@@ -21,7 +21,7 @@ except ImportError:
 
 class UartHsm(farc.Ahsm):
 
-    _POLL_PERIOD = 0.100 # [secs]
+    _POLL_PERIOD = 0.100    # [secs]
 
     def __init__(self, rx_callback=None):
         super().__init__()
@@ -76,7 +76,8 @@ class UartHsm(farc.Ahsm):
         if sig == farc.Signal.ENTRY:
             self._uart_data = bytearray()
             self._ser = serial.Serial(**self._uart_stngs)
-            self._read_size = round(1.5 * self._ser.baudrate * UartHsm._POLL_PERIOD)
+            self._read_size = round(
+                1.5 * self._ser.baudrate * UartHsm._POLL_PERIOD)
             self._tm_evt.post_every(self, UartHsm._POLL_PERIOD)
             return self.handled(event)
 
@@ -119,15 +120,16 @@ def parse_nmea(nmea_ba):
     n = nmea_ba.find(b"\r\n")
     while n >= 0:
         nmea_sentence = bytes(nmea_ba[0:n])
-        del nmea_ba[0:n+2]
+        del nmea_ba[0:n + 2]
 
         if nmea_sentence.startswith(b"$GPRMC"):
-            farc.Framework.publish(farc.Event(farc.Signal.GPS_GPRMC, nmea_sentence.decode()))
+            farc.Framework.publish(
+                farc.Event(farc.Signal.GPS_GPRMC, nmea_sentence.decode()))
 
         n = nmea_ba.find(b"\r\n")
 
     # Flush junk data or UART rate mismatch
-    if n<0 and len(nmea_ba) >= 256:
+    if n < 0 and len(nmea_ba) >= 256:
         nmea_ba.clear()
 
 
@@ -150,7 +152,8 @@ class GpsHsm(UartHsm):
     def open(self, port):
         super().open(port, GpsHsm._NMEA_BAUD)
         GPIO.setup(self._pps_pin, GPIO.IN)
-        GPIO.add_event_detect(self._pps_pin, edge=GPIO.RISING, callback=self._pps_handler)
+        GPIO.add_event_detect(
+            self._pps_pin, edge=GPIO.RISING, callback=self._pps_handler)
 
     def close(self):
         super().close()
