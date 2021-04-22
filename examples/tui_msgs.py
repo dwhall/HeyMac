@@ -10,19 +10,20 @@ import time
 from asciimatics.event import KeyboardEvent
 from asciimatics.exceptions import NextScene, StopApplication
 from asciimatics.widgets import Button, Frame, Label, Layout, \
-        MultiColumnListBox, Text, Widget
+    MultiColumnListBox, Text, Widget
 from asciimatics.screen import Screen
 
 
 class MsgsView(Frame):
-    def __init__(self, screen, msgs_model, ident_model, stngs_model, status_model):
+    def __init__(
+            self, screen, msgs_model, ident_model, stngs_model, status_model):
         super().__init__(
-                screen,
-                screen.height,
-                screen.width,
-                title="HeyMac",
-                on_load=self._updt_msgs,
-                can_scroll=False)
+            screen,
+            screen.height,
+            screen.width,
+            title="HeyMac",
+            on_load=self._updt_msgs,
+            can_scroll=False)
         self._msgs_model = msgs_model
         self._ident_model = ident_model
         self._stngs_model = stngs_model
@@ -32,11 +33,11 @@ class MsgsView(Frame):
         layout1 = Layout([100], fill_frame=True)
         self.add_layout(layout1)
         self._msgs_box = MultiColumnListBox(
-                Widget.FILL_FRAME,
-                [9, 12, 0],
-                [],
-                name="msgs",
-                titles=["Time", "From", "Message"])
+            Widget.FILL_FRAME,
+            [9, 12, 0],
+            [],
+            name="msgs",
+            titles=["Time", "From", "Message"])
         self._msgs_box.disabled = True
         self._msgs_box.custom_colour = "title"
         layout1.add_widget(self._msgs_box)
@@ -46,10 +47,10 @@ class MsgsView(Frame):
         layout2 = Layout([100])
         self.add_layout(layout2)
         self._msg_input = Text(
-                label="Send:",
-                name="msg_input",
-                on_change=self._on_input_change,
-                max_length=200)
+            label="Send:",
+            name="msg_input",
+            on_change=self._on_input_change,
+            max_length=200)
         layout2.add_widget(self._msg_input)
 
         # Activity bar
@@ -57,16 +58,16 @@ class MsgsView(Frame):
         self.add_layout(layout3)
         self._time = Label("00:00:00", name="time")
         self._ident = Button(
-                self._ident_model.get_summary(),
-                self._on_click_ident,
-                name="ident")
+            self._ident_model.get_summary(),
+            self._on_click_ident,
+            name="ident")
         self._stngs = Button(
-                self._stngs_model.get_summary(),
-                self._on_click_stngs,
-                name="stngs")
+            self._stngs_model.get_summary(),
+            self._on_click_stngs,
+            name="stngs")
         self._status = Button(
-                self._status_model.get_summary(),
-                self._on_click_status)
+            self._status_model.get_summary(),
+            self._on_click_status)
         self._txrx = Label("--/--", name="txrx")
         self._quit = Button("Quit", self._on_click_quit)
         layout3.add_widget(self._time, 0)
@@ -88,7 +89,7 @@ class MsgsView(Frame):
 
     def _format_msgs(self):
         height = self.find_widget("msgs")._h
-        msgs_data = self._msgs_model.get_latest_msgs(height-1)
+        msgs_data = self._msgs_model.get_latest_msgs(height - 1)
         callsigns = self._msgs_model.get_callsigns()
         ident = self._ident_model.get_ident()
         callsigns[ident["saddr"]] = ident["callsign_ssid"]
@@ -98,7 +99,7 @@ class MsgsView(Frame):
             display_tm = time.strftime("%H:%M:%S", time.localtime(tm))
             display_src = callsigns.get(saddr, saddr.hex()[:8])
             display_msg_data = (display_tm, display_src, msg)
-            msg_list.append((display_msg_data, n+1))
+            msg_list.append((display_msg_data, n + 1))
         return msg_list
 
 

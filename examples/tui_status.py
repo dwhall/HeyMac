@@ -5,8 +5,7 @@ The Text User Interface Radio Status view.
 """
 
 from asciimatics.exceptions import NextScene
-from asciimatics.widgets import Button, Divider, Frame, Label, Layout, Text, Widget
-from asciimatics.screen import Screen
+from asciimatics.widgets import Button, Frame, Label, Layout, Text
 
 
 class StatusView(Frame):
@@ -20,7 +19,7 @@ class StatusView(Frame):
         self._status_model = status_model
 
         # Layout the status widgets
-        layout1 = Layout([1,4,1], fill_frame=False)
+        layout1 = Layout([1, 4, 1], fill_frame=False)
         self.add_layout(layout1)
         layout1.add_widget(Label(label="Status page is under construction"), 1)
         layout1.add_widget(Text(label="GPS:",

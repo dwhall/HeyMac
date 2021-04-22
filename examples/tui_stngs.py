@@ -21,54 +21,54 @@ class RadioStngsView(Frame):
         self._stngs_model = model
 
         # Layout the settings widgets
-        layout1 = Layout([1,2,1], fill_frame=True)
+        layout1 = Layout([1, 2, 1], fill_frame=True)
         self.add_layout(layout1)
         layout1.add_widget(DropdownList(
-                            [("LoRa", 1),],
-                            label="Radio Mode:",
-                            name="radio_mode",
-                            disabled=True), 1)
+            [("LoRa", 1)],
+            label="Radio Mode:",
+            name="radio_mode",
+            disabled=True), 1)
         layout1.add_widget(Text(
-                            label="RF Freq [KHz]:",
-                            name="rf_freq",
-                            on_change=self._on_change,
-                            validator=self._is_valid_freq), 1)
+            label="RF Freq [KHz]:",
+            name="rf_freq",
+            on_change=self._on_change,
+            validator=self._is_valid_freq), 1)
         layout1.add_widget(DropdownList(
-                            [
-                                ("4:5", SX127xSettings.STNG_LORA_CR_4TO5),
-                                ("4:6", SX127xSettings.STNG_LORA_CR_4TO6),
-                                ("4:7", SX127xSettings.STNG_LORA_CR_4TO7),
-                                ("4:8", SX127xSettings.STNG_LORA_CR_4TO8),
-                            ],
-                            label="Code Rate:",
-                            name="code_rate"), 1)
+            [
+                ("4:5", SX127xSettings.STNG_LORA_CR_4TO5),
+                ("4:6", SX127xSettings.STNG_LORA_CR_4TO6),
+                ("4:7", SX127xSettings.STNG_LORA_CR_4TO7),
+                ("4:8", SX127xSettings.STNG_LORA_CR_4TO8),
+            ],
+            label="Code Rate:",
+            name="code_rate"), 1)
         layout1.add_widget(DropdownList(
-                            [
-                                (" 7.8  KHz", SX127xSettings.STNG_LORA_BW_7K8),
-                                ("10.4  KHz", SX127xSettings.STNG_LORA_BW_10K4),
-                                ("15.6  KHz", SX127xSettings.STNG_LORA_BW_15K6),
-                                ("20.8  KHz", SX127xSettings.STNG_LORA_BW_20K8),
-                                ("31.25 KHz", SX127xSettings.STNG_LORA_BW_31K25),
-                                ("41.7  KHz", SX127xSettings.STNG_LORA_BW_41K7),
-                                ("62.5  KHz", SX127xSettings.STNG_LORA_BW_62K5),
-                                ("125   KHz", SX127xSettings.STNG_LORA_BW_125K),
-                                ("250   KHz", SX127xSettings.STNG_LORA_BW_250K),
-                                ("500   KHz", SX127xSettings.STNG_LORA_BW_500K),
-                            ],
-                            label="Bandwidth:",
-                            name="bandwidth"), 1)
+            [
+                (" 7.8  KHz", SX127xSettings.STNG_LORA_BW_7K8),
+                ("10.4  KHz", SX127xSettings.STNG_LORA_BW_10K4),
+                ("15.6  KHz", SX127xSettings.STNG_LORA_BW_15K6),
+                ("20.8  KHz", SX127xSettings.STNG_LORA_BW_20K8),
+                ("31.25 KHz", SX127xSettings.STNG_LORA_BW_31K25),
+                ("41.7  KHz", SX127xSettings.STNG_LORA_BW_41K7),
+                ("62.5  KHz", SX127xSettings.STNG_LORA_BW_62K5),
+                ("125   KHz", SX127xSettings.STNG_LORA_BW_125K),
+                ("250   KHz", SX127xSettings.STNG_LORA_BW_250K),
+                ("500   KHz", SX127xSettings.STNG_LORA_BW_500K),
+            ],
+            label="Bandwidth:",
+            name="bandwidth"), 1)
         layout1.add_widget(DropdownList(
-                            [
-                                ("  64 cps", SX127xSettings.STNG_LORA_SF_64_CPS),
-                                (" 128 cps", SX127xSettings.STNG_LORA_SF_128_CPS),
-                                (" 256 cps", SX127xSettings.STNG_LORA_SF_256_CPS),
-                                (" 512 cps", SX127xSettings.STNG_LORA_SF_512_CPS),
-                                ("1024 cps", SX127xSettings.STNG_LORA_SF_1024_CPS),
-                                ("2048 cps", SX127xSettings.STNG_LORA_SF_2048_CPS),
-                                ("4096 cps", SX127xSettings.STNG_LORA_SF_4096_CPS),
-                            ],
-                            label="Spread Factor:",
-                            name="spread_factor"), 1)
+            [
+                ("  64 cps", SX127xSettings.STNG_LORA_SF_64_CPS),
+                (" 128 cps", SX127xSettings.STNG_LORA_SF_128_CPS),
+                (" 256 cps", SX127xSettings.STNG_LORA_SF_256_CPS),
+                (" 512 cps", SX127xSettings.STNG_LORA_SF_512_CPS),
+                ("1024 cps", SX127xSettings.STNG_LORA_SF_1024_CPS),
+                ("2048 cps", SX127xSettings.STNG_LORA_SF_2048_CPS),
+                ("4096 cps", SX127xSettings.STNG_LORA_SF_4096_CPS),
+            ],
+            label="Spread Factor:",
+            name="spread_factor"), 1)
 
         layout2 = Layout([1, 1, 1, 1])
         self.add_layout(layout2)
@@ -90,7 +90,7 @@ class RadioStngsView(Frame):
             return (SX127xSettings.STNG_RF_FREQ_MIN
                     <= freq_hz
                     <= SX127xSettings.STNG_RF_FREQ_MAX)
-        except:
+        except ValueError:
             return False
 
 
@@ -110,4 +110,3 @@ class RadioStngsView(Frame):
 
     def _on_click_cancel(self):
         raise NextScene("Messages")
-

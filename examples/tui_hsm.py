@@ -5,7 +5,6 @@ The Text User Interface state machine
 """
 
 import logging
-import sys
 
 from asciimatics.exceptions import ResizeScreenError, StopApplication
 from asciimatics.scene import Scene
@@ -57,8 +56,8 @@ class TxtUiHsm(farc.Ahsm):
             self._one_sec_evt.post_every(self, 1.0)
             self._prev_tick = farc.Framework._event_loop.time()
 
-            if (self._ident_model.device_cred_exists() and
-                self._ident_model.personal_cert_exists()):
+            if (self._ident_model.device_cred_exists()
+                    and self._ident_model.personal_cert_exists()):
                 start_scene = None
             else:
                 start_scene = Scene([], -1, name="Identity")
@@ -118,11 +117,12 @@ class TxtUiHsm(farc.Ahsm):
     def _new_screen(self, start_scene):
         screen = Screen.open()
         screen.clear()
-        self._msgs_view = MsgsView(screen,
-                            self._msgs_model,
-                            self._ident_model,
-                            self._stngs_model,
-                            self._status_model)
+        self._msgs_view = MsgsView(
+            screen,
+            self._msgs_model,
+            self._ident_model,
+            self._stngs_model,
+            self._status_model)
         self._ident_view = IdentView(screen, self._ident_model)
         self._stngs_view = RadioStngsView(screen, self._stngs_model)
         self._status_view = StatusView(screen, self._stngs_model)

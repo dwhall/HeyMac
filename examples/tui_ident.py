@@ -5,7 +5,7 @@ The Text User Interface Identity model and view
 """
 
 from asciimatics.widgets import Button, CheckBox, Divider, Frame, Label, \
-        Layout, Text, TextBox, Widget
+    Layout, Text, TextBox, Widget
 from asciimatics.exceptions import NextScene
 
 
@@ -23,7 +23,7 @@ class IdentView(Frame):
 
         # Personal input fields
         # Col 0
-        layout1 = Layout([1,4,4], fill_frame=True)
+        layout1 = Layout([1, 4, 4], fill_frame=True)
         self.add_layout(layout1)
         layout1.add_widget(Label("Personal:"), 0)
         layout1.add_widget(Divider(draw_line=False, height=7), 0)
@@ -62,8 +62,8 @@ class IdentView(Frame):
         txt = TextBox(8, line_wrap=True, readonly=True)
         txt.disabled = True
         txt.value = ["Info to create a personal X.509 crypto certficate.  "
-                    "You must input your callsign and should input "
-                    "correct data in the other fields to increase trust."]
+                     "You must input your callsign and should input "
+                     "correct data in the other fields to increase trust."]
         layout1.add_widget(txt, 2)
         layout1.add_widget(Divider(draw_line=True, height=1), 2)
 
@@ -90,7 +90,7 @@ class IdentView(Frame):
         txt = TextBox(3, line_wrap=True, readonly=True)
         txt.disabled = True
         txt.value = ["This information is used to create device credentials. "
-                    "Each device should have its own three-digit SSID."]
+                     "Each device should have its own three-digit SSID."]
         layout1.add_widget(txt, 2)
         layout1.add_widget(Divider(draw_line=True, height=1), 2)
 
@@ -136,11 +136,14 @@ class IdentView(Frame):
 
         # Apply button is disabled when cert exists and
         # input fields match existing cert/cred info
-        self.find_widget("btn_apply").disabled = self._ident_model.personal_cert_exists() \
-                and self._ident_model.fields_are_equal_to(self.data)
+        self.find_widget("btn_apply").disabled = \
+            self._ident_model.personal_cert_exists() \
+            and self._ident_model.fields_are_equal_to(self.data)
 
-        self.find_widget("cert_exists").value = self._ident_model.personal_cert_exists()
-        self.find_widget("cred_exists").value = self._ident_model.device_cred_exists()
+        self.find_widget("cert_exists").value = \
+            self._ident_model.personal_cert_exists()
+        self.find_widget("cred_exists").value = \
+            self._ident_model.device_cred_exists()
 
 
     def _build_info_from_view(self):

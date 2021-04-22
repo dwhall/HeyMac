@@ -6,7 +6,7 @@ Copyright 2018 Dean Hall.  See LICENSE for details.
 Runs the HeyMac stack with a text user interface.
 """
 
-#import logging, sys
+# import logging, sys
 
 import farc
 
@@ -18,7 +18,7 @@ from tui_hsm import TxtUiHsm
 
 
 def main():
-    #logging.basicConfig(
+    # logging.basicConfig(
     #    stream=sys.stdout,
     #    format="%(asctime)s %(message)s",
     #    level=logging.INFO)
