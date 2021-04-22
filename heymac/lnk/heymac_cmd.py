@@ -31,8 +31,8 @@ class HeymacCmd(object):
     FLD_STATUS = "FLD_STATUS"   # int (0..65535)
     FLD_NET_ID = "FLD_NET_ID"   # int (0..65535)
     FLD_NET_ADDR = "FLD_NET_ADDR"   # int (0..65535)
-    FLD_CALLSIGN_SSID = "FLD_CALLSIGN_SSID" # bytes[16]
-    FLD_PUB_KEY = "FLD_PUB_KEY" # bytes[96]
+    FLD_CALLSIGN_SSID = "FLD_CALLSIGN_SSID"     # bytes[16]
+    FLD_PUB_KEY = "FLD_PUB_KEY"     # bytes[96]
 
     def __init__(self, *args, **kwargs):
         """Instantiates a subclass of HeymacCmd
@@ -114,10 +114,10 @@ class HeymacCmdBcn(HeymacCmd):
     """Heymac Beacon: { 4, caps, status, callsign_ssid, pub_key }"""
     CMD_ID = 4
     _FLD_LIST = (
-            HeymacCmd.FLD_CAPS,
-            HeymacCmd.FLD_STATUS,
-            HeymacCmd.FLD_CALLSIGN_SSID,
-            HeymacCmd.FLD_PUB_KEY)
+        HeymacCmd.FLD_CAPS,
+        HeymacCmd.FLD_STATUS,
+        HeymacCmd.FLD_CALLSIGN_SSID,
+        HeymacCmd.FLD_PUB_KEY)
 
     def __init__(self, *args, **kwargs):
         super().__init__(self.CMD_ID, **kwargs)
@@ -127,11 +127,12 @@ class HeymacCmdBcn(HeymacCmd):
         padded_callsign = self.field[HeymacCmd.FLD_CALLSIGN_SSID].ljust(16)
         b = bytearray()
         b.append(HeymacCmd.PREFIX | HeymacCmdBcn.CMD_ID)
-        b.extend(struct.pack("!HH16s96s",
-                self.field[HeymacCmd.FLD_CAPS],
-                self.field[HeymacCmd.FLD_STATUS],
-                padded_callsign,
-                self.field[HeymacCmd.FLD_PUB_KEY]))
+        b.extend(struct.pack(
+            "!HH16s96s",
+            self.field[HeymacCmd.FLD_CAPS],
+            self.field[HeymacCmd.FLD_STATUS],
+            padded_callsign,
+            self.field[HeymacCmd.FLD_PUB_KEY]))
         return bytes(b)
 
     @staticmethod
@@ -139,7 +140,8 @@ class HeymacCmdBcn(HeymacCmd):
         """Parses the bytes into a beacon object."""
         assert cmd_bytes[0] == HeymacCmd.PREFIX | HeymacCmdBcn.CMD_ID
         field = {}
-        caps, status, callsign_ssid, pub_key = struct.unpack("!HH16s96s", cmd_bytes[1:])
+        caps, status, callsign_ssid, pub_key = struct.unpack(
+            "!HH16s96s", cmd_bytes[1:])
         field[HeymacCmd.FLD_CAPS] = caps
         field[HeymacCmd.FLD_STATUS] = status
         field[HeymacCmd.FLD_CALLSIGN_SSID] = callsign_ssid.decode().strip()
@@ -181,7 +183,7 @@ class HeymacCmdLnkData(HeymacCmd):
         return HeymacCmdBcn(HeymacCmdBcn.CMD_ID, **field)
 
 
-#### Create next-higher-layer cmd to convey net_data, net-join
+# TODO: Create next-higher-layer cmd to convey net_data, net-join
 
 # DEPRECATED:
 class HeymacCmdJoin(HeymacCmd):

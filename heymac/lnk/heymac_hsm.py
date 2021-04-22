@@ -83,7 +83,7 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
         # FIXME: This asserts due to lack of credentials
         try:
             self._lnk_addr = ident.get_addr("HeyMac", 64)
-        except:
+        except AssertionError:
             self._lnk_addr = b"\xfd1234567"
         self._lnk_data = HeymacLink(self._lnk_addr)
 
@@ -98,8 +98,8 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
         if dest:
             fctl_bits |= HeymacFrame.FCTL_D
         f = HeymacFrame(
-                HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
-                fctl_bits)
+            HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
+            fctl_bits)
         if dest:
             f.set_field(HeymacFrame.FLD_DADDR, dest)
         f.set_field(HeymacFrame.FLD_SADDR, self._lnk_addr)
@@ -310,28 +310,26 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
         pub_key = bytes.fromhex(cred["pub_key"])
 
         bcn = HeymacCmdBcn(
-                # TODO: Fill with real data
-                FLD_CAPS=Heymac.LNK_CAP_RXCONT,
-                FLD_STATUS=0,
-                FLD_CALLSIGN_SSID=callsign,
-                FLD_PUB_KEY=pub_key)
+            # TODO: Fill with real data
+            FLD_CAPS=Heymac.LNK_CAP_RXCONT,
+            FLD_STATUS=0,
+            FLD_CALLSIGN_SSID=callsign,
+            FLD_PUB_KEY=pub_key)
         frame = HeymacFrame(
-                HeymacFrame.PID_IDENT_HEYMAC
-                | HeymacFrame.PID_TYPE_CSMA,
-                HeymacFrame.FCTL_L
-                | HeymacFrame.FCTL_S)
+            HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
+            HeymacFrame.FCTL_L | HeymacFrame.FCTL_S)
         frame.set_field(HeymacFrame.FLD_SADDR, self._lnk_addr)
         frame.set_field(HeymacFrame.FLD_PAYLD, bytes(bcn))
         self._phy_hsm.post_tx_action(
-                self._phy_hsm.TM_NOW,
-                Heymac._PHY_STNGS_TX,
-                bytes(frame))
+            self._phy_hsm.TM_NOW,
+            Heymac._PHY_STNGS_TX,
+            bytes(frame))
 
 
     def _post_frm(self, frame):
         """Posts the frame to the PHY for transmit."""
         assert type(frame) is HeymacFrame
         self._phy_hsm.post_tx_action(
-                self._phy_hsm.TM_NOW,
-                Heymac._PHY_STNGS_TX,
-                bytes(frame))
+            self._phy_hsm.TM_NOW,
+            Heymac._PHY_STNGS_TX,
+            bytes(frame))

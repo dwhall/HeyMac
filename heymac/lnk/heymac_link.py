@@ -5,7 +5,7 @@
 import farc
 
 from .heymac_frame import HeymacFrame
-from .heymac_cmd import HeymacCmd, HeymacCmdBcn
+from .heymac_cmd import HeymacCmdBcn
 
 
 class HeymacLink(object):
@@ -44,13 +44,14 @@ class HeymacLink(object):
         found_me = False
         for ngbr_data in self._ngbrs.values():
             if ngbr_data["BCN_CNT"] > 0:
-                frame = ngbr_data["BCN_FRAME"]
                 # FIXME: bcn frame no longer carries ngbr list
-                #bcn = frame.cmd
-                #assert type(bcn) is HeymacCmdBcn
-                #ngbrs_ngbrs = bcn.get_field(HeymacCmd.FLD_NGBRS)
-                #if self._lnk_addr in ngbrs_ngbrs:
+                # frame = ngbr_data["BCN_FRAME"]
+                # bcn = frame.cmd
+                # assert type(bcn) is HeymacCmdBcn
+                # ngbrs_ngbrs = bcn.get_field(HeymacCmd.FLD_NGBRS)
+                # if self._lnk_addr in ngbrs_ngbrs:
                 #    found_me = True
+                pass
         return found_me
 
 
@@ -94,7 +95,7 @@ class HeymacLink(object):
     # If we don't hear a neighbor (or periodic item)
     # for this many seconds then consider it expired/invalid
     # FIXME: circular dependency:
-    _EXPIRATION_PRD = 4 * 32 # heymac_hsm.Heymac._BCN_PRD
+    _EXPIRATION_PRD = 4 * 32    # heymac_hsm.Heymac._BCN_PRD
 
 
     def _process_bcn(self, frame):

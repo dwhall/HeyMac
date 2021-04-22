@@ -264,31 +264,38 @@ class HeymacFrame(object):
         return 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_X)
 
     def is_long_addrs(self):
-        return (0 == (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_X)
+        return (
+            0 == (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_X)
             and 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_L))
 
     def is_netid_present(self):
-        return (0 == (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_X)
+        return (
+            0 == (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_X)
             and 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_N))
 
     def is_daddr_present(self):
-        return (0 == (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_X)
+        return (
+            0 == (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_X)
             and 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_D))
 
     def is_ies_present(self):
-        return (0 == (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_X)
+        return (
+            0 == (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_X)
             and 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_I))
 
     def is_saddr_present(self):
-        return (0 == (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_X)
+        return (
+            0 == (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_X)
             and 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_S))
 
     def is_mhop(self):
-        return (0 == (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_X)
+        return (
+            0 == (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_X)
             and 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_M))
 
     def is_pending_set(self):
-        return (0 == (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_X)
+        return (
+            0 == (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_X)
             and 0 != (self.field[HeymacFrame.FLD_FCTL] & HeymacFrame.FCTL_P))
 
 
@@ -380,7 +387,8 @@ class HeymacFrame(object):
 
         # Special cases
         # If FCTL_L is set, at least one address field must exist
-        if not err_msg and (HeymacFrame.FCTL_L & fctl
+        if not err_msg and (
+                HeymacFrame.FCTL_L & fctl
                 and HeymacFrame.FLD_DADDR not in self.field
                 and HeymacFrame.FLD_SADDR not in self.field
                 and HeymacFrame.FLD_TADDR not in self.field):
