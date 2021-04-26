@@ -84,15 +84,15 @@ class SX127x(object):
     REG_LORA_SYNC_WORD = 0x39
 
     # REG_LORA_IRQ_FLAGS bit definitions
-    IRQ_FLAGS_RXTIMEOUT           = 0x80
-    IRQ_FLAGS_RXDONE              = 0x40
-    IRQ_FLAGS_PAYLDCRCERROR       = 0x20
-    IRQ_FLAGS_VALIDHEADER         = 0x10
-    IRQ_FLAGS_TXDONE              = 0x08
-    IRQ_FLAGS_CADDONE             = 0x04
-    IRQ_FLAGS_FHSSCHANGEDCHANNEL  = 0x02
-    IRQ_FLAGS_CADDETECTED         = 0x01
-    IRQ_FLAGS_ALL                 = 0xFF
+    IRQ_FLAGS_RXTIMEOUT = 0x80
+    IRQ_FLAGS_RXDONE = 0x40
+    IRQ_FLAGS_PAYLDCRCERROR = 0x20
+    IRQ_FLAGS_VALIDHEADER = 0x10
+    IRQ_FLAGS_TXDONE = 0x08
+    IRQ_FLAGS_CADDONE = 0x04
+    IRQ_FLAGS_FHSSCHANGEDCHANNEL = 0x02
+    IRQ_FLAGS_CADDETECTED = 0x01
+    IRQ_FLAGS_ALL = 0xFF
 
     # LoRa Modem Operation Mode
     OPMODE_SLEEP = 0
@@ -160,6 +160,15 @@ class SX127x(object):
         return "mock" in str(spidev)
 
 
+    def init_gpio(self):
+        """Inits the GPIO pins"""
+        GPIO.setwarnings(False)
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(self.reset_cfg, GPIO.OUT, initial=GPIO.HIGH)
+        for n, pin_nmbr in enumerate(self.dio_cfg):
+            GPIO.setup(pin_nmbr, GPIO.IN)
+
+
     def open(self, dio_isr_clbk):
         """Opens the SX127x command interface.
         Resets the radio, clears internal settings,
@@ -168,16 +177,6 @@ class SX127x(object):
         and initializes callbacks for DIOx pin inputs.
         Returns chip comms validity (True/False)
         """
-        dio_isr_lut = (
-            self._dio0_isr, self._dio1_isr, self._dio2_isr, self._dio3_isr,
-            self._dio4_isr, self._dio5_isr)
-        self._dio_isr_clbk = dio_isr_clbk
-
-        GPIO.setwarnings(False)
-        GPIO.setmode(GPIO.BCM)
-
-        self.reset_rdo()
-
         valid = self._validate_chip()
 
         # Put radio in LoRa mode so DIO5 outputs ModeReady instead of ClkOut
@@ -188,15 +187,15 @@ class SX127x(object):
         self.write_opmode(SX127x.OPMODE_STBY, False)
         self._stngs.apply("FLD_RDO_LORA_MODE")
 
-        # Init DIOx pins
+        # Init DIOx pin callbacks
+        dio_isr_lut = (
+            self._dio0_isr, self._dio1_isr, self._dio2_isr, self._dio3_isr,
+            self._dio4_isr, self._dio5_isr)
+        self._dio_isr_clbk = dio_isr_clbk
         if dio_isr_clbk is not None:
-            n = 0
-            for pin_nmbr in self.dio_cfg:
-                if type(pin_nmbr) is int and pin_nmbr != 0:
-                    GPIO.setup(pin_nmbr, GPIO.IN)
-                    GPIO.add_event_detect(
-                        pin_nmbr, edge=GPIO.RISING, callback=dio_isr_lut[n])
-                n += 1
+            for n, pin_nmbr in enumerate(self.dio_cfg):
+                GPIO.add_event_detect(
+                    pin_nmbr, edge=GPIO.RISING, callback=dio_isr_lut[n])
 
         return valid
 
@@ -252,18 +251,16 @@ class SX127x(object):
 
 
     def reset_rdo(self):
-        """Resets the radio
-        and internal tracking of radio settings
+        """Resets the radio and internal tracking of radio settings.
+        Caller must wait 5ms after calling this to interact with radio SPI.
         """
         # Init empty settings
         self._rng_raw = 0
 
-        # Init the reset pin and toggle it to reset the SX127x
-        GPIO.setup(self.reset_cfg, GPIO.OUT, initial=GPIO.HIGH)
+        # Toggle the reset pin to reset the SX127x
         GPIO.output(self.reset_cfg, GPIO.LOW)
         time.sleep(0.000110)  # >100us
         GPIO.output(self.reset_cfg, GPIO.HIGH)
-        time.sleep(0.005)   # >5ms
 
         self._stngs.reset()
 
@@ -373,6 +370,7 @@ class SX127x(object):
 
 
 # Private
+
 
     def _dio0_isr(self, chnl):
         dio0_to_sig_lut = (
@@ -488,16 +486,16 @@ class SX127x(object):
                 if_freq2_lut = (
                     0x48, 0x44, 0x44, 0x44, 0x44, 0x44, 0x40, 0x40, 0x40)
                 reg_if_freq2 = if_freq2_lut[bw]
-                # Add the rejection offset to the carrier freq 
+                # Add the rejection offset to the carrier freq
                 # and fill the stngs holding array with that
                 rejection_offset_hz_lut = (
                     7810, 10420, 15620, 20830, 31250, 41670, 0, 0, 0)
                 freq += rejection_offset_hz_lut[bw]
 
-        # If LoRa mode or LoRa BW has changed, 
+        # If LoRa mode or LoRa BW has changed,
         # apply the errata values to their regs
-        if(self._stngs.changed("FLD_RDO_LORA_MODE") or
-           self._stngs.changed("FLD_LORA_BW")):
+        if (self._stngs.changed("FLD_RDO_LORA_MODE")
+                or self._stngs.changed("FLD_LORA_BW")):
             self._write(SX127x.REG_LORA_IF_FREQ_2, reg_if_freq2)
             reg = self._read(SX127x.REG_LORA_DTCT_OPTMZ)[0]
             reg &= 0x7F

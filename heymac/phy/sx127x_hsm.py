@@ -150,8 +150,6 @@ class SX127xHsm(farc.Ahsm):
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             logging.debug("PHY._initializing")
-            self.tmout_evt.post_in(self, 0.0)
-
             # Init data
             # We use two queues for a hybrid time-sorted queue:
             # One for frames that sort by time.
@@ -160,6 +158,10 @@ class SX127xHsm(farc.Ahsm):
             # Another for frames that need to be sent immediately.
             # This should be used sparingly.
             self._im_queue = []
+
+            self._sx127x.init_gpio()
+            self._sx127x.reset_rdo()
+            self.tmout_evt.post_in(self, 0.005)
             return self.handled(event)
 
         elif sig == farc.Signal._PHY_TMOUT:
