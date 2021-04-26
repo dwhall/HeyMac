@@ -27,7 +27,7 @@ class HeymacCmd(object):
     # Heymac commands' self.field dict.
     FLD_CAPS = "FLD_CAPS"       # int (0..65535)
     FLD_MSG = "FLD_MSG"         # bytes
-    FLD_NGBRS = "FLD_NGBRS"     # sequence of bytes
+    FLD_NGBRS = "FLD_NGBRS"     # sequence of bytes objects (link addresses)
     FLD_STATUS = "FLD_STATUS"   # int (0..65535)
     FLD_NET_ID = "FLD_NET_ID"   # int (0..65535)
     FLD_NET_ADDR = "FLD_NET_ADDR"   # int (0..65535)
@@ -37,45 +37,41 @@ class HeymacCmd(object):
     def __init__(self, *args, **kwargs):
         """Instantiates a subclass of HeymacCmd
 
-        Expects either one positional arg that is the
-        serialized bytes for a HeymacCmd subclass,
-        or expects one positional arg and one or more keyword args.
-        In the latter case, the positional arg is the command ID
-        and the keyword args are the field names and values.
+        Expects one positional arg and zero or more keyword args.
+        The positional arg is the command ID and the keyword args
+        are the field names and values.
         (see the code comments for FLD_* (above) to know the data type)
         """
-        if len(args) != 1:
-            raise TypeError("Expecting one positional argument")
-
-        if kwargs:
+        try:
+            assert len(args) == 1, "Expecting one positional argument"
             assert type(args[0]) is int, "Expecting Command ID int"
-            # Validate fields
-            for key in kwargs.keys():
-                if key not in self._FLD_LIST:
-                    raise HeymacCmdError("Improper field: %s" % key)
-            self.field = kwargs
-        else:
-            if type(args[0]) is bytes:
-                cmd_bytes = args[0]     # FIXME: unused local
-            elif type(args[0]) is int:
-                self.field = {}
-            else:
-                raise TypeError()
+            assert len(kwargs) == len(self._FLD_LIST), "Improper number of fields"
+            keys = set(kwargs.keys())
+            flds = set(self._FLD_LIST)
+            assert keys == flds, "Unexpected or missing fields"
+        except AssertionError as e:
+            raise HeymacCmdError(e)
+
+        self.field = kwargs
 
 
     @staticmethod
     def parse(cmd_bytes):
         """Parses the serialized cmd_bytes into a HeymacCommand subclass.
 
-        Uses the subclass 's parse() method to perform specific parsing.
+        Uses the subclass's parse() method to perform specific parsing.
         """
-        assert type(cmd_bytes) is bytes
         if len(cmd_bytes) < 1:
             raise HeymacCmdError("Insufficient data")
+
         cmd = None
         for cmd_cls in HeymacCmd.__subclasses__():
+            assert cmd_cls.CMD_ID <= HeymacCmd.CMD_MASK, "Invalid CMD_ID"
             if (HeymacCmd.PREFIX | cmd_cls.CMD_ID) == cmd_bytes[0]:
-                cmd = cmd_cls.parse(cmd_bytes)
+                try:
+                    cmd = cmd_cls.parse(cmd_bytes)
+                except AssertionError as e:
+                    raise HeymacCmdError(e)
                 break
         if not cmd:
             raise HeymacCmdError("Unknown CMD_ID: %d"
@@ -89,7 +85,7 @@ class HeymacCmd(object):
 
 
 class HeymacCmdTxt(HeymacCmd):
-    """Heymac Text message: {3, data }"""
+    """Heymac Text message: {3, msg }"""
     CMD_ID = 3
     _FLD_LIST = (HeymacCmd.FLD_MSG,)
 
@@ -118,6 +114,7 @@ class HeymacCmdBcn(HeymacCmd):
         HeymacCmd.FLD_STATUS,
         HeymacCmd.FLD_CALLSIGN_SSID,
         HeymacCmd.FLD_PUB_KEY)
+    _FMT_STR = "!HH16s96s"
 
     def __init__(self, *args, **kwargs):
         super().__init__(self.CMD_ID, **kwargs)
@@ -128,7 +125,7 @@ class HeymacCmdBcn(HeymacCmd):
         b = bytearray()
         b.append(HeymacCmd.PREFIX | HeymacCmdBcn.CMD_ID)
         b.extend(struct.pack(
-            "!HH16s96s",
+            HeymacCmdBcn._FMT_STR,
             self.field[HeymacCmd.FLD_CAPS],
             self.field[HeymacCmd.FLD_STATUS],
             padded_callsign,
@@ -141,7 +138,7 @@ class HeymacCmdBcn(HeymacCmd):
         assert cmd_bytes[0] == HeymacCmd.PREFIX | HeymacCmdBcn.CMD_ID
         field = {}
         caps, status, callsign_ssid, pub_key = struct.unpack(
-            "!HH16s96s", cmd_bytes[1:])
+            HeymacCmdBcn._FMT_STR, cmd_bytes[1:])
         field[HeymacCmd.FLD_CAPS] = caps
         field[HeymacCmd.FLD_STATUS] = status
         field[HeymacCmd.FLD_CALLSIGN_SSID] = callsign_ssid.decode().strip()
@@ -151,7 +148,7 @@ class HeymacCmdBcn(HeymacCmd):
 
 # UNTESTED:
 class HeymacCmdLnkData(HeymacCmd):
-    """Heymac Link Data: {N, sub_id, ...}
+    """Heymac Link Data: {ngbr_cnt [, ngbr_lnk_addr...]}
 
     This class should not be instantiated outside this module.
     """
