@@ -150,8 +150,8 @@ class HeymacFrame(object):
         Raises a HeymacFrameError if some bits and fields
         are not set properly.
         """
-        assert 0 <= max(frame_bytes) <= 255, \
-            "frame_bytes must be a sequence of bytes"
+        if max(frame_bytes) > 255 or min(frame_bytes) < 0:
+            raise HeymacFrameError("frame_bytes must be a sequence of bytes")
 
         if len(frame_bytes) < 2:
             raise HeymacFrameError("Frame must be 2 or more bytes in length")
@@ -200,12 +200,13 @@ class HeymacFrame(object):
                 mhop_sz = 0
 
             payld_sz = len(frame_bytes) - offset - mic_sz - mhop_sz
-            assert payld_sz >= 0
             if payld_sz > 0:
                 frame.set_field(
                     HeymacFrame.FLD_PAYLD,
                     frame_bytes[offset:offset + payld_sz])
                 offset += payld_sz
+            elif payld_sz < 0:
+                raise HeymacFrameError("Insufficient bytes")
 
             # TODO: parse MIC
 
@@ -218,7 +219,8 @@ class HeymacFrame(object):
                 offset += addr_sz
 
         # Expected the amount parsed to match the frame size
-        assert offset == len(frame_bytes)
+        if offset != len(frame_bytes):
+            raise HeymacFrameError("Incorrect byte length")
 
         frame._validate_fctl_and_fields()
         return frame
