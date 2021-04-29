@@ -173,7 +173,7 @@ class TestAPv6Udp(unittest.TestCase):
         """
         # Pack
         f = heymac.APv6Udp(
-            src_port = 0x1112,
+            src_port=0x1112,
             dst_port=0xF0B0)
         b1 = bytes(f)
         f.dst_port = 0x2122

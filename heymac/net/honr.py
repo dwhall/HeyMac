@@ -146,7 +146,8 @@ def to_internal_repr(addrx):
     """
     assert type(addrx) is bytes
     addri = bytearray()
-    for b in addrx: addri.extend([b >> 4, b & 0xf])
+    for b in addrx:
+        addri.extend([b >> 4, b & 0xf])
     return addri
 
 
@@ -159,7 +160,7 @@ def to_external_addr(addri):
     assert type(addri) is bytearray
     left = addri[0::2]
     right = addri[1::2]
-    return bytes([left[i]<<4 | right[i] for i in range(len(left))])
+    return bytes([left[i] << 4 | right[i] for i in range(len(left))])
 
 
 def get_nearest_common_ancestor(srcx, dstx):
@@ -171,6 +172,7 @@ def get_nearest_common_ancestor(srcx, dstx):
     dsti = to_internal_repr(dstx)
     ncai = _get_nearest_common_ancestor(srci, dsti)
     return to_external_addr(ncai)
+
 
 def _get_nearest_common_ancestor(srci, dsti):
     assert _is_addr_valid(srci)
@@ -212,6 +214,7 @@ def get_rank(addrx):
     """
     addri = to_internal_repr(addrx)
     return _get_rank(addri)
+
 
 def _get_rank(addri):
     assert _is_addr_valid(addri)
@@ -259,11 +262,9 @@ def _is_addr_valid(addri):
     left_most_F = addri.find(0xF)
     if left_most_F >= 0:
         right_most_F = addri.rfind(0xF)
-        is_not_fifteen = lambda x: x != 0xF
-        or_func = lambda x, y: x or y
         any_is_not_fifteen = reduce(
-            or_func,
-            map(is_not_fifteen, addri[left_most_F:right_most_F]),
+            _or_func,
+            map(_is_not_fifteen, addri[left_most_F:right_most_F]),
             False)
         if any_is_not_fifteen:
             return False
@@ -297,5 +298,14 @@ def is_addr_valid_node(addrx):
         valid = _is_addr_valid_node(addri)
     return valid
 
+
 def _is_addr_valid_node(addri):
     return _is_addr_valid(addri) and 0xF not in addri
+
+
+def _is_not_fifteen(x):
+    return x != 0xF
+
+
+def _or_func(x, y):
+    return x or y
