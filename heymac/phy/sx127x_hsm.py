@@ -291,9 +291,9 @@ class SX127xHsm(farc.Ahsm):
                 self._rx_clbk = self._dflt_rx_clbk
 
             # Combine and write RX settings
-            stngs.update({"FLD_RDO_DIO0": 0,    # _DIO_RX_DONE
-                          "FLD_RDO_DIO1": 0,    # _DIO_RX_TMOUT
-                          "FLD_RDO_DIO3": 1})   # _DIO_VALID_HDR
+            stngs.update((("FLD_RDO_DIO0", 0),    # _DIO_RX_DONE
+                          ("FLD_RDO_DIO1", 0),    # _DIO_RX_TMOUT
+                          ("FLD_RDO_DIO3", 1)))   # _DIO_VALID_HDR
             self._sx127x.set_flds(stngs)
             self._sx127x.write_stngs(True)
 
@@ -422,7 +422,7 @@ class SX127xHsm(farc.Ahsm):
 
             # Write TX settings from higher layer and
             # one setting needed for this PHY operation
-            stngs.update({"FLD_RDO_DIO0": 1})   # _DIO_TX_DONE
+            stngs.update((("FLD_RDO_DIO0", 1),))   # _DIO_TX_DONE
             self._sx127x.set_flds(stngs)
             self._sx127x.write_stngs(False)
 
