@@ -29,13 +29,13 @@ class MsgsModel(object):
     def _rx_clbk(self, hm_frame):
         # TODO: blink status RX indicator
         if isinstance(hm_frame.cmd, HeymacCmdBcn):
-            longaddr = hm_frame.get_field(hm_frame.FLD_SADDR)
+            saddr = hm_frame.saddr
             callsign = hm_frame.cmd.get_field(HeymacCmdBcn.FLD_CALLSIGN_SSID)
-            self._callsigns[longaddr] = callsign
+            self._callsigns[saddr] = callsign
 
         elif isinstance(hm_frame.cmd, HeymacCmdTxt):
             rxtime = time.time()
-            saddr = hm_frame.get_field(hm_frame.FLD_SADDR)
+            saddr = hm_frame.saddr
             msg = hm_frame.cmd.get_field(hm_frame.cmd.FLD_MSG)
             bisect.insort(self._msg_data, (rxtime, saddr, msg.decode()))
 

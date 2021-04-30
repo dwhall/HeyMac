@@ -101,9 +101,9 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
             HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
             fctl_bits)
         if dest:
-            f.set_field(HeymacFrame.FLD_DADDR, dest)
-        f.set_field(HeymacFrame.FLD_SADDR, self._lnk_addr)
-        f.set_field(HeymacFrame.FLD_PAYLD, bytes(cmd))
+            f.daddr = dest
+        f.saddr = self._lnk_addr
+        f.payld = bytes(cmd)
         self._phy_hsm.post_tx_action(self._phy_hsm.TM_NOW, None, bytes(f))
 
 
@@ -256,7 +256,7 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
 
         # Attach the Heymac command, if present
         try:
-            cmd = HeymacCmd.parse(frame.get_field(HeymacFrame.FLD_PAYLD))
+            cmd = HeymacCmd.parse(frame.payld)
         except HeymacCmdError:
             cmd = None
         frame.cmd = cmd
@@ -266,12 +266,11 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
 
         # If the frame is a multi-hop Heymac command
         if frame.cmd and frame.is_mhop():
-            hops = frame.get_field(HeymacFrame.FLD_HOPS)
+            hops = frame.hops
             if hops > 1:
                 # Update the hops and re-transmitter fields
-                frame.set_field(HeymacFrame.FLD_HOPS, hops - 1)
-                frame.set_field(HeymacFrame.FLD_TADDR,
-                                self._lnk_addr)
+                frame.hops = hops - 1
+                frame.taddr = self._lnk_addr
                 # Post the frame to PHY for transmission
                 self._post_frm(frame)
 
@@ -318,8 +317,8 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
         frame = HeymacFrame(
             HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
             HeymacFrame.FCTL_L | HeymacFrame.FCTL_S)
-        frame.set_field(HeymacFrame.FLD_SADDR, self._lnk_addr)
-        frame.set_field(HeymacFrame.FLD_PAYLD, bytes(bcn))
+        frame.saddr = self._lnk_addr
+        frame.payld = bytes(bcn)
         self._phy_hsm.post_tx_action(
             self._phy_hsm.TM_NOW,
             Heymac._PHY_STNGS_TX,
