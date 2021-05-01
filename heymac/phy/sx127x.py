@@ -229,13 +229,11 @@ class SX127x(object):
         snr = snr / 4.0
 
         if good_rx:
-            # Read the index into the FIFO of where the pkt starts
-            # and the length of the data received
+            # Read the address of where the pkt starts
+            # and the length of the data received,
+            # then set the pointer and read the packet
             pkt_start, _, _, nbytes = \
                 self._read(SX127x.REG_LORA_FIFO_CURR_ADDR, 4)
-            assert pkt_start == 0, "rxd pkt_start was not at 0"
-
-            # Read the payload
             self._write(SX127x.REG_LORA_FIFO_ADDR_PTR, pkt_start)
             payld = self._read(SX127x.REG_RDO_FIFO, nbytes)
         else:
