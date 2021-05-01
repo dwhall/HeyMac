@@ -2,6 +2,7 @@
 Copyright 2020 Dean Hall.  See LICENSE for details.
 """
 
+import bisect
 import logging
 import time
 
@@ -151,13 +152,9 @@ class SX127xHsm(farc.Ahsm):
         if sig == farc.Signal.ENTRY:
             logging.debug("PHY._initializing")
             # Init data
-            # We use two queues for a hybrid time-sorted queue:
-            # One for frames that sort by time.
-            # It's actually a dict object where the keys are the time value.
-            self._tm_queue = {}
-            # Another for frames that need to be sent immediately.
-            # This should be used sparingly.
-            self._im_queue = []
+            # A time-sorted queue (oldest-on-the-left) to hold actions
+            # to perform on the radio
+            self._tm_queue = []
 
             self._sx127x.init_gpio()
             self._sx127x.reset_rdo()
@@ -519,23 +516,10 @@ class SX127xHsm(farc.Ahsm):
 
     def _enqueue_action(self, tm, action_args):
         """Enqueues the action at the given time"""
-        IOTA = 0.000_000_1  # a small amount of time
-
-        # IMMEDIATELY means this frame jumps to the front of the line
-        # put it in the immediate queue (which is serviced before the tm_queue)
-        if tm == SX127xHsm.TM_IMMEDIATE:
-            self._im_queue.append(action_args)
-        else:
-            # Ensure this tx time doesn't overwrite an existing one
-            # by adding an iota of time if there is a duplicate.
-            # This results in FIFO for frames scheduled at the same time.
-            tm_orig = tm
-            while tm in self._tm_queue:
-                tm += IOTA
-                # Protect against infinite while-loop
-                if tm == tm_orig:
-                    IOTA *= 10.0
-            self._tm_queue[tm] = action_args
+        if tm == SX127xHsm.TM_NOW:
+            tm = farc.Framework._event_loop.time()
+        tm_action = (tm, action_args)
+        bisect.insort_right(self._tm_queue, tm_action)
 
 
     def _on_lora_rx_done(self):
@@ -563,18 +547,12 @@ class SX127xHsm(farc.Ahsm):
 
         Returns None if the queue is empty.
         """
-        if self._im_queue:
-            tm = farc.Framework._event_loop.time()
-            action = self._im_queue.pop()
-            return (tm, action)
-
-        elif self._tm_queue:
-            tm = min(self._tm_queue.keys())
+        if self._tm_queue:
+            tm_action = self._tm_queue[0]
             now = farc.Framework._event_loop.time()
-            if tm < now + SX127xHsm._TM_SOON:
-                action = self._tm_queue[tm]
-                del self._tm_queue[tm]
-                return (tm, action)
+            if tm_action[0] < now + SX127xHsm._TM_SOON:
+                del self._tm_queue[0]
+                return tm_action
         return None
 
 
@@ -583,15 +561,9 @@ class SX127xHsm(farc.Ahsm):
 
         Returns None if the queue is empty.
         """
-        if self._im_queue:
-            tm = SX127xHsm.TM_IMMEDIATE
-            action = self._im_queue[-1]
-            return (tm, action)
-
-        elif self._tm_queue:
-            tm = min(self._tm_queue.keys())
+        if self._tm_queue:
+            tm_action = self._tm_queue[0]
             now = farc.Framework._event_loop.time()
-            if tm < now + SX127xHsm._TM_SOON:
-                action = self._tm_queue[tm]
-                return (tm, action)
+            if tm_action[0] < now + SX127xHsm._TM_SOON:
+                return tm_action
         return None
