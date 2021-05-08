@@ -12,7 +12,7 @@ import farc
 
 from heymac.lnk import HeymacCsmaHsm
 from heymac.phy import SX127xHsm
-from heymac.utl import HamIdent, GpsHsm
+from heymac.utl import GpsHsm
 
 from tui_hsm import TxtUiHsm
 
@@ -26,7 +26,7 @@ def main():
     _PPS_PIN = 26
 
     phy_hsm = SX127xHsm(True)
-    lnk_hsm = HeymacCsmaHsm(phy_hsm, HamIdent)
+    lnk_hsm = HeymacCsmaHsm(phy_hsm)
     tui_hsm = TxtUiHsm(phy_hsm, lnk_hsm)
     gps_hsm = GpsHsm(_PPS_PIN)
 

@@ -15,6 +15,7 @@ import farc
 from .heymac_link import HeymacLink
 from .heymac_frame import HeymacFrame, HeymacFrameError
 from .heymac_cmd import HeymacCmd, HeymacCmdError, HeymacCmdBcn
+from ..utl import HamIdent
 
 
 class Heymac(object):
@@ -67,7 +68,7 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
 
     Automates beaconing and frame processing.
     """
-    def __init__(self, phy, ident):
+    def __init__(self, phy):
         """Class intialization"""
         super().__init__()
 
@@ -78,13 +79,11 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
 
         self._rx_clbk = None
 
-        self._ident = ident
-
-        # FIXME: This asserts due to lack of credentials
-        try:
-            self._lnk_addr = ident.get_addr("HeyMac", 64)
-        except AssertionError:
-            self._lnk_addr = b"\xfd1234567"
+        # Init crypto ident
+        cred = HamIdent.get_info_from_json_cred("HeyMac")
+        self._callsign = cred["callsign"]
+        self._pub_key = bytes.fromhex(cred["pub_key"])
+        self._lnk_addr = HamIdent.get_addr("HeyMac", 64)
         self._lnk_data = HeymacLink(self._lnk_addr)
 
 
@@ -304,16 +303,14 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
 
     def _post_bcn(self):
         """Builds a Heymac CsmaBeacon and posts it to the PHY for transmit."""
-        cred = self._ident.get_info_from_json_cred("HeyMac")
-        callsign = cred["callsign"].ljust(16).encode()
-        pub_key = bytes.fromhex(cred["pub_key"])
+        callsign = self._callsign.ljust(16).encode()
 
         bcn = HeymacCmdBcn(
             # TODO: Fill with real data
             FLD_CAPS=Heymac.LNK_CAP_RXCONT,
             FLD_STATUS=0,
             FLD_CALLSIGN_SSID=callsign,
-            FLD_PUB_KEY=pub_key)
+            FLD_PUB_KEY=self._pub_key)
         frame = HeymacFrame(
             HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
             HeymacFrame.FCTL_L | HeymacFrame.FCTL_S)
