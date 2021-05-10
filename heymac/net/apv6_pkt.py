@@ -9,6 +9,8 @@ An APv6 packet is created through an instance of APv6Packet()
 with field_name=value as arguments to the constructor.
 """
 
+import struct
+
 
 class APv6PacketError(Exception):
     pass
@@ -168,8 +170,11 @@ class APv6Packet(object):
         Raises an APv6PacketError if some bits or fields
         are not set properly.
         """
-        if max(pkt_bytes) > 255 or min(pkt_bytes) < 0:
-            raise APv6PacketError("pkt_bytes must be a sequence of bytes")
+        try:
+            if max(pkt_bytes) > 255 or min(pkt_bytes) < 0:
+                raise APv6PacketError("pkt_bytes must be a sequence of bytes")
+        except ValueError:
+            raise APv6PacketError("pkt_bytes must have at least one byte")
 
         hdr = pkt_bytes[0]
         offset = 1
@@ -246,3 +251,169 @@ class APv6Packet(object):
     @property
     def payld(self):
         return self._payld
+
+
+class UdpDatagramError(Exception):
+    pass
+
+
+class UdpDatagram(object):
+    """UDP Datagram with header compression per RFC 6282.
+    Always omits the checksum because the Physical layer has FEC and CRC"""
+
+    UDPHC_PREFIX_MASK = 0b11111000
+    UDPHC_PREFIX = 0b11110000
+
+    UDPHC_CS_OMIT = 0b00000100
+
+    _UDPHC_PORT_MODE_SHORT = 1
+    _UDPHC_PORT_MODE_BYTE = 2
+    _UDPHC_PORT_MODE_NIBBLE = 3
+
+    _UDPHC_PORTS_MODE_INLINE_INLINE = 0b00
+    _UDPHC_PORTS_MODE_INLINE_BYTE = 0b01
+    _UDPHC_PORTS_MODE_BYTE_INLINE = 0b10
+    _UDPHC_PORTS_MODE_NIBBLE_NIBBLE = 0b11
+
+    def __init__(self, **kwargs):
+        """Creates a UDP datagram with the given fields"""
+        port = kwargs.get("src_port", b"")
+        if type(port) is int:
+            port = struct.pack("!H", port)
+        self._src_port = port
+        port = kwargs.get("dst_port", b"")
+        if type(port) is int:
+            port = struct.pack("!H", port)
+        self._dst_port = port
+        self._data = kwargs.get("data", b"")
+        self._hdr = kwargs.get("hdr", self._build_hdr())
+
+    def _build_hdr(self):
+        mode_bits = self._get_ports_mode()
+        return UdpDatagram.UDPHC_PREFIX | UdpDatagram.UDPHC_CS_OMIT | mode_bits
+
+    def _get_ports_mode(self):
+        try:
+            src_int = struct.unpack("!H", self._src_port)[0]
+            dst_int = struct.unpack("!H", self._dst_port)[0]
+        except struct.error:
+            raise UdpDatagramError("Insufficient data")
+
+        src_mode = self._eval_port_addr(src_int)
+        dst_mode = self._eval_port_addr(dst_int)
+
+        if src_mode == UdpDatagram._UDPHC_PORT_MODE_NIBBLE \
+                and dst_mode == UdpDatagram._UDPHC_PORT_MODE_NIBBLE:
+            mode_bits = UdpDatagram._UDPHC_PORTS_MODE_NIBBLE_NIBBLE
+        elif src_mode == UdpDatagram._UDPHC_PORT_MODE_BYTE or \
+                src_mode == UdpDatagram._UDPHC_PORT_MODE_NIBBLE:
+            mode_bits = UdpDatagram._UDPHC_PORTS_MODE_BYTE_INLINE
+        elif dst_mode == UdpDatagram._UDPHC_PORT_MODE_BYTE or \
+                dst_mode == UdpDatagram._UDPHC_PORT_MODE_NIBBLE:
+            mode_bits = UdpDatagram._UDPHC_PORTS_MODE_INLINE_BYTE
+        else:
+            mode_bits = UdpDatagram._UDPHC_PORTS_MODE_INLINE_INLINE
+        return mode_bits
+
+    def __bytes__(self):
+        """Returns the UDP Datagram serialized into a bytes object."""
+        dgram = bytearray()
+        dgram.append(self._hdr)
+        self._compress_ports(dgram)
+        dgram.extend(self._data)
+        return bytes(dgram)
+
+    def _compress_ports(self, dgram):
+        mode_bits = self._get_ports_mode()
+
+        src_int = struct.unpack("!H", self._src_port)[0]
+        dst_int = struct.unpack("!H", self._dst_port)[0]
+
+        if mode_bits == UdpDatagram._UDPHC_PORTS_MODE_NIBBLE_NIBBLE:
+            dgram.append((src_int & 0x0F) << 4 | (dst_int & 0x0F))
+        elif mode_bits == UdpDatagram._UDPHC_PORTS_MODE_BYTE_INLINE:
+            dgram.append(src_int & 0xFF)
+            dgram.extend(self._dst_port)
+        elif mode_bits == UdpDatagram._UDPHC_PORTS_MODE_INLINE_BYTE:
+            dgram.extend(self._src_port)
+            dgram.append(dst_int & 0xFF)
+        else:
+            dgram.extend(self._src_port)
+            dgram.extend(self._dst_port)
+        dgram[0] |= mode_bits
+
+    @classmethod
+    def _eval_port_addr(cls, addr):
+        if addr & 0xFFF0 == 0xF0B0:
+            mode = cls._UDPHC_PORT_MODE_NIBBLE
+        elif addr & 0xFF00 == 0xF000:
+            mode = cls._UDPHC_PORT_MODE_BYTE
+        else:
+            mode = cls._UDPHC_PORT_MODE_SHORT
+        return mode
+
+    @staticmethod
+    def parse(dgram_bytes):
+        """Parses the given dgram_bytes and returns a UdpDatagram."""
+        if len(dgram_bytes) < 1:
+            raise UdpDatagramError("Insufficient bytes for header")
+        hdr = dgram_bytes[0:1]
+        hdr_int = dgram_bytes[0]
+        offset = 1
+
+        if hdr_int & UdpDatagram.UDPHC_PREFIX_MASK != UdpDatagram.UDPHC_PREFIX:
+            raise UdpDatagramError("Header prefix mismatch")
+        if hdr_int & UdpDatagram.UDPHC_CS_OMIT != UdpDatagram.UDPHC_CS_OMIT:
+            raise UdpDatagramError("Header CS-omit mismatch")
+        port_mode = hdr_int & 0b11
+        if port_mode == UdpDatagram._UDPHC_PORTS_MODE_NIBBLE_NIBBLE:
+            if len(dgram_bytes) < 2:
+                raise UdpDatagramError("Insufficient bytes for ports")
+            ports = dgram_bytes[offset]
+            offset + 1
+            src_port = 0xF0B0 | ((ports >> 4) & 0x0F)
+            dst_port = 0xF0B0 | (ports & 0x0F)
+        elif port_mode == UdpDatagram._UDPHC_PORTS_MODE_BYTE_INLINE:
+            if len(dgram_bytes) < 4:
+                raise UdpDatagramError("Insufficient bytes for ports")
+            src_port = struct.pack("!H", 0xF000 | dgram_bytes[offset])
+            offset += 1
+            dst_port = dgram_bytes[offset:offset + 2]
+            offset += 2
+        elif port_mode == UdpDatagram._UDPHC_PORTS_MODE_INLINE_BYTE:
+            if len(dgram_bytes) < 4:
+                raise UdpDatagramError("Insufficient bytes for ports")
+            src_port = dgram_bytes[offset:offset + 2]
+            offset += 2
+            dst_port = struct.pack("!H", 0xF000 | dgram_bytes[offset])
+            offset += 1
+        else:
+            if len(dgram_bytes) < 5:
+                raise UdpDatagramError("Insufficient bytes for ports")
+            src_port = dgram_bytes[offset:offset + 2]
+            offset += 2
+            dst_port = dgram_bytes[offset:offset + 2]
+            offset += 2
+        data = dgram_bytes[offset:]
+
+        return UdpDatagram(
+            hdr=hdr,
+            src_port=src_port,
+            dst_port=dst_port,
+            data=data)
+
+    @property
+    def hdr(self):
+        return self._hdr
+
+    @property
+    def src_port(self):
+        return self._src_port
+
+    @property
+    def dst_port(self):
+        return self._dst_port
+
+    @property
+    def data(self):
+        return self._data
