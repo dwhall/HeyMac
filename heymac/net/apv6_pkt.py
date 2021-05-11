@@ -95,11 +95,16 @@ class APv6Packet(object):
         built_hdr = self._build_hdr(kwargs)
         self._validate_args(kwargs, built_hdr)
         self._hdr = built_hdr
-        self._hops = kwargs.get("hops", b"")
+        hops = kwargs.get("hops", b"")
+        if type(hops) is int:
+            try:
+                hops = struct.pack("B", hops)
+            except struct.error:
+                raise APv6PacketError("Invalid hops value")
+        self._hops = hops
         self._saddr = kwargs.get("saddr", b"")
         self._daddr = kwargs.get("daddr", b"")
         self._nhc = kwargs.get("nhc", b"")
-        self._hops = kwargs.get("hops", b"")
         self._payld = kwargs.get("payld", b"")
 
     def _validate_args(self, kwargs, built_hdr):
@@ -121,15 +126,37 @@ class APv6Packet(object):
         built_hdr = kwargs.get(
             APv6Packet.FLD_HDR,
             APv6Packet.IPHC_PREFIX << APv6Packet.IPHC_PREFIX_SHIFT)
-        if APv6Packet.FLD_HOPS not in kwargs:
+        if APv6Packet.FLD_HOPS in kwargs:
+            hlim = {
+                1: APv6Packet.IPHC_HLIM_1,
+                64: APv6Packet.IPHC_HLIM_64,
+                255: APv6Packet.IPHC_HLIM_255}
+            hlim_bits = hlim.get(
+                kwargs[APv6Packet.FLD_HOPS],
+                APv6Packet.IPHC_HLIM_INLINE)
+            built_hdr |= hlim_bits << APv6Packet.IPHC_HLIM_SHIFT
+        else:
             built_hdr |= APv6Packet.DEFAULT_HLIM << APv6Packet.IPHC_HLIM_SHIFT
-        if APv6Packet.FLD_SADDR not in kwargs:
+
+        if APv6Packet.FLD_SADDR in kwargs:
+            built_hdr |= (APv6Packet.IPHC_ADDR_MODE_128
+                          << APv6Packet.IPHC_SAM_SHIFT)
+        else:
             built_hdr |= APv6Packet.DEFAULT_SAM << APv6Packet.IPHC_SAM_SHIFT
-        if APv6Packet.FLD_DADDR not in kwargs:
+
+        if APv6Packet.FLD_DADDR in kwargs:
+            built_hdr |= (APv6Packet.IPHC_ADDR_MODE_128
+                          << APv6Packet.IPHC_DAM_SHIFT)
+        else:
             built_hdr |= APv6Packet.DEFAULT_DAM << APv6Packet.IPHC_DAM_SHIFT
-        if APv6Packet.FLD_NHC not in kwargs:
+
+        if APv6Packet.FLD_NHC in kwargs:
+            # FIXME
             built_hdr |= APv6Packet.DEFAULT_NHC << APv6Packet.IPHC_NHC_SHIFT
-        return bytes([built_hdr])
+        else:
+            built_hdr |= APv6Packet.DEFAULT_NHC << APv6Packet.IPHC_NHC_SHIFT
+
+        return struct.pack("B", built_hdr)
 
 
     def __bytes__(self):
@@ -142,24 +169,24 @@ class APv6Packet(object):
 
         pkt = bytearray()
         pkt.extend(self._hdr)
-        if self._has_hops_field():
+        if self._is_hops_inline():
             pkt.extend(self._hops)
-        if self._has_src_field():
+        if self._is_src_inline():
             pkt.extend(self._saddr)
-        if self._has_dst_field():
+        if self._is_dst_inline():
             pkt.extend(self._daddr)
         pkt.extend(self._payld)
         return bytes(pkt)
 
-    def _has_hops_field(self):
+    def _is_hops_inline(self):
         return ((self._hdr[0] & APv6Packet.IPHC_HLIM_MASK)
                 >> APv6Packet.IPHC_HLIM_SHIFT) == APv6Packet.IPHC_HLIM_INLINE
 
-    def _has_src_field(self):
+    def _is_src_inline(self):
         return ((self._hdr[0] & APv6Packet.IPHC_SAM_MASK)
                 >> APv6Packet.IPHC_SAM_SHIFT) == APv6Packet.IPHC_ADDR_MODE_128
 
-    def _has_dst_field(self):
+    def _is_dst_inline(self):
         return ((self._hdr[0] & APv6Packet.IPHC_DAM_MASK)
                 >> APv6Packet.IPHC_DAM_SHIFT) == APv6Packet.IPHC_ADDR_MODE_128
 

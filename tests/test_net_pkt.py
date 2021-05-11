@@ -3,7 +3,7 @@
 
 import unittest
 
-from heymac.net import APv6Packet
+from heymac.net import APv6Packet, APv6PacketError
 
 
 class TestAPv6Packet(unittest.TestCase):
@@ -17,277 +17,102 @@ class TestAPv6Packet(unittest.TestCase):
         self.assertEqual(b, b"\xD7")
         p = APv6Packet.parse(b)
         self.assertEqual(p.hdr, b"\xD7")
-        self.assertEqual(p.hops, 0x01)
+        self.assertEqual(p.hops, b"\x01")
         self.assertEqual(p.saddr, b"")
         self.assertEqual(p.daddr, b"")
 
-_ = '''
-    def test_nhc_default(self):
-        p = APv6Packet(iphc_nhc=1)
-        b = bytes(p)
-        self.assertEqual(b, b"\xD7")
-        p = APv6Packet(b)
-        self.assertEqual(p.iphc_prefix, 6)
-        self.assertEqual(p.iphc_nhc, 1)
-        self.assertEqual(p.iphc_hlim, 1)
-        self.assertEqual(p.iphc_sam, 1)
-        self.assertEqual(p.iphc_dam, 1)
-        self.assertEqual(p.hops, 0x01)
-        self.assertEqual(p.src, b"")
-        self.assertEqual(p.dst, b"")
-
-    def test_nhc_uncompressed(self):
-        # Only compressed next-headers are supported at this time
-        # Uncompressed headers should raise an AssertionError
-        with self.assertRaises(AssertionError):
-            p = APv6Packet(iphc_nhc=0)
-
-
-    def test_nhc_extreme_value(self):
-        with self.assertRaises(AssertionError):
-            p = APv6Packet(iphc_nhc=999)
-
-
     def test_hlim_1(self):
-        p = APv6Packet(iphc_hlim=0b01)
+        p = APv6Packet(hops=1)
         b = bytes(p)
         self.assertEqual(b, b"\xD7")
-        p = APv6Packet(b)
-        self.assertEqual(p.iphc_prefix, 6)
-        self.assertEqual(p.iphc_nhc, 1)
-        self.assertEqual(p.iphc_hlim, 1)
-        self.assertEqual(p.iphc_sam, 1)
-        self.assertEqual(p.iphc_dam, 1)
-        self.assertEqual(p.hops, 0x01)
-        self.assertEqual(p.src, b"")
-        self.assertEqual(p.dst, b"")
+        p = APv6Packet.parse(b)
+        self.assertEqual(p.hdr, b"\xD7")
+        self.assertEqual(p.hops, b"\x01")
+        self.assertEqual(p.saddr, b"")
+        self.assertEqual(p.daddr, b"")
 
-    def test_hlim_2(self):
-        p = APv6Packet(iphc_hlim=0b10)
+    def test_hlim_42(self):
+        p = APv6Packet(hops=42)
+        b = bytes(p)
+        self.assertEqual(b, b"\xD3\x2A")
+        p = APv6Packet.parse(b)
+        self.assertEqual(p.hdr, b"\xD3")
+        self.assertEqual(p.hops, b"\x2A")
+        self.assertEqual(p.saddr, b"")
+        self.assertEqual(p.daddr, b"")
+
+    def test_hlim_64(self):
+        p = APv6Packet(hops=64)
         b = bytes(p)
         self.assertEqual(b, b"\xDB")
-        p = APv6Packet(b)
-        self.assertEqual(p.iphc_prefix, 6)
-        self.assertEqual(p.iphc_nhc, 1)
-        self.assertEqual(p.iphc_hlim, 2)
-        self.assertEqual(p.iphc_sam, 1)
-        self.assertEqual(p.iphc_dam, 1)
-        self.assertEqual(p.hops, 0x40)
-        self.assertEqual(p.src, b"")
-        self.assertEqual(p.dst, b"")
+        p = APv6Packet.parse(b)
+        self.assertEqual(p.hdr, b"\xDB")
+        self.assertEqual(p.hops, b"\x40")
+        self.assertEqual(p.saddr, b"")
+        self.assertEqual(p.daddr, b"")
 
-    def test_hlim_3(self):
-        p = APv6Packet(iphc_hlim=0b11)
+    def test_hlim_255(self):
+        p = APv6Packet(hops=255)
         b = bytes(p)
         self.assertEqual(b, b"\xDF")
-        p = APv6Packet(b)
-        self.assertEqual(p.iphc_prefix, 6)
-        self.assertEqual(p.iphc_nhc, 1)
-        self.assertEqual(p.iphc_hlim, 3)
-        self.assertEqual(p.iphc_sam, 1)
-        self.assertEqual(p.iphc_dam, 1)
-        self.assertEqual(p.hops, 0xFF)
-        self.assertEqual(p.src, b"")
-        self.assertEqual(p.dst, b"")
+        p = APv6Packet.parse(b)
+        self.assertEqual(p.hdr, b"\xDF")
+        self.assertEqual(p.hops, b"\xFF")
+        self.assertEqual(p.saddr, b"")
+        self.assertEqual(p.daddr, b"")
 
     def test_hlim_extreme_value(self):
-        with self.assertRaises(AssertionError):
-            p = APv6Packet(iphc_hlim=999)
+        with self.assertRaises(APv6PacketError):
+            p = APv6Packet(hops=999)
 
 
-    def test_sam_default(self):
-        p = APv6Packet(iphc_sam=1)
-        b = bytes(p)
-        self.assertEqual(b, b"\xD7")
-        p = APv6Packet(b)
-        self.assertEqual(p.iphc_prefix, 6)
-        self.assertEqual(p.iphc_nhc, 1)
-        self.assertEqual(p.iphc_hlim, 1)
-        self.assertEqual(p.iphc_sam, 1)
-        self.assertEqual(p.iphc_dam, 1)
-        self.assertEqual(p.hops, 0x01)
-        self.assertEqual(p.src, b"")
-        self.assertEqual(p.dst, b"")
-
-    def test_sam_extreme_value(self):
-        with self.assertRaises(AssertionError):
-            p = APv6Packet(iphc_sam=999)
-
-
-    def test_dam_default(self):
-        p = APv6Packet(iphc_dam=1)
-        b = bytes(p)
-        self.assertEqual(b, b"\xD7")
-        p = APv6Packet(b)
-        self.assertEqual(p.iphc_prefix, 6)
-        self.assertEqual(p.iphc_nhc, 1)
-        self.assertEqual(p.iphc_hlim, 1)
-        self.assertEqual(p.iphc_sam, 1)
-        self.assertEqual(p.iphc_dam, 1)
-        self.assertEqual(p.hops, 0x01)
-        self.assertEqual(p.src, b"")
-        self.assertEqual(p.dst, b"")
-
-    def test_dam_extreme_value(self):
-        with self.assertRaises(AssertionError):
-            p = APv6Packet(iphc_dam=999)
-
-
-    def test_hops_special_1(self):
-        p = APv6Packet(hops=b"\x01")
-        b = bytes(p)
-        self.assertEqual(b, b"\xD7")
-        p = APv6Packet(b)
-        self.assertEqual(p.iphc_prefix, 6)
-        self.assertEqual(p.iphc_nhc, 1)
-        self.assertEqual(p.iphc_hlim, 1)
-        self.assertEqual(p.iphc_sam, 1)
-        self.assertEqual(p.iphc_dam, 1)
-        self.assertEqual(p.hops, 0x01)
-        self.assertEqual(p.src, b"")
-        self.assertEqual(p.dst, b"")
-
-    def test_hops_special_64(self):
-        p = APv6Packet(hops=b"\x40")
-        b = bytes(p)
-        self.assertEqual(b, b"\xDB")
-        p = APv6Packet(b)
-        self.assertEqual(p.iphc_prefix, 6)
-        self.assertEqual(p.iphc_nhc, 1)
-        self.assertEqual(p.iphc_hlim, 2)
-        self.assertEqual(p.iphc_sam, 1)
-        self.assertEqual(p.iphc_dam, 1)
-        self.assertEqual(p.hops, 0x40)
-        self.assertEqual(p.src, b"")
-        self.assertEqual(p.dst, b"")
-
-    def test_hops_special_255(self):
-        p = APv6Packet(hops=b"\xFF")
-        b = bytes(p)
-        self.assertEqual(b, b"\xDF")
-        p = APv6Packet(b)
-        self.assertEqual(p.iphc_prefix, 6)
-        self.assertEqual(p.iphc_nhc, 1)
-        self.assertEqual(p.iphc_hlim, 3)
-        self.assertEqual(p.iphc_sam, 1)
-        self.assertEqual(p.iphc_dam, 1)
-        self.assertEqual(p.hops, 0xFF)
-        self.assertEqual(p.src, b"")
-        self.assertEqual(p.dst, b"")
-
-    def test_hops_2(self):
-        p = APv6Packet(hops=b"\x02")
-        b = bytes(p)
-        self.assertEqual(b, b"\xD3\x02")
-        p = APv6Packet(b)
-        self.assertEqual(p.iphc_prefix, 6)
-        self.assertEqual(p.iphc_nhc, 1)
-        self.assertEqual(p.iphc_hlim, 0)
-        self.assertEqual(p.iphc_sam, 1)
-        self.assertEqual(p.iphc_dam, 1)
-        self.assertEqual(p.hops, 0x02)
-        self.assertEqual(p.src, b"")
-        self.assertEqual(p.dst, b"")
-
-    def test_hops_32(self):
-        p = APv6Packet(hops=b"\x20")
-        b = bytes(p)
-        self.assertEqual(b, b"\xD3\x20")
-        p = APv6Packet(b)
-        self.assertEqual(p.iphc_prefix, 6)
-        self.assertEqual(p.iphc_nhc, 1)
-        self.assertEqual(p.iphc_hlim, 0)
-        self.assertEqual(p.iphc_sam, 1)
-        self.assertEqual(p.iphc_dam, 1)
-        self.assertEqual(p.hops, 0x20)
-        self.assertEqual(p.src, b"")
-        self.assertEqual(p.dst, b"")
-
-
-    def test_src_addr(self):
-        p = APv6Packet(src=b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f")
+    def test_saddr(self):
+        p = APv6Packet(saddr=b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f")
         b = bytes(p)
         self.assertEqual(b, b"\xD5\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f")
-        p = APv6Packet(b)
-        self.assertEqual(p.iphc_prefix, 6)
-        self.assertEqual(p.iphc_nhc, 1)
-        self.assertEqual(p.iphc_hlim, 1)
-        self.assertEqual(p.iphc_sam, 0)
-        self.assertEqual(p.iphc_dam, 1)
-        self.assertEqual(p.hops, 0x01)
-        self.assertEqual(p.src, b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f")
-        self.assertEqual(p.dst, b"")
+        p = APv6Packet.parse(b)
+        self.assertEqual(p.hdr, b"\xD5")
+        self.assertEqual(p.hops, b"\x01")
+        self.assertEqual(p.saddr, b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f")
+        self.assertEqual(p.daddr, b"")
 
 
-    def test_dst_addr(self):
-        p = APv6Packet(dst=b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f")
+    def test_daddr(self):
+        p = APv6Packet(daddr=b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f")
         b = bytes(p)
         self.assertEqual(b, b"\xD6\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f")
-        p = APv6Packet(b)
-        self.assertEqual(p.iphc_prefix, 6)
-        self.assertEqual(p.iphc_nhc, 1)
-        self.assertEqual(p.iphc_hlim, 1)
-        self.assertEqual(p.iphc_sam, 1)
-        self.assertEqual(p.iphc_dam, 0)
-        self.assertEqual(p.hops, 0x01)
-        self.assertEqual(p.src, b"")
-        self.assertEqual(p.dst, b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f")
+        p = APv6Packet.parse(b)
+        self.assertEqual(p.hdr, b"\xD6")
+        self.assertEqual(p.hops, b"\x01")
+        self.assertEqual(p.saddr, b"")
+        self.assertEqual(p.daddr, b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f")
 
 
-    def test_src_dst_addrs(self):
+    def test_saddr_daddr(self):
         p = APv6Packet(
-                src=b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f",
-                dst=b"\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDa\xDb\xDc\xDd\xDe\xDf")
+            saddr=b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f",
+            daddr=b"\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDa\xDb\xDc\xDd\xDe\xDf")
         b = bytes(p)
         self.assertEqual(b, b"\xD4\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDa\xDb\xDc\xDd\xDe\xDf")
-        p = APv6Packet(b)
-        self.assertEqual(p.iphc_prefix, 6)
-        self.assertEqual(p.iphc_nhc, 1)
-        self.assertEqual(p.iphc_hlim, 1)
-        self.assertEqual(p.iphc_sam, 0)
-        self.assertEqual(p.iphc_dam, 0)
-        self.assertEqual(p.hops, 0x01)
-        self.assertEqual(p.src, b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f")
-        self.assertEqual(p.dst, b"\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDa\xDb\xDc\xDd\xDe\xDf")
+        p = APv6Packet.parse(b)
+        self.assertEqual(p.hdr, b"\xD4")
+        self.assertEqual(p.hops, b"\x01")
+        self.assertEqual(p.saddr, b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f")
+        self.assertEqual(p.daddr, b"\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDa\xDb\xDc\xDd\xDe\xDf")
 
 
-    def test_hops_src_dst_addrs(self):
+    def test_hops_saddr_daddr(self):
         p = APv6Packet(
-                hops=b"\x33",
-                src=b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f",
-                dst=b"\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDa\xDb\xDc\xDd\xDe\xDf")
+            hops=b"\x33",
+            saddr=b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f",
+            daddr=b"\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDa\xDb\xDc\xDd\xDe\xDf")
         b = bytes(p)
         self.assertEqual(b, b"\xD0\x33\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDa\xDb\xDc\xDd\xDe\xDf")
-        p = APv6Packet(b)
-        self.assertEqual(p.iphc_prefix, 6)
-        self.assertEqual(p.iphc_nhc, 1)
-        self.assertEqual(p.iphc_hlim, 0)
-        self.assertEqual(p.iphc_sam, 0)
-        self.assertEqual(p.iphc_dam, 0)
-        self.assertEqual(p.hops, 0x33)
-        self.assertEqual(p.src, b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f")
-        self.assertEqual(p.dst, b"\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDa\xDb\xDc\xDd\xDe\xDf")
+        p = APv6Packet.parse(b)
+        self.assertEqual(p.hops, b"\x33")
+        self.assertEqual(p.saddr, b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f")
+        self.assertEqual(p.daddr, b"\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDa\xDb\xDc\xDd\xDe\xDf")
 
-
-    def test_regression_hops_from_int(self):
-        """Allow hops to be given as an int
-        """
-        p = APv6Packet(
-                hops=0x33,
-                src=b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f",
-                dst=b"\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDa\xDb\xDc\xDd\xDe\xDf")
-        b = bytes(p)
-        self.assertEqual(b, b"\xD0\x33\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDa\xDb\xDc\xDd\xDe\xDf")
-        p = APv6Packet(b)
-        self.assertEqual(p.iphc_prefix, 6)
-        self.assertEqual(p.iphc_nhc, 1)
-        self.assertEqual(p.iphc_hlim, 0)
-        self.assertEqual(p.iphc_sam, 0)
-        self.assertEqual(p.iphc_dam, 0)
-        self.assertEqual(p.hops, 0x33)
-        self.assertEqual(p.src, b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f")
-        self.assertEqual(p.dst, b"\xD0\xD1\xD2\xD3\xD4\xD5\xD6\xD7\xD8\xD9\xDa\xDb\xDc\xDd\xDe\xDf")
-'''
 
 if __name__ == "__main__":
     unittest.main()
