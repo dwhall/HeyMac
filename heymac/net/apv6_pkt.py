@@ -82,12 +82,12 @@ class APv6Packet(object):
     DEFAULT_DAM = IPHC_ADDR_MODE_0  # address compressed/elided
 
     # Packet field names
-    FLD_HDR = "hdr"         # Header
-    FLD_HOPS = "hops"       # Hop count
-    FLD_SADDR = "saddr"     # Source address
-    FLD_DADDR = "daddr"     # Destination address
-    FLD_NHC = "nhc"         # Next Header Compressed
-    FLD_PAYLD = "payld"     # Payload (net layer)
+    _FLD_HDR = "hdr"        # Header
+    _FLD_HOPS = "hops"      # Hop count
+    _FLD_SADDR = "saddr"    # Source address
+    _FLD_DADDR = "daddr"    # Destination address
+    _FLD_NHC = "nhc"        # Next Header Compressed
+    _FLD_PAYLD = "payld"    # Payload (net layer)
 
 
     def __init__(self, **kwargs):
@@ -109,48 +109,48 @@ class APv6Packet(object):
 
     def _validate_args(self, kwargs, built_hdr):
         pkt_field_names = (
-            APv6Packet.FLD_HDR,
-            APv6Packet.FLD_HOPS,
-            APv6Packet.FLD_SADDR,
-            APv6Packet.FLD_DADDR,
-            APv6Packet.FLD_NHC,
-            APv6Packet.FLD_PAYLD)
+            APv6Packet._FLD_HDR,
+            APv6Packet._FLD_HOPS,
+            APv6Packet._FLD_SADDR,
+            APv6Packet._FLD_DADDR,
+            APv6Packet._FLD_NHC,
+            APv6Packet._FLD_PAYLD)
         for field_name in kwargs:
             if field_name not in pkt_field_names:
                 raise APv6PacketError(f"Invalid field: {field_name}")
-        if APv6Packet.FLD_HDR in kwargs:
+        if APv6Packet._FLD_HDR in kwargs:
             if kwargs["hdr"] != built_hdr[0]:
                 raise APv6PacketError("Header doesn't match given fields")
 
     def _build_hdr(self, kwargs):
         built_hdr = kwargs.get(
-            APv6Packet.FLD_HDR,
+            APv6Packet._FLD_HDR,
             APv6Packet.IPHC_PREFIX << APv6Packet.IPHC_PREFIX_SHIFT)
-        if APv6Packet.FLD_HOPS in kwargs:
+        if APv6Packet._FLD_HOPS in kwargs:
             hlim = {
                 1: APv6Packet.IPHC_HLIM_1,
                 64: APv6Packet.IPHC_HLIM_64,
                 255: APv6Packet.IPHC_HLIM_255}
             hlim_bits = hlim.get(
-                kwargs[APv6Packet.FLD_HOPS],
+                kwargs[APv6Packet._FLD_HOPS],
                 APv6Packet.IPHC_HLIM_INLINE)
             built_hdr |= hlim_bits << APv6Packet.IPHC_HLIM_SHIFT
         else:
             built_hdr |= APv6Packet.DEFAULT_HLIM << APv6Packet.IPHC_HLIM_SHIFT
 
-        if APv6Packet.FLD_SADDR in kwargs:
+        if APv6Packet._FLD_SADDR in kwargs:
             built_hdr |= (APv6Packet.IPHC_ADDR_MODE_128
                           << APv6Packet.IPHC_SAM_SHIFT)
         else:
             built_hdr |= APv6Packet.DEFAULT_SAM << APv6Packet.IPHC_SAM_SHIFT
 
-        if APv6Packet.FLD_DADDR in kwargs:
+        if APv6Packet._FLD_DADDR in kwargs:
             built_hdr |= (APv6Packet.IPHC_ADDR_MODE_128
                           << APv6Packet.IPHC_DAM_SHIFT)
         else:
             built_hdr |= APv6Packet.DEFAULT_DAM << APv6Packet.IPHC_DAM_SHIFT
 
-        if APv6Packet.FLD_NHC in kwargs:
+        if APv6Packet._FLD_NHC in kwargs:
             # FIXME
             built_hdr |= APv6Packet.DEFAULT_NHC << APv6Packet.IPHC_NHC_SHIFT
         else:
