@@ -318,9 +318,10 @@ class SX127xHsm(farc.Ahsm):
                 # to obtain more accurate rx execution time on Linux.
                 now = farc.Framework._event_loop.time()
                 tiny_sleep = rx_time - now
-                assert tiny_sleep > 0.0, \
-                    "didn't beat action time, need to increase _TM_SVC_MARGIN"
+                if tiny_sleep < 0:
+                    logging.debug("negative sleep, increase _TM_SVC_MARGIN")
                 if tiny_sleep > SX127xHsm._TM_BLOCKING_MAX:
+                    logging.debug("sleep too great, decrease _TM_SVC_MARGIN")
                     tiny_sleep = SX127xHsm._TM_BLOCKING_MAX
                 if tiny_sleep > SX127xHsm._TM_BLOCKING_MIN:
                     time.sleep(tiny_sleep)
@@ -475,9 +476,9 @@ class SX127xHsm(farc.Ahsm):
     # The amount of time it takes to get from the _lingering state
     # through _scheduling and to the next action's state.
     # This is used so we can set a timer to exit _lingering
-    # and make it to the deisred state before the designated time.
-    _TM_SVC_MARGIN = 0.020
-    # assert _TM_SVC_MARGIN < _TM_SOON
+    # and make it to the desired state nearer to the designated time.
+    _TM_SVC_MARGIN = 0.016
+    assert _TM_SVC_MARGIN < _TM_SOON
 
     # Blocking times are used around the time.sleep() operation
     # to obtain more accurate tx/rx execution times on Linux.
