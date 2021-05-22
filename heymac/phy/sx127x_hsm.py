@@ -339,6 +339,10 @@ class SX127xHsm(farc.Ahsm):
             self._rxd_hdr_time = event.value
             return self.tran(self._rxing)
 
+        elif sig == farc.Signal._DIO_RX_DONE:
+            self._on_lora_rx_done()
+            return self.tran(self._scheduling)
+
         elif sig == farc.Signal._DIO_RX_TMOUT:
             logging.info("PHY:_listening@_DIO_RX_TMOUT")
             # TODO: incr phy_data stats rx tmout
@@ -363,10 +367,6 @@ class SX127xHsm(farc.Ahsm):
         if sig == farc.Signal.ENTRY:
             logging.debug("PHY._rxing")
             return self.handled(event)
-
-        elif sig == farc.Signal._DIO_RX_DONE:
-            self._on_lora_rx_done()
-            return self.tran(self._scheduling)
 
         elif sig == farc.Signal._PHY_RQST:
             # Overrides _lingering's _PHY_RQST handler because we want to

@@ -90,22 +90,22 @@
      <tran trig="_PHY_RQST">
       <choice target="../../../2">
        <guard brief="_default_action"/>
-       <choice_glyph conn="34,94,5,0,34,-68,-30,2">
+       <choice_glyph conn="34,90,5,0,34,-64,-30,2">
         <action box="1,-2,13,2"/>
        </choice_glyph>
       </choice>
       <choice>
        <guard brief="else"/>
-       <choice_glyph conn="34,94,4,-1,2,8">
+       <choice_glyph conn="34,90,4,-1,2,8">
         <action box="1,0,10,2"/>
        </choice_glyph>
       </choice>
-      <tran_glyph conn="20,94,3,-1,14">
+      <tran_glyph conn="20,90,3,-1,14">
        <action box="0,-2,12,2"/>
       </tran_glyph>
      </tran>
      <tran trig="_PHY_TMOUT" target="../../2">
-      <tran_glyph conn="20,98,3,0,48,-72,-30,2">
+      <tran_glyph conn="20,94,3,0,48,-68,-30,2">
        <action box="0,-2,12,2"/>
       </tran_glyph>
      </tran>
@@ -115,7 +115,7 @@
      <state name="_listening">
       <entry brief="prdc_evt.post_every()"/>
       <exit brief="prdc_evt.disarm()"/>
-      <tran trig="_DIO_VALID_HDR" target="../3">
+      <tran trig="_DIO_VALID_HDR" target="../4">
        <tran_glyph conn="22,66,3,0,20,2">
         <action box="0,-2,18,2"/>
        </tran_glyph>
@@ -127,32 +127,32 @@
        </tran_glyph>
       </tran>
       <tran trig="_DIO_RX_TMOUT" target="../../../2">
-       <tran_glyph conn="22,88,3,0,46,-62,-30,2">
+       <tran_glyph conn="22,84,3,0,46,-58,-30,2">
         <action box="0,-2,14,2"/>
+       </tran_glyph>
+      </tran>
+      <tran trig="_DIO_RX_DONE" target="../../../2">
+       <tran_glyph conn="22,82,3,0,46,-56,-30,2">
+        <action box="0,-2,18,2"/>
        </tran_glyph>
       </tran>
       <state name="_rxing">
        <exit brief="tmout_evt.disarm()"/>
-       <tran trig="_DIO_RX_DONE" target="../../../../2">
-        <tran_glyph conn="24,76,3,0,44,-50,-30,2">
-         <action box="0,-2,18,2"/>
-        </tran_glyph>
-       </tran>
        <tran trig="_PHY_RQST">
-        <tran_glyph conn="24,78,3,-1,18">
+        <tran_glyph conn="24,76,3,-1,18">
          <action box="0,-2,10,2"/>
         </tran_glyph>
        </tran>
-       <state_glyph node="24,68,22,14">
+       <state_glyph node="24,68,22,10">
         <exit box="1,2,19,2"/>
        </state_glyph>
       </state>
-      <state_glyph node="22,54,26,36">
+      <state_glyph node="22,54,26,32">
        <entry box="1,2,19,2"/>
        <exit box="1,4,17,2"/>
       </state_glyph>
      </state>
-     <state_glyph node="20,48,42,54">
+     <state_glyph node="20,48,42,50">
       <exit box="1,2,17,2"/>
      </state_glyph>
     </state>
