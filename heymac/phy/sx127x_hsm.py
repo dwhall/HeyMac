@@ -190,12 +190,14 @@ class SX127xHsm(farc.Ahsm):
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             logging.debug("PHY._scheduling")
-            # TODO: remove unecessary read once sm design is proven
-            assert SX127x.OPMODE_STBY == self._sx127x.read_opmode()
-            self.post_fifo(farc.Event(farc.Signal._ALWAYS, None))
+            if SX127x.OPMODE_STBY == self._sx127x.read_opmode():
+                delay = 0.0
+            else:
+                delay = 0.1
+            self.tmout_evt.post_in(self, delay)
             return self.handled(event)
 
-        elif sig == farc.Signal._ALWAYS:
+        elif sig == farc.Signal._PHY_TMOUT:
             # If the next action is soon, go to its state
             next_action = self._top_soon_action()
             self._default_action = not bool(next_action)
@@ -255,10 +257,7 @@ class SX127xHsm(farc.Ahsm):
 
         elif sig == farc.Signal.EXIT:
             self.tmout_evt.disarm()
-            # Changing modes from rx or sleep to STBY is
-            # "near instantaneous" per SX127x datasheet
-            # so don't bother awaiting a _DIO_MODE_RDY
-            self._sx127x.write_opmode(SX127x.OPMODE_STBY, False)
+            self._sx127x.write_opmode(SX127x.OPMODE_STBY)
             return self.handled(event)
 
         return self.super(self.top)
@@ -311,7 +310,7 @@ class SX127xHsm(farc.Ahsm):
 
             # No action means listen-by-default; receive-continuosly
             if not action:
-                self._sx127x.write_opmode(SX127x.OPMODE_RXCONT, False)
+                self._sx127x.write_opmode(SX127x.OPMODE_RXCONT)
 
             # An explicit action means do a receive-once
             else:
@@ -325,7 +324,7 @@ class SX127xHsm(farc.Ahsm):
                     tiny_sleep = SX127xHsm._TM_BLOCKING_MAX
                 if tiny_sleep > SX127xHsm._TM_BLOCKING_MIN:
                     time.sleep(tiny_sleep)
-                self._sx127x.write_opmode(SX127x.OPMODE_RXONCE, False)
+                self._sx127x.write_opmode(SX127x.OPMODE_RXONCE)
                 # Start the rx duration timer
                 if rx_durxn > 0:
                     self.tmout_evt.post_in(self, rx_durxn)
@@ -389,7 +388,7 @@ class SX127xHsm(farc.Ahsm):
         sig = event.signal
         if sig == farc.Signal.ENTRY:
             logging.debug("PHY._lingering._sleeping")
-            self._sx127x.write_opmode(SX127x.OPMODE_SLEEP, False)
+            self._sx127x.write_opmode(SX127x.OPMODE_SLEEP)
             return self.handled(event)
 
         return self.super(self._lingering)
@@ -440,7 +439,7 @@ class SX127xHsm(farc.Ahsm):
             self.tmout_evt.post_in(self, 1.0)   # TODO: calc soft timeout delta
 
             # Start transmission and await DIO_TX_DONE
-            self._sx127x.write_opmode(SX127x.OPMODE_TX, False)
+            self._sx127x.write_opmode(SX127x.OPMODE_TX)
             return self.handled(event)
 
         elif sig == farc.Signal._DIO_TX_DONE:
@@ -460,14 +459,8 @@ class SX127xHsm(farc.Ahsm):
                 return self.tran(self._scheduling)
             else:
                 # SX127x takes time to change modes from TX to STBY.
-                # Use DIO5/ModeReady here so we don't transition
-                # to _scheduling and try to do stuff before the
-                # chip is in STBY mode.  Await _DIO_MODE_RDY.
-                self._sx127x.write_opmode(SX127x.OPMODE_STBY, True)
-                return self.handled(event)
-
-        elif sig == farc.Signal._DIO_MODE_RDY:
-            return self.tran(self._scheduling)
+                self._sx127x.write_opmode(SX127x.OPMODE_STBY)
+                return self.tran(self._scheduling)
 
         elif sig == farc.Signal.EXIT:
             self.tmout_evt.disarm()

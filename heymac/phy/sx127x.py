@@ -181,10 +181,10 @@ class SX127x(object):
 
         # Put radio in LoRa mode so DIO5 outputs ModeReady instead of ClkOut
         # This is needed so the state machine receives the ModeReady event
-        self.write_opmode(SX127x.OPMODE_SLEEP, False)
+        self.write_opmode(SX127x.OPMODE_SLEEP)
         self.set_fld("FLD_RDO_LORA_MODE", 1)
         self.write_sleep_settings()
-        self.write_opmode(SX127x.OPMODE_STBY, False)
+        self.write_opmode(SX127x.OPMODE_STBY)
         self._stngs.apply("FLD_RDO_LORA_MODE")
 
         # Init DIOx pin callbacks
@@ -325,13 +325,11 @@ class SX127x(object):
         self._write(SX127x.REG_LORA_PAYLD_LEN, payld_len)
 
 
-    def write_opmode(self, opmode, en_mode_rdy=False):
+    def write_opmode(self, opmode):
         reg = self._read(SX127x.REG_RDO_OPMODE)[0]
         reg &= (~0x7 & 0xFF)
         reg |= (0x7 & opmode)
         self._write(SX127x.REG_RDO_OPMODE, reg)
-        # Enable/disable DIO5 callback
-        self._en_dio5_clbk = en_mode_rdy
 
 
     def write_sleep_settings(self):
@@ -426,9 +424,8 @@ class SX127x(object):
             SX127x.DIO_CLK_OUT,
             SX127x.DIO_CLK_OUT,
         )
-        if self._en_dio5_clbk:
-            self._dio_isr_clbk(
-                dio5_to_sig_lut[self._stngs.get_applied("FLD_RDO_DIO5")])
+        self._dio_isr_clbk(
+            dio5_to_sig_lut[self._stngs.get_applied("FLD_RDO_DIO5")])
 
 
     def _read(self, reg_addr, nbytes=1):
