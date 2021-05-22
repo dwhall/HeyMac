@@ -339,11 +339,6 @@ class SX127xHsm(farc.Ahsm):
             self._rxd_hdr_time = event.value
             return self.tran(self._rxing)
 
-        elif sig == farc.Signal._DIO_PAYLD_CRC_ERR:
-            logging.info("PHY:_listening@_DIO_PAYLD_CRC_ERR")
-            # TODO: incr phy_data stats crc err cnt
-            return self.tran(self._scheduling)
-
         elif sig == farc.Signal._DIO_RX_TMOUT:
             logging.info("PHY:_listening@_DIO_RX_TMOUT")
             # TODO: incr phy_data stats rx tmout

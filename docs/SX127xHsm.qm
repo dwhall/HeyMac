@@ -115,7 +115,7 @@
      <state name="_listening">
       <entry brief="prdc_evt.post_every()"/>
       <exit brief="prdc_evt.disarm()"/>
-      <tran trig="_DIO_VALID_HDR" target="../4">
+      <tran trig="_DIO_VALID_HDR" target="../3">
        <tran_glyph conn="22,66,3,0,20,2">
         <action box="0,-2,18,2"/>
        </tran_glyph>
@@ -124,11 +124,6 @@
        <action brief="updt_rng()"/>
        <tran_glyph conn="22,64,3,-1,20">
         <action box="0,-2,20,2"/>
-       </tran_glyph>
-      </tran>
-      <tran trig="_DIO_PAYLD_CRC_ERR" target="../../../2">
-       <tran_glyph conn="22,86,3,0,46,-60,-30,2">
-        <action box="0,-2,18,2"/>
        </tran_glyph>
       </tran>
       <tran trig="_DIO_RX_TMOUT" target="../../../2">
