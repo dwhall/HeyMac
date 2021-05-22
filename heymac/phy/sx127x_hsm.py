@@ -273,7 +273,7 @@ class SX127xHsm(farc.Ahsm):
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
-            logging.debug("PHY._lingering._listening")
+            logging.debug("PHY._listening")
             action = self._pop_soon_action()
             stngs = self._base_stngs.copy()
             if action:
@@ -387,7 +387,7 @@ class SX127xHsm(farc.Ahsm):
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:
-            logging.debug("PHY._lingering._sleeping")
+            logging.debug("PHY._sleeping")
             self._sx127x.write_opmode(SX127x.OPMODE_SLEEP)
             return self.handled(event)
 
@@ -432,7 +432,7 @@ class SX127xHsm(farc.Ahsm):
             tiny_sleep = tx_time - now
             if tiny_sleep > SX127xHsm._TM_BLOCKING_MAX:
                 tiny_sleep = SX127xHsm._TM_BLOCKING_MAX
-            if tiny_sleep > 0.001:
+            if tiny_sleep > SX127xHsm._TM_BLOCKING_MIN:
                 time.sleep(tiny_sleep)
 
             # Start software timer for backstop
@@ -454,14 +454,8 @@ class SX127xHsm(farc.Ahsm):
 
         elif sig == farc.Signal._PHY_TMOUT:
             logging.warning("PHY._txing@_PHY_TMOUT")
-            if self._sx127x.in_sim_mode():
-                # Sim-radio will never emit DIO events
-                # so go straight to _scheduling
-                return self.tran(self._scheduling)
-            else:
-                # SX127x takes time to change modes from TX to STBY.
-                self._sx127x.write_opmode(SX127x.OPMODE_STBY)
-                return self.tran(self._scheduling)
+            self._sx127x.write_opmode(SX127x.OPMODE_STBY)
+            return self.tran(self._scheduling)
 
         elif sig == farc.Signal.EXIT:
             self.tmout_evt.disarm()

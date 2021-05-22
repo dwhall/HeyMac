@@ -27,8 +27,8 @@
      </state_glyph>
     </state>
     <state name="_scheduling">
-     <entry brief="post_fifo(_ALWAYS)"/>
-     <tran trig="_ALWAYS">
+     <entry brief="post_in(delay)"/>
+     <tran trig="_PHY_TMOUT">
       <choice target="../../../3">
        <choice_glyph conn="36,40,5,3,6,-8,2">
         <action box="1,0,10,2"/>

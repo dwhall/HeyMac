@@ -19,16 +19,14 @@ from tui_hsm import TxtUiHsm
 
 def main():
     # logging.basicConfig(
-    #    stream=sys.stdout,
+    #    filename="/home/pi/heymaclog.txt",
     #    format="%(asctime)s %(message)s",
-    #    level=logging.INFO)
-
-    _PPS_PIN = 26
+    #    level=logging.DEBUG)
 
     phy_hsm = SX127xHsm(True)
     lnk_hsm = HeymacCsmaHsm(phy_hsm)
     tui_hsm = TxtUiHsm(phy_hsm, lnk_hsm)
-    gps_hsm = GpsHsm(_PPS_PIN)
+    gps_hsm = GpsHsm(pps_pin=26)
 
     lnk_hsm.start(50)
     phy_hsm.start(40)
