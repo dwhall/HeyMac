@@ -443,6 +443,7 @@ class SX127xHsm(farc.Ahsm):
             return self.handled(event)
 
         elif sig == farc.Signal._DIO_TX_DONE:
+            self._sx127x.write_lora_irq_flags(SX127x.IRQ_FLAGS_TXDONE)
             # TODO: phy stats TX_DONE
             return self.tran(self._scheduling)
 
