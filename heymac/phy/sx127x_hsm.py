@@ -193,11 +193,15 @@ class SX127xHsm(farc.Ahsm):
             if SX127x.OPMODE_STBY == self._sx127x.read_opmode():
                 delay = 0.0
             else:
-                delay = 0.1
+                delay = 0.010
             self.tmout_evt.post_in(self, delay)
             return self.handled(event)
 
         elif sig == farc.Signal._PHY_TMOUT:
+            if SX127x.OPMODE_STBY != self._sx127x.read_opmode():
+                self.tmout_evt.post_in(self, 0.010)
+                return self.handled(event)
+
             # If the next action is soon, go to its state
             next_action = self._top_soon_action()
             self._default_action = not bool(next_action)
