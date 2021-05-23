@@ -3,6 +3,7 @@ Copyright 2020 Dean Hall.  See LICENSE for details.
 """
 
 import collections
+import math
 import time
 
 try:
@@ -133,6 +134,32 @@ class SX127x(object):
         self._stngs = SX127xSettings()
 
 # Public
+
+    def calc_on_air_time(self, payld_len):
+        """Returns the on-air time for the given TX bytes."""
+        # Prepare input params
+        BW = self._get_actual_bw(self._stngs.get_applied("FLD_LORA_BW"))
+        SF = self._stngs.get_applied("FLD_LORA_SF")
+        n_pre = 0  # reset
+        PL = payld_len
+        CRC = self._stngs.get_applied("FLD_LORA_CRC_EN")
+        IH = not self._stngs.get_applied("FLD_LORA_IMPLCT_HDR_MODE")
+        DE = 0  # reset
+        CR = self._stngs.get_applied("FLD_LORA_CR")
+
+        # Equations from SX1276 datasheet v6, p31
+        Rsym = BW / (2 ** SF)
+        Tsym = 1.0 / Rsym
+        Tpre = (n_pre + 4.25) * Tsym
+        n_payld = 8 + max(
+            (CR + 4) * math.ceil(
+                (8 * PL - 4 * SF + 28 + 16 * CRC - 20 * IH)
+                / 4 * (SF - 2 * DE)),
+            0)
+        Tpayld = n_payld * Tsym
+        Tpkt = Tpre + Tpayld
+        return Tpkt
+
 
     def clear_irq_flags(self):
         """Writes the IRQ flags reg back to itself to clear the flags
@@ -428,6 +455,13 @@ class SX127x(object):
             dio5_to_sig_lut[self._stngs.get_applied("FLD_RDO_DIO5")])
 
 
+    @staticmethod
+    def _get_actual_bw(bw_idx):
+        actual_bw = (
+            7800, 10400, 15600, 20800, 31250, 41700, 62500, 125000, 250000,
+            500000)
+        return actual_bw[bw_idx]
+
     def _read(self, reg_addr, nbytes=1):
         """Reads a byte (or more) from the register.
         Returns list of bytes (even if there is only one).
@@ -575,8 +609,8 @@ class SX127xSettings(object):
 
     # Field info table
     _fld_info = {
-        # field                              lora    reg                                reg     bit     bit     val                 val                 val
-        # name                               mode    start                              cnt     start   cnt     min                 max                 reset
+        # field                              lora    reg                             reg     bit     bit     val                 val                 val
+        # name                               mode    start                           cnt     start   cnt     min                 max                 reset
         "FLD_RDO_LF_MODE":          FldInfo( False,  SX127x.REG_RDO_OPMODE,          1,      3,      1,      0,                  1,                  1                   ),
         "FLD_RDO_LORA_MODE":        FldInfo( False,  SX127x.REG_RDO_OPMODE,          1,      7,      1,      0,                  1,                  0                   ),
         "FLD_RDO_FREQ":             FldInfo( False,  SX127x.REG_RDO_FREQ_MSB,        3,      0,      8,      STNG_RF_FREQ_MIN,   STNG_RF_FREQ_MAX,   434000000           ),

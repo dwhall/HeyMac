@@ -21,6 +21,7 @@ class SX127xHsm(farc.Ahsm):
     TM_NOW = 0          # Use normally for "do it now"
     TM_IMMEDIATE = -1   # Use sparingly to jump the queue
 
+    _TX_TMOUT_MARGIN = 0.25 # percent
 
     def __init__(self, lstn_by_dflt):
         """Class intialization
@@ -441,7 +442,10 @@ class SX127xHsm(farc.Ahsm):
                 time.sleep(tiny_sleep)
 
             # Start software timer for backstop
-            self.tmout_evt.post_in(self, 1.0)   # TODO: calc soft timeout delta
+            tmout = (1.0 + SX127xHsm._TX_TMOUT_MARGIN) * \
+                self._sx127x.calc_on_air_time(len(tx_bytes))
+            logging.debug(f"PHY._txing tmout={tmout}") # DWH DEBUG
+            self.tmout_evt.post_in(self, tmout)
 
             # Start transmission and await DIO_TX_DONE
             self._sx127x.write_opmode(SX127x.OPMODE_TX)
