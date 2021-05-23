@@ -143,7 +143,7 @@ class SX127x(object):
         n_pre = 0  # reset
         PL = payld_len
         CRC = self._stngs.get_applied("FLD_LORA_CRC_EN")
-        IH = not self._stngs.get_applied("FLD_LORA_IMPLCT_HDR_MODE")
+        IH = self._stngs.get_applied("FLD_LORA_IMPLCT_HDR_MODE")
         DE = 0  # reset
         CR = self._stngs.get_applied("FLD_LORA_CR")
 
@@ -154,7 +154,7 @@ class SX127x(object):
         n_payld = 8 + max(
             (CR + 4) * math.ceil(
                 (8 * PL - 4 * SF + 28 + 16 * CRC - 20 * IH)
-                / 4 * (SF - 2 * DE)),
+                / (4 * SF - 8 * DE)),
             0)
         Tpayld = n_payld * Tsym
         Tpkt = Tpre + Tpayld
