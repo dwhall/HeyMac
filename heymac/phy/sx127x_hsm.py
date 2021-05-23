@@ -444,7 +444,6 @@ class SX127xHsm(farc.Ahsm):
             # Start software timer for backstop
             tmout = (1.0 + SX127xHsm._TX_TMOUT_MARGIN) * \
                 self._sx127x.calc_on_air_time(len(tx_bytes))
-            logging.debug(f"PHY._txing tmout={tmout}") # DWH DEBUG
             self.tmout_evt.post_in(self, tmout)
 
             # Start transmission and await DIO_TX_DONE
