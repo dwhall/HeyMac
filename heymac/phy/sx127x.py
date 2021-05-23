@@ -148,16 +148,10 @@ class SX127x(object):
         CR = self._stngs.get_applied("FLD_LORA_CR")
 
         # Equations from SX1276 datasheet v6, p31
-        Rsym = BW / (2 ** SF)
-        Tsym = 1.0 / Rsym
-        Tpre = (n_pre + 4.25) * Tsym
-        n_payld = 8 + max(
-            (CR + 4) * math.ceil(
-                (8 * PL - 4 * SF + 28 + 16 * CRC - 20 * IH)
-                / (4 * SF - 8 * DE)),
-            0)
-        Tpayld = n_payld * Tsym
-        Tpkt = Tpre + Tpayld
+        inner_term = (2 * PL - SF + 7 + 4 * CRC - 5 * IH) / (SF - 2 * DE)
+        n_payld = 8 + max(math.ceil(inner_term) * (CR + 4), 0)
+        Tsym = (2 ** SF) / BW
+        Tpkt = (4.25 + n_pre + n_payld) * Tsym
         return Tpkt
 
 
