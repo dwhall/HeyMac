@@ -384,7 +384,8 @@ class HeymacFrame(object):
                     (self._hops, "hops"),
                     (self._taddr, "taddr")):
                 if field:
-                    err_msg = f"Extended frame has field other than {field_nm}"
+                    err_msg = "Extended frame has field other than {}" \
+                              .format(field_nm)
                     break
         if err_msg:
             raise HeymacFrameError(err_msg)

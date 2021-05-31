@@ -117,7 +117,7 @@ class APv6Packet(object):
             APv6Packet._FLD_PAYLD)
         for field_name in kwargs:
             if field_name not in pkt_field_names:
-                raise APv6PacketError(f"Invalid field: {field_name}")
+                raise APv6PacketError("Invalid field: {}".format(field_name))
         if APv6Packet._FLD_HDR in kwargs:
             if kwargs["hdr"] != built_hdr[0]:
                 raise APv6PacketError("Header doesn't match given fields")
