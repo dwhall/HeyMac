@@ -342,6 +342,15 @@ class HeymacFrame(object):
         Fctl bits indicate a field is needed, but it's not present;
         or a field is present, but the Fctl bit is not set.
         """
+        FIELD_INFO = (
+            (HeymacFrame.FCTL_N, self._netid, "netid"),
+            (HeymacFrame.FCTL_D, self._daddr, "daddr"),
+            (HeymacFrame.FCTL_I, self._ies, "ies"),
+            (HeymacFrame.FCTL_S, self._saddr, "saddr"),
+            (HeymacFrame.FCTL_M, self._hops, "hops"),
+            (HeymacFrame.FCTL_M, self._taddr, "taddr"),
+        )
+
         err_msg = None
         if not err_msg and self._pid is None:
             err_msg = "PID value is missing"
@@ -352,19 +361,12 @@ class HeymacFrame(object):
         # the data field exists and vice versa
         if not err_msg:
             fctl = self._fctl
-            for bit, field, field_nm in (
-                    (HeymacFrame.FCTL_N, self._netid, "netid"),
-                    (HeymacFrame.FCTL_D, self._daddr, "daddr"),
-                    # (HeymacFrame.FCTL_I, self._ies, "ies"), # TODO: IEs
-                    (HeymacFrame.FCTL_S, self._saddr, "saddr"),
-                    (HeymacFrame.FCTL_M, self._hops, "hops"),
-                    (HeymacFrame.FCTL_M, self._taddr, "taddr"),):
+            for bit, field, field_nm in FIELD_INFO:
                 if (bit & fctl and not field) or ((bit & fctl) == 0 and field):
                     err_msg = "Fctl bit/value missing for Fctl bit 0x{:x} " \
                               "and field '{}'".format(bit, field_nm)
                     break
 
-        # Special cases
         # If FCTL_L is set, at least one address field must exist
         if not err_msg and (
                 HeymacFrame.FCTL_L & fctl
@@ -375,17 +377,11 @@ class HeymacFrame(object):
 
         # If FCTL_X is set, only the payload should exist
         if not err_msg and HeymacFrame.FCTL_X & fctl:
-            for field, field_nm in (
-                    (self._netid, "netid"),
-                    (self._daddr, "daddr"),
-                    (self._ies, "ies"),
-                    (self._saddr, "saddr"),
-                    (self._mic, "mic"),
-                    (self._hops, "hops"),
-                    (self._taddr, "taddr")):
+            for _, field, field_nm in FIELD_INFO:
                 if field:
                     err_msg = "Extended frame has field other than {}" \
                               .format(field_nm)
                     break
+
         if err_msg:
             raise HeymacFrameError(err_msg)
