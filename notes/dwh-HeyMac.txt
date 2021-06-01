@@ -158,16 +158,16 @@ Information Elements
 
 Note for comparison:
 IEEE 802.15.4 spec 7.4.2.1.
-2-octet header, followed by 0..127 octet content.
-[TIIIIIIIILLLLLLL]
-T = Type (always 0)
-I = Element ID (0..255)
-L = Length (0..127)
+    2-octet header, followed by 0..127 octets of content.
+    [TIIIIIIIILLLLLLL]
+    T = Type (always 0)
+    I = Element ID (0..255)
+    L = Length (0..127)
 
-Information Elements
-(think of them as extended frame control data)
-hIE: header IE: must not be included in Cipher range
-bIE: body IE: may included in Cipher range
+HeyMac Information Elements
+    (think of them as extended frame control data)
+    hIE: header IE: not encrypted, may be authenticated
+    bIE: body IE: may be encrypted and/or authenticated
 
 ==========  ==========  ====================
 bit pattern h,b         IE size (count of octets that follow)
@@ -181,7 +181,9 @@ bit pattern h,b         IE size (count of octets that follow)
 0001 001t     1             FragN hdr (successive fragment)
                                 11 bits datagram_offset
                                 5  bits datagram_tag
-2-7                         RFU
+0010                        RFU
+...                         RFU
+0111                        RFU
 bxxx 00Tt   8,8         0 (1-bit flag)
 ==========  ==========  ====================
 (t = IE is terminator, T = Type 0:hIE, 1:bIE)

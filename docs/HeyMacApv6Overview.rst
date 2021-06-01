@@ -176,7 +176,7 @@ L+: IPv6, UDP and Fragmentation
 
 HeyMac is designed to work with IPv6 networks by using the APv6 adaptation layer.
 APv6 offers both IPv6 and UDP header compression.  Compression benefits the most
-when the UDP message travels strictly withing the HeyMac network because short addresses
+when the UDP message travels strictly within the HeyMac network because short addresses
 can be used.  However, APv6 also allows 128-bit addressing for bridging and border-routing
 to a full-scale IPv6 network.  Unfortunately, TCP traffic will not yet flow into the HeyMac network.
 
