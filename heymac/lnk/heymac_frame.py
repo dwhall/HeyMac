@@ -18,7 +18,7 @@ class HeymacFrame(object):
     =========   ======================================
     Bitfield    Description
     =========   ======================================
-    XXXX ....   PID ident
+    1110 ....   PID ident
     .... XXXX   PID type
     ---------   --------------------------------------
     1110 00vv   Heymac TDMA, (vv)ersion
@@ -81,8 +81,10 @@ class HeymacFrame(object):
     FCTL_M = 0b00000010     # Multihop fields present
     FCTL_P = 0b00000001     # Pending frame follows
 
+    FIELDS_NAMES = (
+        "netid", "daddr", "ies", "saddr", "payld", "mic", "hops", "taddr")
 
-    def __init__(self, pid, fctl):
+    def __init__(self, pid, fctl, **kwargs):
         """Creates a HeymacFrame starting with the given PID and Fctl."""
         # Validate arguments
         if (pid & HeymacFrame._PID_IDENT_MASK) != HeymacFrame.PID_IDENT_HEYMAC:
@@ -102,6 +104,10 @@ class HeymacFrame(object):
         self._hops = None
         self._taddr = None
 
+        for k, v in kwargs.items():
+            if k not in HeymacFrame.FIELDS_NAMES:
+                raise HeymacFrameError("Invalid field, {}".format(k))
+            setattr(self, k, v)
 
     def __bytes__(self):
         """Returns the HeymacFrame serialized into a bytes object.

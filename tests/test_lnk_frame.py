@@ -157,5 +157,39 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertIsNone(f.taddr)
 
 
+    def test_saddr16b_daddr16b_arg(self):
+        # Build and serialize
+        f = HeymacFrame(
+            HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
+            HeymacFrame.FCTL_S | HeymacFrame.FCTL_D,
+            daddr=b"\xd1\xd2",
+            saddr=b"\xc1\xc2",
+            payld=b"hello world")
+        b = bytes(f)
+        self.assertEqual(b, b"\xE4\x14\xd1\xd2\xc1\xc2hello world")
+        # Parse and test
+        f = HeymacFrame.parse(b)
+        self.assertEqual(f.fctl, 0x14)
+        self.assertIsNone(f.netid)
+        self.assertEqual(f.daddr, b"\xd1\xd2")
+        self.assertEqual(f.saddr, b"\xc1\xc2")
+        self.assertEqual(f.payld, b"hello world")
+        self.assertIsNone(f.hops)
+        self.assertIsNone(f.taddr)
+
+
+    def _test_invalid_field(self):
+        # Build and serialize
+        f = HeymacFrame(
+            HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
+            HeymacFrame.FCTL_S | HeymacFrame.FCTL_D,
+            daddr=b"\xd1\xd2",
+            saddr=b"\xc1\xc2",
+            timmy=b"timmy")
+
+    def test_invalid_field(self):
+        self.assertRaises(HeymacFrameError, self._test_invalid_field)
+
+
 if __name__ == '__main__':
     unittest.main()
