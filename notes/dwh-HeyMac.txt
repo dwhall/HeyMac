@@ -164,40 +164,45 @@ IEEE 802.15.4 spec 7.4.2.1.
     I = Element ID (0..255)
     L = Length (0..127)
 
-HeyMac Information Elements
-    (think of them as extended frame control data)
+HeyMac Information Elements:
     hIE: header IE: not encrypted, may be authenticated
-    bIE: body IE: may be encrypted and/or authenticated
+    pIE: payload IE: may be encrypted and/or authenticated
 
-==========  ==========  ====================
-bit pattern h,b         IE size (count of octets that follow)
-----------  ----------  --------------------
-0000 11Tt   1,1         18 (first octet is ID, 16 octets of data)
-0000 10Tt   1,1         10 (first octet is ID,  8 octets of data)
-0000 01Tt   1,1         6  (first octet is ID,  4 octets of data)
-0000 001t     1             Frag1 hdr (first fragment)
-                                11 bits datagram_sz
-                                5  bits datagram_tag
-0001 001t     1             FragN hdr (successive fragment)
-                                11 bits datagram_offset
-                                5  bits datagram_tag
-0010                        RFU
-...                         RFU
-0111                        RFU
-bxxx 00Tt   8,8         0 (1-bit flag)
-==========  ==========  ====================
-(t = IE is terminator, T = Type 0:hIE, 1:bIE)
+    IE    := {IEctl [, [length,] extra data]}
+    IEctl := [SzTTTTTT] (8b)
+    Sz    := Size (2b)
+    TTTTT := Type (6b)
 
+=== ==================================================
+Sz  meaning
+=== ==================================================
+00  1b data in lsb of Sz.  No length or extra data.
+01  1b data in lsb of Sz.  No length or extra data.
+10  No length byte, 2B of extra data.
+11  first byte of extra data is length of data that follows
+=== ==================================================
 
-IE Uses
--------
+hIE := the MSb of TTTTTT is 0
+pIE := the MSb of TTTTTT is 1
 
-hIEs
-    Encipher Algo
-bIEs
-    Frag1,N header
-    MIC Algo
-    Sequence Number
+The IE field is a string of IEs.
+The hIE MUST come before any pIE.
+IFF an hIE exists in the IE field,
+the sequence of hIE MUST be terminated by the TERMh IE.
+The IE field, if present, MUST be terminated by the TERMp IE.
+
+==========  === ====================================
+Sz pTTTTT   h/p IE
+==========  === ====================================
+00 000000   h   TERMh hIE sequence terminator
+10 000001   h   Sequence number
+10 000010   h   CIPHER Encipher info
+----------  --- ------------------------------------
+00 100000   p   TERMp pIE sequence terminator
+10 100001   p   FRAG0 First fragment info
+10 100010   p   FRAGN Subsequent fragment info
+10 100011   p   MIC Message Integrity Code info
+==========  === ====================================
 
 
 Commands

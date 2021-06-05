@@ -4,6 +4,8 @@ Copyright 2020 Dean Hall.  See LICENSE file for details.
 Link-layer Heymac frame parsing, building and serializing.
 """
 
+import struct
+
 
 class HeymacFrameError(Exception):
     pass
@@ -391,3 +393,190 @@ class HeymacFrame(object):
 
         if err_msg:
             raise HeymacFrameError(err_msg)
+
+
+class HeymacIeError(HeymacFrameError):
+    pass
+
+
+class HeymacIe(object):
+    """Information Elements contain auxiliary frame data.
+
+    The IE field of the Heymac frame contains:
+    optionally zero or more Header IEs (hIE) and the hIE terminator
+    followed by zero or more Payload IEs (pIE) and the pIE terminator.
+    The hIE terminator is only REQUIRED if there are hIEs,
+    but the pIE terminator is REQUIRED if there is at least one
+    of any kind of IE.
+
+    If MIC is enabled, both hIEs and pIEs are included in MIC calculations.
+    If enciphering is enabled, enciphering does NOT include hIEs or
+    the hIE terminator.  Enciphering begins at the first pIE if present.
+    """
+    SZ_MASK = 0b11_000000
+    SZ_BIT0 = 0b00_000000
+    SZ_BIT1 = 0b01_000000
+    SZ_2B = 0b10_000000
+    SZ_N = 0b11_000000  # the byte following IEctl contains the length
+
+    TYPE_MASK = 0b00_111111
+    TYPE_PIE = 0b00_100000  # Payload IE indicator
+
+    # Header IEs (MSb of Type field is 0)
+    TYPE_TERM_HIE = 0b00_000000
+    TYPE_SQNC = 0b10_000001
+    TYPE_CIPHER = 0b10_000010
+
+    # Payload IEs (MSb of Type field is 1)
+    TYPE_TERM_PIE = 0b00_000000
+    TYPE_FRAG0 = 0b00_000001
+    TYPE_FRAGN = 0b00_000010
+    TYPE_MIC = 0b00_000011
+
+    def __init__(self, ie_ctl, **kwargs):
+        self._iectl = ie_ctl
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+    def __bytes__(self):
+        return struct.pack("B", self._iectl)
+
+    @classmethod
+    def parse(cls, ie_bytes):
+        subcls = HeymacIeUnknown
+        for ie_cls in cls.__subclasses__():
+            if ie_cls._IECTL_VAL == ie_bytes[0]:
+                subcls = ie_cls
+                break
+        return subcls.parse(ie_bytes)
+
+
+    @staticmethod
+    def _get_sz(ie_bytes):
+        SZ = {
+            HeymacIe.SZ_BIT0: 0,
+            HeymacIe.SZ_BIT1: 0,
+            HeymacIe.SZ_2B: 2,
+            HeymacIe.SZ_N: -1,
+        }
+        sz = SZ[ie_bytes[0] & HeymacIe.SZ_MASK]
+        if sz == -1:
+            if len(ie_bytes) <= 1:
+                raise HeymacIeError("Sz byte absent")
+            sz = ie_bytes[1]
+        return sz
+
+
+class HeymacIeUnknown(HeymacIe):
+    _IECTL_VAL = None
+
+
+class HeymacHIeTerm(HeymacIe):
+    _IECTL_VAL = HeymacIe.SZ_BIT0 | HeymacIe.TYPE_TERM_HIE
+
+    def __init__(self):
+        super().__init__(self._IECTL_VAL)
+
+    @staticmethod
+    def parse(ie_bytes):
+        return HeymacHIeTerm()
+
+
+class HeymacHIeSqncNmbr(HeymacIe):
+    _IECTL_VAL = HeymacIe.SZ_2B | HeymacIe.TYPE_SQNC
+
+    def __init__(self, sqnc_nmbr):
+        super().__init__(self._IECTL_VAL, _sqnc_nmbr=sqnc_nmbr)
+
+    def __bytes__(self):
+        return struct.pack("!BH", self._iectl, self._sqnc_nmbr)
+
+    @staticmethod
+    def parse(ie_bytes):
+        return HeymacHIeSqncNmbr(struct.unpack("!H", ie_bytes[1:])[0])
+
+
+class HeymacHIeCipher(HeymacIe):
+    _IECTL_VAL = HeymacIe.SZ_2B | HeymacIe.TYPE_CIPHER
+
+    def __init__(self, cipher_info):
+        super().__init__(self._IECTL_VAL, _cipher_info=cipher_info)
+
+    def __bytes__(self):
+        return struct.pack("!BH", self._iectl, self._cipher_info)
+
+    @staticmethod
+    def parse(ie_bytes):
+        return HeymacHIeCipher(struct.unpack("!H", ie_bytes[1:])[0])
+
+
+class HeymacPIeTerm(HeymacIe):
+    _IECTL_VAL = HeymacIe.SZ_BIT0 | HeymacIe.TYPE_TERM_PIE | HeymacIe.TYPE_PIE
+
+    def __init__(self):
+        super().__init__(self._IECTL_VAL)
+
+    @staticmethod
+    def parse(ie_bytes):
+        return HeymacPIeTerm()
+
+
+class HeymacPIeFrag0(HeymacIe):
+    _IECTL_VAL = HeymacIe.SZ_2B | HeymacIe.TYPE_FRAG0 | HeymacIe.TYPE_PIE
+
+    def __init__(self, dgram_sz, dgram_tag):
+        super().__init__(self._IECTL_VAL,
+                         _dgram_sz=dgram_sz,
+                         _dgram_tag=dgram_tag)
+
+    def __bytes__(self):
+        return struct.pack("!BH",
+                           self._iectl,
+                           (self._dgram_sz << 5) | self._dgram_tag)
+
+    @staticmethod
+    def parse(ie_bytes):
+        data = struct.unpack("!H", ie_bytes[1:])[0]
+        dgram_sz = data >> 5
+        dgram_tag = data & 0x1F
+        return HeymacPIeFrag0(dgram_sz, dgram_tag)
+
+
+class HeymacPIeFragN(HeymacIe):
+    _IECTL_VAL = HeymacIe.SZ_2B | HeymacIe.TYPE_FRAGN | HeymacIe.TYPE_PIE
+
+    def __init__(self, dgram_offset, dgram_tag):
+        super().__init__(self._IECTL_VAL,
+                         _dgram_offset=dgram_offset,
+                         _dgram_tag=dgram_tag)
+
+    def __bytes__(self):
+        return struct.pack("!BH",
+                           self._iectl,
+                           (self._dgram_offset << 5) | self._dgram_tag)
+
+    @staticmethod
+    def parse(ie_bytes):
+        data = struct.unpack("!H", ie_bytes[1:])[0]
+        dgram_offset = data >> 5
+        dgram_tag = data & 0x1F
+        return HeymacPIeFragN(dgram_offset, dgram_tag)
+
+
+class HeymacPIeMic(HeymacIe):
+    _IECTL_VAL = HeymacIe.SZ_2B | HeymacIe.TYPE_MIC | HeymacIe.TYPE_PIE
+
+    def __init__(self, mic_algo, mic_sz):
+        super().__init__(self._IECTL_VAL, _mic_algo=mic_algo, _mic_sz=mic_sz)
+
+    def __bytes__(self):
+        return struct.pack("!BH",
+                           self._iectl,
+                           (self._mic_algo << 8) | (self._mic_sz & 0x0F))
+
+    @staticmethod
+    def parse(ie_bytes):
+        data = struct.unpack("!H", ie_bytes[1:])[0]
+        mic_algo = data >> 8
+        mic_sz = data & 0x0F
+        return HeymacPIeMic(mic_algo, mic_sz)
