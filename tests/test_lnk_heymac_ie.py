@@ -8,7 +8,7 @@ from heymac.lnk import HeymacIe, HeymacIeError, \
     HeymacPIeTerm, HeymacPIeFrag0, HeymacPIeFragN, HeymacPIeMic
 
 
-class TestHeyMacCmd(unittest.TestCase):
+class TestHeyMacIe(unittest.TestCase):
     """Tests the HeymacIE building and serializing."""
 
     def test_HIeTerm(self):
