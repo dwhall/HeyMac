@@ -10,8 +10,8 @@ HeyMac offers 16- and 64-bit addressing, multi-network and multi-hop capabilitie
 Extensions for cryptographic authentication and encryption are possible.
 
 
-This implementation of HeyMac is written in Python3 using the [farc](https://github.com/dwhall/farc)
-  hierarchical state machine framework.
+This implementation of HeyMac is written in Python3 using the `farc <https://github.com/dwhall/farc>`_
+hierarchical state machine framework.
 
 
 HeyMac Frame
@@ -101,17 +101,6 @@ Furthermore, the Pending flag is an indication of more frames to follow.
     | X | L | N | D | I | S | M | P |
     +---+---+---+---+---+---+---+---+
 
-    X := eXtended frame indicator
-    L := Long addressing
-    N := Net ID present
-    D := Dst addr present
-    I := IE(s) present
-    S := Src addr present
-    M := Multihop fields are present
-    P := Pending frame to follow
-
-Details:
-
 **X: Extended Frame**
     If the X bit is set, the remaining bits in the Fctl field no longer hold
     the meaning given above.  Instead, the remaining seven bits become the Extended Frame Id.
@@ -123,28 +112,28 @@ Details:
     in an IE, unless explicitly defined by the IE to be a specific size.
     If 0, the addresses are 2 octets (16 bits) in size, if present.
 
-**N: Net ID**
+**N: Net ID present**
     If 1, the two-octet Net ID is present in the header.
 
-**D: Destination Address**
+**D: Destination Address present**
     If 1, the Destination Address is present in the header.
     If the Destination Address is not present, the Destination Address may be derived
     from the destination in the NET layer.
     If the Destination Address is not present and there is no destination information
     in the NET layer, the Destination Address is assumed to be the Root address (0x0000).
 
-**I: Information Elements**
+**I: Information Elements present**
     If 1, a sequence of one or more IEs
     follow the Destination Address.
 
-**S: Source Address**
+**S: Source Address present**
     If 1, the Source Address is present in the header.
     If the Source Address is not present, the Source Address may be derived
     from the source in the NET layer.
     If the Source Address is not present and there is no source information
     in the NET layer, the Source Address is assumed to be the Root address (0x0000).
 
-**M: Multihop**
+**M: Multihop fields present**
     If 1, the Hops and TxAddr fields are present in the footer.
     The Hops field is one octet that gives the remaining number of hops this frame
     may be retransmitted.  The TxAddr field is the address of the
@@ -236,8 +225,10 @@ Sz  meaning
 11  first byte of extra data is length of data that follows
 === ==================================================
 
-hIE := the MSb of TTTTTT is 0
-pIE := the MSb of TTTTTT is 1
+::
+
+    hIE := the MSb of TTTTTT is 0
+    pIE := the MSb of TTTTTT is 1
 
 The IE field is a sequence of IEs.
 The hIE MUST come before any pIE.

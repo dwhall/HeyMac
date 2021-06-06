@@ -40,7 +40,7 @@ that instantiates the LNK layer.
 ======================  ================================================
 Callable                Description
 ======================  ================================================
-``HeymacHsm()``     Constructor for the state machine
+``HeymacHsm()``         Constructor for the state machine
                         accepts one argument.
 
                         - *arg* tbd

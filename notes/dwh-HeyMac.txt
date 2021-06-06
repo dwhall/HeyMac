@@ -156,53 +156,13 @@ payld_sz = frame_sz - hdr_sz - ftr_sz
 Information Elements
 --------------------
 
-Note for comparison:
-IEEE 802.15.4 spec 7.4.2.1.
+Reference: IEEE 802.15.4 spec 7.4.2.1.
     2-octet header, followed by 0..127 octets of content.
     [TIIIIIIIILLLLLLL]
     T = Type (always 0)
     I = Element ID (0..255)
     L = Length (0..127)
 
-HeyMac Information Elements:
-    hIE: header IE: not encrypted, may be authenticated
-    pIE: payload IE: may be encrypted and/or authenticated
-
-    IE    := {IEctl [, [length,] extra data]}
-    IEctl := [SzTTTTTT] (8b)
-    Sz    := Size (2b)
-    TTTTT := Type (6b)
-
-=== ==================================================
-Sz  meaning
-=== ==================================================
-00  1b data in lsb of Sz.  No length or extra data.
-01  1b data in lsb of Sz.  No length or extra data.
-10  No length byte, 2B of extra data.
-11  first byte of extra data is length of data that follows
-=== ==================================================
-
-hIE := the MSb of TTTTTT is 0
-pIE := the MSb of TTTTTT is 1
-
-The IE field is a sequence of IEs.
-The hIE MUST come before any pIE.
-IFF an hIE exists in the IE field,
-the sequence of hIE MUST be terminated by the TERMh IE.
-The IE field, if present, MUST be terminated by the TERMp IE.
-
-==========  === ====================================
-Sz pTTTTT   h/p IE
-==========  === ====================================
-00 000000   h   TERMh hIE sequence terminator
-10 000001   h   Sequence number
-10 000010   h   CIPHER Encipher info
-----------  --- ------------------------------------
-00 100000   p   TERMp pIE sequence terminator
-10 100001   p   FRAG0 First fragment info
-10 100010   p   FRAGN Subsequent fragment info
-10 100011   p   MIC Message Integrity Code info
-==========  === ====================================
 
 
 Commands
