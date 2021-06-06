@@ -185,7 +185,7 @@ Sz  meaning
 hIE := the MSb of TTTTTT is 0
 pIE := the MSb of TTTTTT is 1
 
-The IE field is a string of IEs.
+The IE field is a sequence of IEs.
 The hIE MUST come before any pIE.
 IFF an hIE exists in the IE field,
 the sequence of hIE MUST be terminated by the TERMh IE.

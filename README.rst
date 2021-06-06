@@ -1,7 +1,7 @@
 HeyMac
 ======
 
-HeyMac is a a `frame definition <docs/HeyMacFrame.md>`_,
+HeyMac is a a `frame definition <docs/HeyMacFrame.rst>`_,
 a protocol and and data communication stack
 designed to carry Data Link (Layer 2) and Network (Layer 3) frames
 between modest data rate, small payload radio modems such as the Semtech SX127x.
