@@ -99,7 +99,7 @@ class HeymacFrame(object):
         self._fctl = fctl
         self._netid = None
         self._daddr = None
-        self._ies = None
+        self._ie_sqnc = None
         self._saddr = None
         self._payld = None
         self._mic = None
@@ -131,7 +131,8 @@ class HeymacFrame(object):
                 frame.extend(self._netid)
             if self.is_daddr_present():
                 frame.extend(self._daddr)
-            # TODO: add IEs
+            if self.is_ies_present():
+                frame.extend(bytes(self._ie_sqnc))
             if self.is_saddr_present():
                 frame.extend(self._saddr)
             if self._payld:
@@ -180,7 +181,10 @@ class HeymacFrame(object):
                 frame.daddr = frame_bytes[offset:offset + addr_sz]
                 offset += addr_sz
 
-            # TODO: parse IEs
+            if frame.is_ies_present():
+                ies = HeymacIeSequence.parse(frame_bytes, offset)
+                frame.ies = ies
+                offset += len(ies)
 
             if frame.is_saddr_present():
                 frame.saddr = frame_bytes[offset:offset + addr_sz]
@@ -293,6 +297,15 @@ class HeymacFrame(object):
         self._daddr = val
 
     @property
+    def ies(self):
+        # TODO: return bytes object, list of IE objects or HeymacIeSequence?
+        return self._ie_sqnc
+
+    @ies.setter
+    def ies(self, val):
+        self._ie_sqnc = val
+
+    @property
     def saddr(self):
         return self._saddr
 
@@ -353,7 +366,7 @@ class HeymacFrame(object):
         FIELD_INFO = (
             (HeymacFrame.FCTL_N, self._netid, "netid"),
             (HeymacFrame.FCTL_D, self._daddr, "daddr"),
-            (HeymacFrame.FCTL_I, self._ies, "ies"),
+            (HeymacFrame.FCTL_I, self._ie_sqnc, "ies"),
             (HeymacFrame.FCTL_S, self._saddr, "saddr"),
             (HeymacFrame.FCTL_M, self._hops, "hops"),
             (HeymacFrame.FCTL_M, self._taddr, "taddr"),
@@ -439,39 +452,50 @@ class HeymacIe(object):
             setattr(self, k, v)
 
     def __bytes__(self):
+        # This only works for SZ_BIT*.  Other sizes will need to override this.
         return struct.pack("B", self._iectl)
 
-    @classmethod
-    def parse(cls, ie_bytes):
-        subcls = HeymacIeUnknown
-        for ie_cls in cls.__subclasses__():
-            if ie_cls._IECTL_VAL == ie_bytes[0]:
-                subcls = ie_cls
-                break
-        return subcls.parse(ie_bytes)
+    def __len__(self):
+        # FIXME: this doesn't handle IEs of SZ_N
+        return 1 + self._get_sz(self._iectl)
 
-
-    @staticmethod
-    def _get_sz(ie_bytes):
+    def _get_sz(self, ie_ctl):
         SZ = {
             HeymacIe.SZ_BIT0: 0,
             HeymacIe.SZ_BIT1: 0,
             HeymacIe.SZ_2B: 2,
             HeymacIe.SZ_N: -1,
         }
-        sz = SZ[ie_bytes[0] & HeymacIe.SZ_MASK]
+        sz = SZ[ie_ctl & HeymacIe.SZ_MASK]
         if sz == -1:
-            if len(ie_bytes) <= 1:
-                raise HeymacIeError("Sz byte absent")
-            sz = ie_bytes[1]
+            raise HeymacIeError("Sz byte absent")
         return sz
+
+    @classmethod
+    def parse(cls, ie_bytes):
+        subcls = HeymacIeUnknown
+        subclasses = list(HeymacHIe.__subclasses__())
+        subclasses.extend(HeymacPIe.__subclasses__())
+        for ie_cls in subclasses:
+            if ie_cls._IECTL_VAL == ie_bytes[0]:
+                subcls = ie_cls
+                break
+        return subcls.parse(ie_bytes)
 
 
 class HeymacIeUnknown(HeymacIe):
     _IECTL_VAL = None
 
 
-class HeymacHIeTerm(HeymacIe):
+class HeymacHIe(HeymacIe):
+    pass
+
+
+class HeymacPIe(HeymacIe):
+    pass
+
+
+class HeymacHIeTerm(HeymacHIe):
     _IECTL_VAL = HeymacIe.SZ_BIT0 | HeymacIe.TYPE_TERM_HIE
 
     def __init__(self):
@@ -482,7 +506,7 @@ class HeymacHIeTerm(HeymacIe):
         return HeymacHIeTerm()
 
 
-class HeymacHIeSqncNmbr(HeymacIe):
+class HeymacHIeSqncNmbr(HeymacHIe):
     _IECTL_VAL = HeymacIe.SZ_2B | HeymacIe.TYPE_SQNC
 
     def __init__(self, sqnc_nmbr):
@@ -493,10 +517,12 @@ class HeymacHIeSqncNmbr(HeymacIe):
 
     @staticmethod
     def parse(ie_bytes):
-        return HeymacHIeSqncNmbr(struct.unpack("!H", ie_bytes[1:])[0])
+        if len(ie_bytes) < 2:
+            raise HeymacIeError("insufficient bytes for Sequence Number")
+        return HeymacHIeSqncNmbr(struct.unpack("!H", ie_bytes[1:3])[0])
 
 
-class HeymacHIeCipher(HeymacIe):
+class HeymacHIeCipher(HeymacHIe):
     _IECTL_VAL = HeymacIe.SZ_2B | HeymacIe.TYPE_CIPHER
 
     def __init__(self, cipher_info):
@@ -507,10 +533,10 @@ class HeymacHIeCipher(HeymacIe):
 
     @staticmethod
     def parse(ie_bytes):
-        return HeymacHIeCipher(struct.unpack("!H", ie_bytes[1:])[0])
+        return HeymacHIeCipher(struct.unpack("!H", ie_bytes[1:3])[0])
 
 
-class HeymacPIeTerm(HeymacIe):
+class HeymacPIeTerm(HeymacPIe):
     _IECTL_VAL = HeymacIe.SZ_BIT0 | HeymacIe.TYPE_TERM_PIE | HeymacIe.TYPE_PIE
 
     def __init__(self):
@@ -521,7 +547,7 @@ class HeymacPIeTerm(HeymacIe):
         return HeymacPIeTerm()
 
 
-class HeymacPIeFrag0(HeymacIe):
+class HeymacPIeFrag0(HeymacPIe):
     _IECTL_VAL = HeymacIe.SZ_2B | HeymacIe.TYPE_FRAG0 | HeymacIe.TYPE_PIE
 
     def __init__(self, dgram_sz, dgram_tag):
@@ -536,13 +562,13 @@ class HeymacPIeFrag0(HeymacIe):
 
     @staticmethod
     def parse(ie_bytes):
-        data = struct.unpack("!H", ie_bytes[1:])[0]
+        data = struct.unpack("!H", ie_bytes[1:3])[0]
         dgram_sz = data >> 5
         dgram_tag = data & 0x1F
         return HeymacPIeFrag0(dgram_sz, dgram_tag)
 
 
-class HeymacPIeFragN(HeymacIe):
+class HeymacPIeFragN(HeymacPIe):
     _IECTL_VAL = HeymacIe.SZ_2B | HeymacIe.TYPE_FRAGN | HeymacIe.TYPE_PIE
 
     def __init__(self, dgram_offset, dgram_tag):
@@ -557,13 +583,13 @@ class HeymacPIeFragN(HeymacIe):
 
     @staticmethod
     def parse(ie_bytes):
-        data = struct.unpack("!H", ie_bytes[1:])[0]
+        data = struct.unpack("!H", ie_bytes[1:3])[0]
         dgram_offset = data >> 5
         dgram_tag = data & 0x1F
         return HeymacPIeFragN(dgram_offset, dgram_tag)
 
 
-class HeymacPIeMic(HeymacIe):
+class HeymacPIeMic(HeymacPIe):
     _IECTL_VAL = HeymacIe.SZ_2B | HeymacIe.TYPE_MIC | HeymacIe.TYPE_PIE
 
     def __init__(self, mic_algo, mic_sz):
@@ -576,7 +602,40 @@ class HeymacPIeMic(HeymacIe):
 
     @staticmethod
     def parse(ie_bytes):
-        data = struct.unpack("!H", ie_bytes[1:])[0]
+        data = struct.unpack("!H", ie_bytes[1:3])[0]
         mic_algo = data >> 8
         mic_sz = data & 0x0F
         return HeymacPIeMic(mic_algo, mic_sz)
+
+
+class HeymacIeSequence(object):
+    def __init__(self, *ies):
+        self._ies = ies
+
+    def __bytes__(self):
+        ba = bytearray()
+        for ie in self._ies:
+            ba.extend(bytes(ie))
+        return bytes(ba)
+
+    def __iter__(self):
+        return iter(self._ies)
+
+    def __len__(self):
+        """Returns the length in bytes of all IEs in the sequence"""
+        return sum(map(len, self._ies))
+
+    @staticmethod
+    def parse(frame_bytes, offset=0):
+        ies = []
+        while True:
+            ie = HeymacIe.parse(frame_bytes[offset:])
+            ies.append(ie)
+            offset += len(ie)
+            if type(ie) is HeymacPIeTerm:
+                break
+        return HeymacIeSequence(*ies)
+
+    # TODO: validate IEs
+    # - they are in order (hIEs before pIEs)
+    # - terminators exist in the right spot
