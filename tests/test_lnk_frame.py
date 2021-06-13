@@ -227,5 +227,26 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertIsNone(f.taddr)
 
 
+    def test_available_payld_sz(self):
+        f = HeymacFrame(
+            HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
+            HeymacFrame.FCTL_S | HeymacFrame.FCTL_M |
+            HeymacFrame.FCTL_P,
+            saddr=b"\x10\x00",
+            hops=4,
+            taddr=b"\x11\x00")
+        avail1 = f.available_payld_sz()
+        b = bytes(f)
+        self.assertEqual(b, b"\xE4\x07\x10\x00\x04\x11\x00")
+
+        # Add IEs to the frame
+        ies=HeymacIeSequence(
+            HeymacPIeFrag0(500, 21),
+            HeymacPIeTerm())
+        f.ies = ies
+        avail2 = f.available_payld_sz()
+        self.assertEqual(avail1, avail2 + len(ies))
+
+
 if __name__ == '__main__':
     unittest.main()

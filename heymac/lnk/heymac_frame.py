@@ -146,7 +146,6 @@ class HeymacFrame(object):
             raise HeymacFrameError("Serialized frame is too large.")
         return bytes(frame)
 
-
     @staticmethod
     def parse(frame_bytes):
         """Parses the given frame_bytes and returns a HeymacFrame.
@@ -221,6 +220,27 @@ class HeymacFrame(object):
 
         frame._validate_fctl_and_fields()
         return frame
+
+
+    def available_payld_sz(self):
+        byte_cnt = 2   # PID + Fctl
+        if not self.is_extended():
+            if self.is_netid_present():
+                byte_cnt += 2
+            if self.is_long_addrs():
+                addr_len = 8
+            else:
+                addr_len = 2
+            if self.is_daddr_present():
+                byte_cnt += addr_len
+            if self.is_ies_present():
+                byte_cnt += len(self._ie_sqnc)
+            if self.is_saddr_present():
+                byte_cnt += addr_len
+            # TODO: add MICs
+            if self.is_mhop():
+                byte_cnt += addr_len + 1
+        return 255 - byte_cnt
 
 
     def get_sender(self):
