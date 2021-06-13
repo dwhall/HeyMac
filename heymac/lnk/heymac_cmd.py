@@ -66,12 +66,10 @@ class HeymacCmd(object):
 
         cmd = None
         for cmd_cls in HeymacCmd.__subclasses__():
-            assert cmd_cls.CMD_ID <= HeymacCmd.CMD_MASK, "Invalid CMD_ID"
+            if cmd_cls.CMD_ID > HeymacCmd.CMD_MASK:
+                raise HeymacCmdError("Invalid CMD_ID")
             if (HeymacCmd.PREFIX | cmd_cls.CMD_ID) == cmd_bytes[0]:
-                try:
-                    cmd = cmd_cls.parse(cmd_bytes)
-                except AssertionError as e:
-                    raise HeymacCmdError(e)
+                cmd = cmd_cls.parse(cmd_bytes)
                 break
         if not cmd:
             return HeymacCmdUnknown()
@@ -81,6 +79,11 @@ class HeymacCmd(object):
     def get_field(self, fld_name):
         """Returns the value of the field."""
         return self.field[fld_name]
+
+
+class HeymacCmdUnknown(object):
+    """A class used to indicate reception of an unknown Heymac Command"""
+    pass
 
 
 class HeymacCmdTxt(HeymacCmd):
@@ -99,7 +102,9 @@ class HeymacCmdTxt(HeymacCmd):
 
     @staticmethod
     def parse(cmd_bytes):
-        assert cmd_bytes[0] == HeymacCmd.PREFIX | HeymacCmdTxt.CMD_ID
+        if cmd_bytes[0] != HeymacCmd.PREFIX | HeymacCmdTxt.CMD_ID:
+            raise HeymacCmdError(
+                "Incorrect prefix + command ID for this class")
         field = {}
         field[HeymacCmd.FLD_MSG] = cmd_bytes[1:]
         return HeymacCmdTxt(HeymacCmdTxt.CMD_ID, **field)
@@ -134,7 +139,9 @@ class HeymacCmdBcn(HeymacCmd):
     @staticmethod
     def parse(cmd_bytes):
         """Parses the bytes into a beacon object."""
-        assert cmd_bytes[0] == HeymacCmd.PREFIX | HeymacCmdBcn.CMD_ID
+        if cmd_bytes[0] != HeymacCmd.PREFIX | HeymacCmdBcn.CMD_ID:
+            raise HeymacCmdError(
+                "Incorrect prefix + command ID for this class")
         field = {}
         caps, status, callsign_ssid, pub_key = struct.unpack(
             HeymacCmdBcn._FMT_STR, cmd_bytes[1:])
@@ -208,12 +215,13 @@ class HeymacCmdJoin(HeymacCmd):
     @staticmethod
     def parse(cmd_bytes):
         """Parses the bytes into a join-command object."""
-        assert type(cmd_bytes) is bytes
+        if type(cmd_bytes) is not bytes:
+            raise HeymacCmdError("Expected to parse a bytes object")
         if len(cmd_bytes) < 2:
             raise HeymacCmdError("Insufficient data")
         if cmd_bytes[0] != (HeymacCmd.PREFIX | HeymacCmdJoin.CMD_ID):
-            raise HeymacCmdError("Incorrect CMD_ID: %d"
-                                 % (cmd_bytes[0] & HeymacCmd.CMD_MASK))
+            raise HeymacCmdError(
+                "Incorrect prefix + command ID for this class")
         cmd = None
         for joincmd_cls in HeymacCmdJoin.__subclasses__():
             if joincmd_cls.SUB_ID == cmd_bytes[1]:
