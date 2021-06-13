@@ -74,8 +74,7 @@ class HeymacCmd(object):
                     raise HeymacCmdError(e)
                 break
         if not cmd:
-            raise HeymacCmdError("Unknown CMD_ID: %d"
-                                 % (cmd_bytes[0] & HeymacCmd.CMD_MASK))
+            return HeymacCmdUnknown()
         return cmd
 
 

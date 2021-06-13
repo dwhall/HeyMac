@@ -3,7 +3,7 @@
 
 import unittest
 
-from heymac.lnk import HeymacCmd, HeymacCmdError, HeymacCmdTxt, HeymacCmdBcn
+from heymac.lnk import *
 
 
 PUB_KEY = b"\xb2R\x96\xff\xdeb\x84S\xe6\xcd\x8cU\x84W!" \
@@ -59,6 +59,11 @@ class TestHeyMacCmd(unittest.TestCase):
         self.assertEqual(c.get_field(HeymacCmd.FLD_STATUS), 0x0304)
         self.assertEqual(c.get_field(HeymacCmd.FLD_CALLSIGN_SSID), "EX4MPL-227")
         self.assertEqual(c.get_field(HeymacCmd.FLD_PUB_KEY), PUB_KEY)
+
+    def test_unknown_cmd(self):
+        b = b"\xbe\x11\x22"
+        c = HeymacCmd.parse(b)
+        self.assertIs(type(c), HeymacCmdUnknown)
 
 
 if __name__ == '__main__':
