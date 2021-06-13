@@ -286,6 +286,7 @@ class HeymacFrame(object):
     @netid.setter
     def netid(self, val):
         self._netid = val
+        self._fctl |= self.FCTL_N
 
     @property
     def daddr(self):
@@ -293,8 +294,10 @@ class HeymacFrame(object):
 
     @daddr.setter
     def daddr(self, val):
-        assert len(val) == self._get_addr_sz()
+        if len(val) != self._get_addr_sz():
+            raise HeymacFrameError("Address size mismatch")
         self._daddr = val
+        self._fctl |= self.FCTL_D
 
     @property
     def ies(self):
@@ -304,6 +307,7 @@ class HeymacFrame(object):
     @ies.setter
     def ies(self, val):
         self._ie_sqnc = val
+        self._fctl |= self.FCTL_I
 
     @property
     def saddr(self):
@@ -311,8 +315,10 @@ class HeymacFrame(object):
 
     @saddr.setter
     def saddr(self, val):
-        assert len(val) == self._get_addr_sz()
+        if len(val) != self._get_addr_sz():
+            raise HeymacFrameError("Address size mismatch")
         self._saddr = val
+        self._fctl |= self.FCTL_S
 
     @property
     def payld(self):
@@ -328,8 +334,9 @@ class HeymacFrame(object):
 
     @hops.setter
     def hops(self, val):
-        assert self.is_mhop()
         self._hops = val
+        if self._taddr is not None:
+            self._fctl |= self.FCTL_M
 
     @property
     def taddr(self):
@@ -337,9 +344,11 @@ class HeymacFrame(object):
 
     @taddr.setter
     def taddr(self, val):
-        assert len(val) == self._get_addr_sz()
-        assert self.is_mhop()
+        if len(val) != self._get_addr_sz():
+            raise HeymacFrameError("Address size mismatch")
         self._taddr = val
+        if self._hops is not None:
+            self._fctl |= self.FCTL_M
 
 
 # Private
