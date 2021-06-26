@@ -48,9 +48,9 @@ The topmost field in the diagram is transmitted first.
     |  Source Address    (0, 2 or 8 octets) | r | t |
     +----+----+----+----+----+----+----+----+ y + e +
     |  Payload                   (variable) | p | d |
-    +----+----+----+----+----+----+----+----+ t +   +
-    |  Msg Integrity Code   (0 or N octets) |   |   |
-    +----+----+----+----+----+----+----+----+---+---+
+    +----+----+----+----+----+----+----+----+ t +---+
+    |  Msg Integrity Code   (0 or N octets) |   |
+    +----+----+----+----+----+----+----+----+---+
     |  Hops                  (0 or 1 octet) |
     +----+----+----+----+----+----+----+----+
     |  Transmitter Addr  (0, 2 or 8 octets) |
