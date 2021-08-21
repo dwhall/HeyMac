@@ -6,6 +6,9 @@ Link-layer Heymac frame parsing, building and serializing.
 
 import struct
 
+from heymac.lnk.heymac_cmd import HeymacCmd
+from heymac.net.apv6_pkt import APv6Packet
+
 
 class HeymacFrameError(Exception):
     pass
@@ -74,6 +77,7 @@ class HeymacFrame(object):
     PID_TYPE_CSMA = 0b00000100
 
     # Frame Control (Fctl) subfields
+    FCTL_NONE = 0
     FCTL_X = 0b10000000     # eXtended frame (none of the other bits apply)
     FCTL_L = 0b01000000     # Long addressing
     FCTL_N = 0b00100000     # NetId present
@@ -136,7 +140,11 @@ class HeymacFrame(object):
             if self.is_saddr_present():
                 frame.extend(self._saddr)
             if self._payld:
-                frame.extend(self._payld)
+                if type(self._payld) is not bytes:
+                    b = bytes(self._payld)
+                else:
+                    b = self._payld
+                frame.extend(b)
             # TODO: add MICs
             if self.is_mhop():
                 frame.append(self._hops)
@@ -200,11 +208,8 @@ class HeymacFrame(object):
                 mhop_sz = 0
 
             payld_sz = len(frame_bytes) - offset - mic_sz - mhop_sz
-            if payld_sz > 0:
-                frame.payld = frame_bytes[offset:offset + payld_sz]
-                offset += payld_sz
-            elif payld_sz < 0:
-                raise HeymacFrameError("Insufficient bytes")
+            frame.payld = HeymacFrame._parse_payld(frame_bytes, offset, payld_sz)
+            offset += payld_sz
 
             # TODO: parse MIC
 
@@ -380,6 +385,28 @@ class HeymacFrame(object):
 
     # TODO: verify CSMA version
     # _SUPPORTED_CSMA_VRSNS = (0,)
+
+
+    @staticmethod
+    def _parse_payld(frame_bytes, offset, sz):
+        """Parses sz number of frame_bytes at the offset.
+
+        Returns either a HeymacCmd or APv6Packet object
+        """
+        if sz < 0:
+            raise HeymacFrameError("Insufficient bytes")
+        payld = None
+        if sz > 0:
+            first_byte = frame_bytes[offset]
+            if ((first_byte & APv6Packet.IPHC_PREFIX_MASK)
+                    == APv6Packet.APV6_PREFIX):
+                payld = APv6Packet.parse(frame_bytes[offset:offset + sz])
+            elif ((first_byte & HeymacCmd.PREFIX_MASK)
+                    == HeymacCmd.PREFIX):
+                payld = HeymacCmd.parse(frame_bytes[offset:offset + sz])
+            else:
+                raise HeymacFrameError("Unknown payload prefix")
+        return payld
 
 
     def _get_addr_sz(self):
