@@ -93,9 +93,9 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
 
     def send_cmd(self, cmd, dest=None):
         assert issubclass(type(cmd), HeymacCmd)
-        fctl_bits = HeymacFrame.FCTL_L | HeymacFrame.FCTL_S
+        fctl_bits = HeymacFrameFctl.L | HeymacFrameFctl.S
         if dest:
-            fctl_bits |= HeymacFrame.FCTL_D
+            fctl_bits |= HeymacFrameFctl.D
         f = HeymacFrame(
             HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
             fctl_bits)
@@ -313,7 +313,7 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
             FLD_PUB_KEY=self._pub_key)
         frame = HeymacFrame(
             HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
-            HeymacFrame.FCTL_L | HeymacFrame.FCTL_S)
+            HeymacFrameFctl.L | HeymacFrameFctl.S)
         frame.saddr = self._lnk_addr
         frame.payld = bytes(bcn)
         self._phy_hsm.post_tx_action(

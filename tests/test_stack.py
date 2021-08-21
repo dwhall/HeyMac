@@ -3,7 +3,7 @@
 
 import unittest
 
-from heymac.lnk import HeymacFrame
+from heymac.lnk import *
 from heymac.net import APv6Packet
 
 
@@ -13,7 +13,7 @@ class TestAll(unittest.TestCase):
     """
 
     def test_mac_min(self):
-        fmac = HeymacFrame(HeymacFrame.PID_IDENT_HEYMAC, HeymacFrame.FCTL_NONE)
+        fmac = HeymacFrame(HeymacFrame.PID_IDENT_HEYMAC, HeymacFrameFctl.NONE)
         b = bytes(fmac)
         self.assertEqual(b, b"\xe0\x00")
 
@@ -33,7 +33,7 @@ class TestAll(unittest.TestCase):
         self.assertEqual(fmac.payld, None)
 
     def test_mac_net_min(self):
-        fmac = HeymacFrame(HeymacFrame.PID_IDENT_HEYMAC, HeymacFrame.FCTL_NONE)
+        fmac = HeymacFrame(HeymacFrame.PID_IDENT_HEYMAC, HeymacFrameFctl.NONE)
         fmac.payld = APv6Packet()
         b = bytes(fmac)
         self.assertEqual(b, b"\xe0\x00\xD7")

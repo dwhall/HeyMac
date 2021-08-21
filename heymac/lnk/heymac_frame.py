@@ -4,6 +4,7 @@ Copyright 2020 Dean Hall.  See LICENSE file for details.
 Link-layer Heymac frame parsing, building and serializing.
 """
 
+import enum
 import struct
 
 from heymac.lnk.heymac_cmd import HeymacCmd
@@ -12,6 +13,19 @@ from heymac.net.apv6_pkt import APv6Packet
 
 class HeymacFrameError(Exception):
     pass
+
+
+class HeymacFrameFctl(enum.IntFlag):
+    """HeymacFrame frame control (Fctl) field bit flag (bitwise combos)"""
+    NONE = 0
+    X = 0b10000000     # eXtended frame (none of the other bits apply)
+    L = 0b01000000     # Long addressing
+    N = 0b00100000     # NetId present
+    D = 0b00010000     # DstAddr present
+    I = 0b00001000     # IEs present
+    S = 0b00000100     # SrcAddr present
+    M = 0b00000010     # Multihop fields present
+    P = 0b00000001     # Pending frame follows
 
 
 class HeymacFrame(object):
@@ -55,7 +69,7 @@ class HeymacFrame(object):
 
         frame = HeymacFrame(
             HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
-            HeymacFrame.FCTL_D | HeymacFrame.FCTL_S)
+            HeymacFrameFctl.D | HeymacFrameFctl.S)
         frame.saddr = b"\x35\x16"
         frame.daddr = b"\x01\xE3"
         frame.payld = my_data
@@ -75,17 +89,6 @@ class HeymacFrame(object):
     PID_IDENT_HEYMAC = 0b11100000
     PID_TYPE_TDMA = 0b00000000
     PID_TYPE_CSMA = 0b00000100
-
-    # Frame Control (Fctl) subfields
-    FCTL_NONE = 0
-    FCTL_X = 0b10000000     # eXtended frame (none of the other bits apply)
-    FCTL_L = 0b01000000     # Long addressing
-    FCTL_N = 0b00100000     # NetId present
-    FCTL_D = 0b00010000     # DstAddr present
-    FCTL_I = 0b00001000     # IEs present
-    FCTL_S = 0b00000100     # SrcAddr present
-    FCTL_M = 0b00000010     # Multihop fields present
-    FCTL_P = 0b00000001     # Pending frame follows
 
     FIELDS_NAMES = (
         "netid", "daddr", "ies", "saddr", "payld", "mic", "hops", "taddr")
@@ -266,35 +269,35 @@ class HeymacFrame(object):
                 == HeymacFrame.PID_IDENT_HEYMAC)
 
     def is_extended(self):
-        return 0 != (self._fctl & HeymacFrame.FCTL_X)
+        return 0 != (self._fctl & HeymacFrameFctl.X)
 
     def is_long_addrs(self):
-        return 0 == (self._fctl & HeymacFrame.FCTL_X) \
-            and 0 != (self._fctl & HeymacFrame.FCTL_L)
+        return 0 == (self._fctl & HeymacFrameFctl.X) \
+            and 0 != (self._fctl & HeymacFrameFctl.L)
 
     def is_netid_present(self):
-        return 0 == (self._fctl & HeymacFrame.FCTL_X) \
-            and 0 != (self._fctl & HeymacFrame.FCTL_N)
+        return 0 == (self._fctl & HeymacFrameFctl.X) \
+            and 0 != (self._fctl & HeymacFrameFctl.N)
 
     def is_daddr_present(self):
-        return 0 == (self._fctl & HeymacFrame.FCTL_X) \
-            and 0 != (self._fctl & HeymacFrame.FCTL_D)
+        return 0 == (self._fctl & HeymacFrameFctl.X) \
+            and 0 != (self._fctl & HeymacFrameFctl.D)
 
     def is_ies_present(self):
-        return 0 == (self._fctl & HeymacFrame.FCTL_X) \
-            and 0 != (self._fctl & HeymacFrame.FCTL_I)
+        return 0 == (self._fctl & HeymacFrameFctl.X) \
+            and 0 != (self._fctl & HeymacFrameFctl.I)
 
     def is_saddr_present(self):
-        return 0 == (self._fctl & HeymacFrame.FCTL_X) \
-            and 0 != (self._fctl & HeymacFrame.FCTL_S)
+        return 0 == (self._fctl & HeymacFrameFctl.X) \
+            and 0 != (self._fctl & HeymacFrameFctl.S)
 
     def is_mhop(self):
-        return 0 == (self._fctl & HeymacFrame.FCTL_X) \
-            and 0 != (self._fctl & HeymacFrame.FCTL_M)
+        return 0 == (self._fctl & HeymacFrameFctl.X) \
+            and 0 != (self._fctl & HeymacFrameFctl.M)
 
     def is_pending_set(self):
-        return 0 == (self._fctl & HeymacFrame.FCTL_X) \
-            and 0 != (self._fctl & HeymacFrame.FCTL_P)
+        return 0 == (self._fctl & HeymacFrameFctl.X) \
+            and 0 != (self._fctl & HeymacFrameFctl.P)
 
     @property
     def pid(self):
@@ -311,7 +314,7 @@ class HeymacFrame(object):
     @netid.setter
     def netid(self, val):
         self._netid = val
-        self._fctl |= self.FCTL_N
+        self._fctl |= HeymacFrameFctl.N
 
     @property
     def daddr(self):
@@ -322,7 +325,7 @@ class HeymacFrame(object):
         if len(val) != self._get_addr_sz():
             raise HeymacFrameError("Address size mismatch")
         self._daddr = val
-        self._fctl |= self.FCTL_D
+        self._fctl |= HeymacFrameFctl.D
 
     @property
     def ies(self):
@@ -332,7 +335,7 @@ class HeymacFrame(object):
     @ies.setter
     def ies(self, val):
         self._ie_sqnc = val
-        self._fctl |= self.FCTL_I
+        self._fctl |= HeymacFrameFctl.I
 
     @property
     def saddr(self):
@@ -343,7 +346,7 @@ class HeymacFrame(object):
         if len(val) != self._get_addr_sz():
             raise HeymacFrameError("Address size mismatch")
         self._saddr = val
-        self._fctl |= self.FCTL_S
+        self._fctl |= HeymacFrameFctl.S
 
     @property
     def payld(self):
@@ -361,7 +364,7 @@ class HeymacFrame(object):
     def hops(self, val):
         self._hops = val
         if self._taddr is not None:
-            self._fctl |= self.FCTL_M
+            self._fctl |= HeymacFrameFctl.M
 
     @property
     def taddr(self):
@@ -373,7 +376,7 @@ class HeymacFrame(object):
             raise HeymacFrameError("Address size mismatch")
         self._taddr = val
         if self._hops is not None:
-            self._fctl |= self.FCTL_M
+            self._fctl |= HeymacFrameFctl.M
 
 
 # Private
@@ -412,6 +415,7 @@ class HeymacFrame(object):
     def _get_addr_sz(self):
         return (2, 8)[self.is_long_addrs()]
 
+
     def _validate_fctl_and_fields(self):
         """Validates this HeymacFrame
 
@@ -420,12 +424,12 @@ class HeymacFrame(object):
         or a field is present, but the Fctl bit is not set.
         """
         FIELD_INFO = (
-            (HeymacFrame.FCTL_N, self._netid, "netid"),
-            (HeymacFrame.FCTL_D, self._daddr, "daddr"),
-            (HeymacFrame.FCTL_I, self._ie_sqnc, "ies"),
-            (HeymacFrame.FCTL_S, self._saddr, "saddr"),
-            (HeymacFrame.FCTL_M, self._hops, "hops"),
-            (HeymacFrame.FCTL_M, self._taddr, "taddr"),
+            (HeymacFrameFctl.N, self._netid, "netid"),
+            (HeymacFrameFctl.D, self._daddr, "daddr"),
+            (HeymacFrameFctl.I, self._ie_sqnc, "ies"),
+            (HeymacFrameFctl.S, self._saddr, "saddr"),
+            (HeymacFrameFctl.M, self._hops, "hops"),
+            (HeymacFrameFctl.M, self._taddr, "taddr"),
         )
 
         err_msg = None
@@ -446,14 +450,14 @@ class HeymacFrame(object):
 
         # If FCTL_L is set, at least one address field must exist
         if not err_msg and (
-                HeymacFrame.FCTL_L & fctl
+                HeymacFrameFctl.L & fctl
                 and not self._daddr
                 and not self._saddr
                 and not self._taddr):
             err_msg = "Long address selected, but no address field is present"
 
         # If FCTL_X is set, only the payload should exist
-        if not err_msg and HeymacFrame.FCTL_X & fctl:
+        if not err_msg and HeymacFrameFctl.X & fctl:
             for _, field, field_nm in FIELD_INFO:
                 if field:
                     err_msg = "Extended frame has field other than {}" \
