@@ -56,8 +56,8 @@ class TestAll(unittest.TestCase):
         self.assertEqual(type(fnet), APv6Packet)
         self.assertEqual(fnet.hdr, b"\xD7")
         self.assertEqual(fnet.hops, b"\x01")
-        self.assertEqual(fnet.saddr, b"")
-        self.assertEqual(fnet.daddr, b"")
+        self.assertIsNone(fnet.saddr)
+        self.assertIsNone(fnet.daddr)
         self.assertEqual(fnet.payld, b"")
 
 """

@@ -402,7 +402,7 @@ class HeymacFrame(object):
         if sz > 0:
             first_byte = frame_bytes[offset]
             if ((first_byte & APv6Packet.IPHC_PREFIX_MASK)
-                    == APv6Packet.APV6_PREFIX):
+                    == APv6Packet.IPHC_PREFIX):
                 payld = APv6Packet.parse(frame_bytes[offset:offset + sz])
             elif ((first_byte & HeymacCmd.PREFIX_MASK)
                     == HeymacCmd.PREFIX):

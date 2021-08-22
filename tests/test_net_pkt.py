@@ -18,8 +18,8 @@ class TestAPv6Packet(unittest.TestCase):
         p = APv6Packet.parse(b)
         self.assertEqual(p.hdr, b"\xD7")
         self.assertEqual(p.hops, b"\x01")
-        self.assertEqual(p.saddr, b"")
-        self.assertEqual(p.daddr, b"")
+        self.assertIsNone(p.saddr)
+        self.assertIsNone(p.daddr)
 
     def test_hlim_1(self):
         p = APv6Packet(hops=1)
@@ -28,8 +28,8 @@ class TestAPv6Packet(unittest.TestCase):
         p = APv6Packet.parse(b)
         self.assertEqual(p.hdr, b"\xD7")
         self.assertEqual(p.hops, b"\x01")
-        self.assertEqual(p.saddr, b"")
-        self.assertEqual(p.daddr, b"")
+        self.assertIsNone(p.saddr)
+        self.assertIsNone(p.daddr)
 
     def test_hlim_42(self):
         p = APv6Packet(hops=42)
@@ -38,8 +38,8 @@ class TestAPv6Packet(unittest.TestCase):
         p = APv6Packet.parse(b)
         self.assertEqual(p.hdr, b"\xD3")
         self.assertEqual(p.hops, b"\x2A")
-        self.assertEqual(p.saddr, b"")
-        self.assertEqual(p.daddr, b"")
+        self.assertIsNone(p.saddr)
+        self.assertIsNone(p.daddr)
 
     def test_hlim_64(self):
         p = APv6Packet(hops=64)
@@ -48,8 +48,8 @@ class TestAPv6Packet(unittest.TestCase):
         p = APv6Packet.parse(b)
         self.assertEqual(p.hdr, b"\xDB")
         self.assertEqual(p.hops, b"\x40")
-        self.assertEqual(p.saddr, b"")
-        self.assertEqual(p.daddr, b"")
+        self.assertIsNone(p.saddr)
+        self.assertIsNone(p.daddr)
 
     def test_hlim_255(self):
         p = APv6Packet(hops=255)
@@ -58,8 +58,8 @@ class TestAPv6Packet(unittest.TestCase):
         p = APv6Packet.parse(b)
         self.assertEqual(p.hdr, b"\xDF")
         self.assertEqual(p.hops, b"\xFF")
-        self.assertEqual(p.saddr, b"")
-        self.assertEqual(p.daddr, b"")
+        self.assertIsNone(p.saddr)
+        self.assertIsNone(p.daddr)
 
     def test_hlim_extreme_value(self):
         with self.assertRaises(APv6PacketError):
@@ -74,7 +74,7 @@ class TestAPv6Packet(unittest.TestCase):
         self.assertEqual(p.hdr, b"\xD5")
         self.assertEqual(p.hops, b"\x01")
         self.assertEqual(p.saddr, b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f")
-        self.assertEqual(p.daddr, b"")
+        self.assertIsNone(p.daddr)
 
 
     def test_daddr(self):
@@ -84,7 +84,7 @@ class TestAPv6Packet(unittest.TestCase):
         p = APv6Packet.parse(b)
         self.assertEqual(p.hdr, b"\xD6")
         self.assertEqual(p.hops, b"\x01")
-        self.assertEqual(p.saddr, b"")
+        self.assertIsNone(p.saddr)
         self.assertEqual(p.daddr, b"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f")
 
 

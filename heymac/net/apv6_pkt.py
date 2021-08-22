@@ -52,232 +52,183 @@ class APv6Packet(object):
         1: Dest Addr is elided; computed from MAC layer
     """
 
-    IPHC_PREFIX_MASK = 0b11100000
-    IPHC_NHC_MASK = 0b00010000
-    IPHC_HLIM_MASK = 0b00001100
-    IPHC_SAM_MASK = 0b00000010
-    IPHC_DAM_MASK = 0b00000001
+    IPHC_PREFIX_MASK = 0b11100000   # Packet prefix mask
+    IPHC_PREFIX = 0b11000000        # Packet prefix value
 
-    IPHC_PREFIX_SHIFT = 5
-    IPHC_NHC_SHIFT = 4
-    IPHC_HLIM_SHIFT = 2
-    IPHC_SAM_SHIFT = 1
-    IPHC_DAM_SHIFT = 0
+    IPHC_NHC_MASK = 0b00010000          # Next Header Compressed mask
+    IPHC_NHC_COMPRESSED = 0b00010000    # Next Header Compressed value
 
-    IPHC_PREFIX = 0b110
+    IPHC_HLIM_MASK = 0b1100     # Hop limit
+    IPHC_HLIM_INLINE = 0b0000   # HopLimit (1 Byte) follows IPHC
+    IPHC_HLIM_1 = 0b0100
+    IPHC_HLIM_64 = 0b1000
+    IPHC_HLIM_255 = 0b1100
 
-    IPHC_HLIM_INLINE = 0b00     # HopLimit (1 Byte) follows IPHC
-    IPHC_HLIM_1 = 0b01
-    IPHC_HLIM_64 = 0b10
-    IPHC_HLIM_255 = 0b11
+    IPHC_SAM_MASK = 0b10        # Src addr omit
+    IPHC_SAM_INLINE = 0b00      # full 128-bit address is in-line
+    IPHC_SAM_OMIT = 0b10        # address is elided
 
-    IPHC_ADDR_MODE_128 = 0  # full 128-bit address is in-line
-    IPHC_ADDR_MODE_0 = 1    # address is elided
+    IPHC_DAM_MASK = 0b1         # Dst addr omit
+    IPHC_DAM_INLINE = 0b0       # full 128-bit address is in-line
+    IPHC_DAM_OMIT = 0b1         # address is elided
 
-    APV6_PREFIX = IPHC_PREFIX << IPHC_PREFIX_SHIFT
+    # Default values for the header of a new packet
+    DEFAULT_PREFIX = IPHC_PREFIX
+    DEFAULT_NHC = IPHC_NHC_COMPRESSED
+    DEFAULT_HLIM = IPHC_HLIM_1
+    DEFAULT_SAM = IPHC_SAM_OMIT
+    DEFAULT_DAM = IPHC_DAM_OMIT
 
-    DEFAULT_NHC = 0b1   # next-header is compressed
-    DEFAULT_HLIM = IPHC_HLIM_1  # 1 hop
-    DEFAULT_SAM = IPHC_ADDR_MODE_0  # address compressed/elided
-    DEFAULT_DAM = IPHC_ADDR_MODE_0  # address compressed/elided
-
-    # Packet field names
-    _FLD_HDR = "hdr"        # Header
-    _FLD_HOPS = "hops"      # Hop count
-    _FLD_SADDR = "saddr"    # Source address
-    _FLD_DADDR = "daddr"    # Destination address
-    _FLD_NHC = "nhc"        # Next Header Compressed
-    _FLD_PAYLD = "payld"    # Payload (net layer)
-
+    FIELD_NAMES = ("hdr", "hops", "saddr", "daddr", "nhc", "payld")
 
     def __init__(self, **kwargs):
         """Creates an APv6 packet with the given fields"""
-        built_hdr = self._build_hdr(kwargs)
-        self._validate_args(kwargs, built_hdr)
-        self._hdr = built_hdr
-        hops = kwargs.get("hops", b"")
-        if type(hops) is int:
-            try:
-                hops = struct.pack("B", hops)
-            except struct.error:
-                raise APv6PacketError("Invalid hops value")
-        self._hops = hops
-        self._saddr = kwargs.get("saddr", b"")
-        self._daddr = kwargs.get("daddr", b"")
-        self._nhc = kwargs.get("nhc", b"")
-        self._payld = kwargs.get("payld", b"")
+        self._hdr = (
+            APv6Packet.DEFAULT_PREFIX
+            | APv6Packet.DEFAULT_NHC
+            | APv6Packet.DEFAULT_HLIM
+            | APv6Packet.DEFAULT_SAM
+            | APv6Packet.DEFAULT_DAM)
+        self._hops = None
+        self._saddr = None
+        self._daddr = None
+        self._nhc = None
+        self._payld = None
 
-    def _validate_args(self, kwargs, built_hdr):
-        pkt_field_names = (
-            APv6Packet._FLD_HDR,
-            APv6Packet._FLD_HOPS,
-            APv6Packet._FLD_SADDR,
-            APv6Packet._FLD_DADDR,
-            APv6Packet._FLD_NHC,
-            APv6Packet._FLD_PAYLD)
-        for field_name in kwargs:
-            if field_name not in pkt_field_names:
-                raise APv6PacketError("Invalid field: {}".format(field_name))
-        if APv6Packet._FLD_HDR in kwargs:
-            if kwargs["hdr"] != built_hdr[0]:
-                raise APv6PacketError("Header doesn't match given fields")
-
-    def _build_hdr(self, kwargs):
-        built_hdr = kwargs.get(
-            APv6Packet._FLD_HDR,
-            APv6Packet.IPHC_PREFIX << APv6Packet.IPHC_PREFIX_SHIFT)
-        if APv6Packet._FLD_HOPS in kwargs:
-            hlim = {
-                1: APv6Packet.IPHC_HLIM_1,
-                64: APv6Packet.IPHC_HLIM_64,
-                255: APv6Packet.IPHC_HLIM_255}
-            hlim_bits = hlim.get(
-                kwargs[APv6Packet._FLD_HOPS],
-                APv6Packet.IPHC_HLIM_INLINE)
-            built_hdr |= hlim_bits << APv6Packet.IPHC_HLIM_SHIFT
-        else:
-            built_hdr |= APv6Packet.DEFAULT_HLIM << APv6Packet.IPHC_HLIM_SHIFT
-
-        if APv6Packet._FLD_SADDR in kwargs:
-            built_hdr |= (APv6Packet.IPHC_ADDR_MODE_128
-                          << APv6Packet.IPHC_SAM_SHIFT)
-        else:
-            built_hdr |= APv6Packet.DEFAULT_SAM << APv6Packet.IPHC_SAM_SHIFT
-
-        if APv6Packet._FLD_DADDR in kwargs:
-            built_hdr |= (APv6Packet.IPHC_ADDR_MODE_128
-                          << APv6Packet.IPHC_DAM_SHIFT)
-        else:
-            built_hdr |= APv6Packet.DEFAULT_DAM << APv6Packet.IPHC_DAM_SHIFT
-
-        if APv6Packet._FLD_NHC in kwargs:
-            # FIXME
-            built_hdr |= APv6Packet.DEFAULT_NHC << APv6Packet.IPHC_NHC_SHIFT
-        else:
-            built_hdr |= APv6Packet.DEFAULT_NHC << APv6Packet.IPHC_NHC_SHIFT
-
-        return struct.pack("B", built_hdr)
-
+        for k, v in kwargs.items():
+            if k not in APv6Packet.FIELD_NAMES:
+                raise APv6PacketError("Invalid field, {}".format(k))
+            setattr(self, k, v)
 
     def __bytes__(self):
-        """Returns the APv6Packet serialized into a bytes object
-
-        Raises an APv6PacketError if some bits or fields
-        are not set properly.
-        """
-#        self._validate_hdr_and_fields()
-
+        """Returns the APv6Packet serialized into a bytes object"""
+        # TODO: self._validate_hdr_and_fields()
         pkt = bytearray()
-        pkt.extend(self._hdr)
-        if self._is_hops_inline():
-            pkt.extend(self._hops)
-        if self._is_src_inline():
+        pkt.append(self._hdr)
+        if self._hops:
+            pkt.append(self._hops)
+        if self._saddr:
             pkt.extend(self._saddr)
-        if self._is_dst_inline():
+        if self._daddr:
             pkt.extend(self._daddr)
-        pkt.extend(self._payld)
+        if self._payld:
+            if type(self._payld) is not bytes:
+                b = bytes(self._payld)
+            else:
+                b = self._payld
+            pkt.extend(b)
         return bytes(pkt)
-
-    def _is_hops_inline(self):
-        return ((self._hdr[0] & APv6Packet.IPHC_HLIM_MASK)
-                >> APv6Packet.IPHC_HLIM_SHIFT) == APv6Packet.IPHC_HLIM_INLINE
-
-    def _is_src_inline(self):
-        return ((self._hdr[0] & APv6Packet.IPHC_SAM_MASK)
-                >> APv6Packet.IPHC_SAM_SHIFT) == APv6Packet.IPHC_ADDR_MODE_128
-
-    def _is_dst_inline(self):
-        return ((self._hdr[0] & APv6Packet.IPHC_DAM_MASK)
-                >> APv6Packet.IPHC_DAM_SHIFT) == APv6Packet.IPHC_ADDR_MODE_128
 
     @staticmethod
     def parse(pkt_bytes):
-        """Parses the given pkt_bytes and returns an APv6Packet
+        """Parses the given pkt_bytes and returns an APv6Packet.
 
         Raises an APv6PacketError if some bits or fields
         are not set properly.
         """
-        try:
-            if max(pkt_bytes) > 255 or min(pkt_bytes) < 0:
-                raise APv6PacketError("pkt_bytes must be a sequence of bytes")
-        except ValueError:
+        if max(pkt_bytes) > 255 or min(pkt_bytes) < 0:
+            raise APv6PacketError("pkt_bytes must be a sequence of bytes")
+        if len(pkt_bytes) < 1:
             raise APv6PacketError("pkt_bytes must have at least one byte")
 
-        hdr = pkt_bytes[0]
+        pkt = APv6Packet(hdr=pkt_bytes[0])
         offset = 1
-        hdr_prefix = (hdr & APv6Packet.IPHC_PREFIX_MASK) \
-            >> APv6Packet.IPHC_PREFIX_SHIFT
-        hdr_nhc = (hdr & APv6Packet.IPHC_NHC_MASK) \
-            >> APv6Packet.IPHC_NHC_SHIFT
-        hdr_hlim = (hdr & APv6Packet.IPHC_HLIM_MASK) \
-            >> APv6Packet.IPHC_HLIM_SHIFT
-        hdr_sam = (hdr & APv6Packet.IPHC_SAM_MASK) \
-            >> APv6Packet.IPHC_SAM_SHIFT
-        hdr_dam = (hdr & APv6Packet.IPHC_DAM_MASK) \
-            >> APv6Packet.IPHC_DAM_SHIFT
 
-        if hdr_prefix != APv6Packet.IPHC_PREFIX:
-            raise APv6PacketError("Incorrect header prefix")
-
-        if hdr_hlim == APv6Packet.IPHC_HLIM_INLINE:
-            if len(pkt_bytes) < 2:
-                raise APv6PacketError("Insufficient bytes for Hops")
-            hops = pkt_bytes[offset]
+        if pkt._is_hops_inline():
+            pkt.hops = pkt_bytes[offset]
             offset += 1
-        else:
-            hops = (None, 1, 64, 255)[hdr_hlim]
 
-        if hdr_sam == APv6Packet.IPHC_ADDR_MODE_128:
-            if len(pkt_bytes) < offset + 16:
-                raise APv6PacketError("Insufficient bytes for Saddr")
-            saddr = pkt_bytes[offset:offset + 16]
+        if pkt._is_src_inline():
+            pkt.saddr = pkt_bytes[offset:offset + 16]
             offset += 16
-        else:
-            saddr = b""
 
-        if hdr_dam == APv6Packet.IPHC_ADDR_MODE_128:
-            if len(pkt_bytes) < offset + 16:
-                raise APv6PacketError("Insufficient bytes for Daddr")
-            daddr = pkt_bytes[offset:offset + 16]
+        if pkt._is_dst_inline():
+            pkt.daddr = pkt_bytes[offset:offset + 16]
             offset += 16
-        else:
-            daddr = b""
 
-        # FIXME: NxtHdr
-        if hdr_nhc:
-            nhc = b""
-        else:
-            nhc = b""
+        # TODO: parse payld
+        pkt.payld = pkt_bytes[offset:]
 
-        payld = pkt_bytes[offset:]
-
-        return APv6Packet(
-            hdr=hdr,
-            hops=hops,
-            saddr=saddr,
-            daddr=daddr,
-            nhc=nhc,
-            payld=payld)
+        return pkt
 
     @property
     def hdr(self):
-        return self._hdr
+        return struct.pack("B", self._hdr)
+
+    @hdr.setter
+    def hdr(self, val):
+        # TODO validate
+        self._hdr = val
 
     @property
     def hops(self):
-        return self._hops
+        hops_idx = self._hdr & APv6Packet.IPHC_HLIM_MASK
+        if hops_idx == APv6Packet.IPHC_HLIM_INLINE:
+            h = self._hops
+        else:
+            h = {
+                APv6Packet.IPHC_HLIM_1 : 1,
+                APv6Packet.IPHC_HLIM_64 : 64,
+                APv6Packet.IPHC_HLIM_255 : 255}[hops_idx]
+        return struct.pack("B", h)
+
+    @hops.setter
+    def hops(self, val):
+        if type(val) is bytes:
+            val = val[0]
+        hlim = {
+            1: APv6Packet.IPHC_HLIM_1,
+            64: APv6Packet.IPHC_HLIM_64,
+            255: APv6Packet.IPHC_HLIM_255}
+        self._hdr &= ~APv6Packet.IPHC_HLIM_MASK
+        if val in hlim.keys():
+            self._hops = None
+            self._hdr |= hlim[val]
+        else:
+            if val > 255:
+                raise APv6PacketError("Hops value out of range")
+            self._hops = val
+            self._hdr |= APv6Packet.IPHC_HLIM_INLINE
 
     @property
     def saddr(self):
         return self._saddr
 
+    @saddr.setter
+    def saddr(self, val):
+        assert len(val) == 16
+        self._saddr = val
+        self._hdr &= ~APv6Packet.IPHC_SAM_OMIT
+
     @property
     def daddr(self):
         return self._daddr
 
+    @daddr.setter
+    def daddr(self, val):
+        assert len(val) == 16
+        self._daddr = val
+        self._hdr &= ~APv6Packet.IPHC_DAM_OMIT
+
     @property
     def payld(self):
         return self._payld
+
+    @payld.setter
+    def payld(self, val):
+        self._payld = val
+
+    def _is_hops_inline(self):
+        return ((self._hdr & APv6Packet.IPHC_HLIM_MASK)
+                == APv6Packet.IPHC_HLIM_INLINE)
+
+    def _is_src_inline(self):
+        return ((self._hdr & APv6Packet.IPHC_SAM_MASK)
+                == APv6Packet.IPHC_SAM_INLINE)
+
+    def _is_dst_inline(self):
+        return ((self._hdr & APv6Packet.IPHC_DAM_MASK)
+                == APv6Packet.IPHC_DAM_INLINE)
 
 
 class UdpDatagramError(Exception):
