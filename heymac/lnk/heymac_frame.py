@@ -90,7 +90,7 @@ class HeymacFrame(object):
     PID_TYPE_TDMA = 0b00000000
     PID_TYPE_CSMA = 0b00000100
 
-    FIELDS_NAMES = (
+    FIELD_NAMES = (
         "netid", "daddr", "ies", "saddr", "payld", "mic", "hops", "taddr")
 
     def __init__(self, pid, fctl, **kwargs):
@@ -114,14 +114,14 @@ class HeymacFrame(object):
         self._taddr = None
 
         for k, v in kwargs.items():
-            if k not in HeymacFrame.FIELDS_NAMES:
+            if k not in HeymacFrame.FIELD_NAMES:
                 raise HeymacFrameError("Invalid field, {}".format(k))
             setattr(self, k, v)
 
     def __bytes__(self):
         """Returns the HeymacFrame serialized into a bytes object.
 
-        Raises a HeymacFrameError if some bits and fields
+        Raises a HeymacFrameError if some bits or fields
         are not set properly.
         """
         self._validate_fctl_and_fields()
@@ -161,14 +161,14 @@ class HeymacFrame(object):
     def parse(frame_bytes):
         """Parses the given frame_bytes and returns a HeymacFrame.
 
-        Raises a HeymacFrameError if some bits and fields
+        Raises a HeymacFrameError if some bits or fields
         are not set properly.
         """
         if max(frame_bytes) > 255 or min(frame_bytes) < 0:
             raise HeymacFrameError("frame_bytes must be a sequence of bytes")
-
         if len(frame_bytes) < 2:
             raise HeymacFrameError("Frame must be 2 or more bytes in length")
+
         pid = frame_bytes[0]
         fctl = frame_bytes[1]
         frame = HeymacFrame(pid, fctl)
