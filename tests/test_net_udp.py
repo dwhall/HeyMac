@@ -81,12 +81,6 @@ class TestUdpDatagram(unittest.TestCase):
     def test_insufficient_data(self):
         """Test cases that should raise exceptions"""
         with self.assertRaises(UdpDatagramError):
-            f = UdpDatagram()
-        with self.assertRaises(UdpDatagramError):
-            f = UdpDatagram(src_port=0x1234)
-        with self.assertRaises(UdpDatagramError):
-            f = UdpDatagram(dst_port=0x1234)
-        with self.assertRaises(UdpDatagramError):
             f = UdpDatagram.parse(b"")
 
 
