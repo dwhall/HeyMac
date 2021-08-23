@@ -160,5 +160,5 @@ class GpsHsm(UartHsm):
         GPIO.remove_event_detect(self._pps_pin)
 
     def _pps_handler(self, chnl):
-        assert chnl == 26
+        assert chnl == self._pps_pin
         farc.Framework.publish(self._pps_evt)
