@@ -91,6 +91,7 @@ class TestUdpDatagram(unittest.TestCase):
             dst_port=0xF0B0)
         b1 = bytes(f)
         b2 = bytes(f)
+        self.assertEqual(b1, b2)
 
 
 if __name__ == "__main__":
