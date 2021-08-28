@@ -146,8 +146,13 @@ class APv6Packet(object):
             pkt.daddr = pkt_bytes[offset:offset + 16]
             offset += 16
 
-        # TODO: parse payld
-        pkt.payld = pkt_bytes[offset:]
+        payld = pkt_bytes[offset:]
+        if len(payld) > 0:
+            if ((payld[0] & UdpDatagram.UDPHC_PREFIX_MASK)
+                    == UdpDatagram.UDPHC_PREFIX):
+                pkt._payld = UdpDatagram.parse(payld)
+            else:
+                pkt._payld = payld
 
         return pkt
 
@@ -239,8 +244,8 @@ class UdpDatagram(object):
     """UDP Datagram with header compression per RFC 6282.
     Always omits the checksum because the Physical layer has FEC and CRC"""
 
-    _UDPHC_PREFIX_MASK = 0b11111000
-    _UDPHC_PREFIX = 0b11110000
+    UDPHC_PREFIX_MASK = 0b11111000
+    UDPHC_PREFIX = 0b11110000
 
     _UDPHC_CS_OMIT = 0b00000100
     _UDPHC_PORTS_MASK = 0b00000011
@@ -254,7 +259,7 @@ class UdpDatagram(object):
     _UDPHC_PORTS_MODE_BYTE_INLINE = 0b10
     _UDPHC_PORTS_MODE_NIBBLE_NIBBLE = 0b11
 
-    DEFAULT_PREFIX = _UDPHC_PREFIX
+    DEFAULT_PREFIX = UDPHC_PREFIX
     DEFAULT_CS_OMIT = _UDPHC_CS_OMIT
     DEFAULT_PORTS = 0
 
@@ -342,7 +347,7 @@ class UdpDatagram(object):
         dgram._hdr = dgram_bytes[0]
         offset = 1
 
-        if ((dgram._hdr & UdpDatagram._UDPHC_PREFIX_MASK)
+        if ((dgram._hdr & UdpDatagram.UDPHC_PREFIX_MASK)
                 != UdpDatagram.DEFAULT_PREFIX):
             raise UdpDatagramError("Header prefix mismatch")
         if ((dgram._hdr & UdpDatagram._UDPHC_CS_OMIT)
@@ -354,7 +359,7 @@ class UdpDatagram(object):
             if len(dgram_bytes) < 2:
                 raise UdpDatagramError("Insufficient bytes for ports")
             ports = dgram_bytes[offset]
-            offset + 1
+            offset += 1
             dgram._src_port = 0xF0B0 | ((ports >> 4) & 0x0F)
             dgram._dst_port = 0xF0B0 | (ports & 0x0F)
         elif port_mode == UdpDatagram._UDPHC_PORTS_MODE_BYTE_INLINE:
