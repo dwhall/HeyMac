@@ -28,6 +28,19 @@ class HeymacFrameFctl(enum.IntFlag):
     P = 0b00000001     # Pending frame follows
 
 
+class HeymacFramePid(enum.IntFlag):
+    pass
+
+class HeymacFramePidIdent(HeymacFramePid):
+    MASK = 0b11110000
+    HEYMAC = 0b11100000
+
+class HeymacFramePidType(HeymacFramePid):
+    MASK = 0b00001111
+    TDMA = 0b00000000
+    CSMA = 0b00000100
+
+
 class HeymacFrame(object):
     """Heymac frame definition
     [PID,Fctl,NetId,DstAddr,IEs,SrcAddr,Payld,MIC,Hops,TxAddr]
@@ -68,7 +81,7 @@ class HeymacFrame(object):
     Here is an example::
 
         frame = HeymacFrame(
-            HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
+            HeymacFramePidType.CSMA,
             HeymacFrameFctl.D | HeymacFrameFctl.S)
         frame.saddr = b"\x35\x16"
         frame.daddr = b"\x01\xE3"
@@ -85,24 +98,19 @@ class HeymacFrame(object):
     or a bytearray() or bytes() object for multi-byte fields.
     Multi-byte fields MUST be in Network Order (big-endian).
     """
-    # PID values (combine bit-wise)
-    PID_IDENT_HEYMAC = 0b11100000
-    PID_TYPE_TDMA = 0b00000000
-    PID_TYPE_CSMA = 0b00000100
 
     FIELD_NAMES = (
         "netid", "daddr", "ies", "saddr", "payld", "mic", "hops", "taddr")
 
-    def __init__(self, pid, fctl, **kwargs):
+    def __init__(self, pid_type, fctl=HeymacFrameFctl.NONE, **kwargs):
         """Creates a HeymacFrame starting with the given PID and Fctl."""
         # Validate arguments
-        if (pid & HeymacFrame._PID_IDENT_MASK) != HeymacFrame.PID_IDENT_HEYMAC:
-            raise HeymacFrameError("PID field is not Heymac")
-        if (pid & HeymacFrame._PID_TYPE_MASK) not in \
-                (HeymacFrame.PID_TYPE_TDMA, HeymacFrame.PID_TYPE_CSMA):
-            raise HeymacFrameError("Heymac protocol type not supported")
+        if (pid_type & ~HeymacFramePidType.MASK) != 0:
+            raise HeymacFrameError("invalid pid_type value")
+        if 0 > fctl > 255:
+            raise HeymacFrameError("invalid fctl value")
 
-        self._pid = pid
+        self._pid = HeymacFramePidIdent.HEYMAC | pid_type
         self._fctl = fctl
         self._netid = None
         self._daddr = None
@@ -169,9 +177,13 @@ class HeymacFrame(object):
         if len(frame_bytes) < 2:
             raise HeymacFrameError("Frame must be 2 or more bytes in length")
 
-        pid = frame_bytes[0]
+        pid_ident = frame_bytes[0] & HeymacFramePidIdent.MASK
+        if pid_ident != HeymacFramePidIdent.HEYMAC:
+            raise HeymacFrameError("Invalid PID ident")
+
+        pid_type = frame_bytes[0] & HeymacFramePidType.MASK
         fctl = frame_bytes[1]
-        frame = HeymacFrame(pid, fctl)
+        frame = HeymacFrame(pid_type, fctl)
         addr_sz = frame._get_addr_sz()
         offset = 2
 
@@ -265,8 +277,8 @@ class HeymacFrame(object):
         Note, this only checks the first four bits and does not check
         the rest of the frame for validity.
         """
-        return (self._pid & HeymacFrame._PID_IDENT_MASK
-                == HeymacFrame.PID_IDENT_HEYMAC)
+        return (self._pid & HeymacFramePidIdent.MASK
+                == HeymacFramePidIdent.HEYMAC)
 
     def is_extended(self):
         return 0 != (self._fctl & HeymacFrameFctl.X)
@@ -380,11 +392,6 @@ class HeymacFrame(object):
 
 
 # Private
-
-
-    # PID masks
-    _PID_IDENT_MASK = 0b11110000
-    _PID_TYPE_MASK = 0b00001111
 
     # TODO: verify CSMA version
     # _SUPPORTED_CSMA_VRSNS = (0,)

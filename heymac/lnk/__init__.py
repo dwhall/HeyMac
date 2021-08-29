@@ -1,5 +1,6 @@
 from .heymac_hsm import HeymacCsmaHsm
 from .heymac_frame import HeymacFrame, HeymacFrameError, HeymacFrameFctl, \
+    HeymacFramePidIdent, HeymacFramePidType, \
     HeymacIe, HeymacIeError, HeymacIeSequence, \
     HeymacHIeTerm, HeymacHIeSqncNmbr, HeymacHIeCipher, \
     HeymacPIeTerm, HeymacPIeFrag0, HeymacPIeFragN, HeymacPIeMic

@@ -13,7 +13,7 @@ import logging
 import farc
 
 from .heymac_link import HeymacLink
-from .heymac_frame import HeymacFrame, HeymacFrameError
+from .heymac_frame import *
 from .heymac_cmd import HeymacCmd, HeymacCmdError, HeymacCmdBcn
 from ..utl import HamIdent
 
@@ -96,9 +96,7 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
         fctl_bits = HeymacFrameFctl.L | HeymacFrameFctl.S
         if dest:
             fctl_bits |= HeymacFrameFctl.D
-        f = HeymacFrame(
-            HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
-            fctl_bits)
+        f = HeymacFrame(HeymacFramePidType.CSMA, fctl_bits)
         if dest:
             f.daddr = dest
         f.saddr = self._lnk_addr
@@ -311,9 +309,8 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
             FLD_STATUS=0,
             FLD_CALLSIGN_SSID=callsign,
             FLD_PUB_KEY=self._pub_key)
-        frame = HeymacFrame(
-            HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
-            HeymacFrameFctl.L | HeymacFrameFctl.S)
+        frame = HeymacFrame(HeymacFramePidType.CSMA,
+                            HeymacFrameFctl.L | HeymacFrameFctl.S)
         frame.saddr = self._lnk_addr
         frame.payld = bytes(bcn)
         self._phy_hsm.post_tx_action(

@@ -11,9 +11,7 @@ class TestHeyMacFrame(unittest.TestCase):
     """
 
     def test_mac(self):
-        f = HeymacFrame(
-            HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
-            0)
+        f = HeymacFrame(HeymacFramePidType.CSMA)
         b = bytes(f)
         self.assertEqual(b, b"\xE4\x00")
 
@@ -36,9 +34,7 @@ class TestHeyMacFrame(unittest.TestCase):
 
 
     def test_csma(self):
-        f = HeymacFrame(
-            HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
-            0)
+        f = HeymacFrame(HeymacFramePidType.CSMA)
         b = bytes(f)
         self.assertEqual(b, b"\xE4\x00")
 
@@ -53,9 +49,7 @@ class TestHeyMacFrame(unittest.TestCase):
 
 
     def test_min_payld(self):
-        f = HeymacFrame(
-            HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
-            0)
+        f = HeymacFrame(HeymacFramePidType.CSMA)
         f.payld = HeymacCmdTxt(FLD_MSG=b"ABCD")
         b = bytes(f)
         self.assertEqual(b, b"\xE4\x00\x83ABCD")
@@ -71,9 +65,8 @@ class TestHeyMacFrame(unittest.TestCase):
 
 
     def test_saddr64b(self):
-        f = HeymacFrame(
-            HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
-            HeymacFrameFctl.L | HeymacFrameFctl.S)
+        f = HeymacFrame(HeymacFramePidType.CSMA,
+                        HeymacFrameFctl.L | HeymacFrameFctl.S)
         f.saddr = b"\x01\x02\x03\x04\x05\x06\x07\x08"
         b = bytes(f)
         self.assertEqual(b, b"\xE4\x44\x01\x02\x03\x04\x05\x06\x07\x08")
@@ -91,9 +84,10 @@ class TestHeyMacFrame(unittest.TestCase):
 
 
     def test_saddr64b_daddr64b(self):
-        f = HeymacFrame(
-            HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
-            HeymacFrameFctl.L | HeymacFrameFctl.D | HeymacFrameFctl.S)
+        f = HeymacFrame(HeymacFramePidType.CSMA,
+                        HeymacFrameFctl.L
+                        | HeymacFrameFctl.D
+                        | HeymacFrameFctl.S)
         f.daddr = b"\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8"
         f.saddr = b"\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8"
         f.payld = HeymacCmdTxt(FLD_MSG=b"hi")
@@ -111,9 +105,8 @@ class TestHeyMacFrame(unittest.TestCase):
 
 
     def test_saddr16b_daddr16b(self):
-        f = HeymacFrame(
-            HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
-            HeymacFrameFctl.S | HeymacFrameFctl.D)
+        f = HeymacFrame(HeymacFramePidType.CSMA,
+                        HeymacFrameFctl.S | HeymacFrameFctl.D)
         f.daddr = b"\xd1\xd2"
         f.saddr = b"\xc1\xc2"
         f.payld = HeymacCmdTxt(FLD_MSG=b"hello world")
@@ -131,9 +124,8 @@ class TestHeyMacFrame(unittest.TestCase):
 
 
     def test_netid_daddr(self):
-        f = HeymacFrame(
-            HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
-            HeymacFrameFctl.N | HeymacFrameFctl.D)
+        f = HeymacFrame(HeymacFramePidType.CSMA,
+                        HeymacFrameFctl.N | HeymacFrameFctl.D)
         f.netid = b"\x80\xA5"
         f.daddr = b"\xd1\xd2"
         f.payld = HeymacCmdTxt(FLD_MSG=b"data")
@@ -151,12 +143,11 @@ class TestHeyMacFrame(unittest.TestCase):
 
 
     def test_saddr16b_daddr16b_arg(self):
-        f = HeymacFrame(
-            HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
-            HeymacFrameFctl.S | HeymacFrameFctl.D,
-            daddr=b"\xd1\xd2",
-            saddr=b"\xc1\xc2",
-            payld=HeymacCmdTxt(FLD_MSG=b"hello world"))
+        f = HeymacFrame(HeymacFramePidType.CSMA,
+                        HeymacFrameFctl.S | HeymacFrameFctl.D,
+                        daddr=b"\xd1\xd2",
+                        saddr=b"\xc1\xc2",
+                        payld=HeymacCmdTxt(FLD_MSG=b"hello world"))
         b = bytes(f)
         self.assertEqual(b, b"\xE4\x14\xd1\xd2\xc1\xc2\x83hello world")
 
@@ -171,25 +162,23 @@ class TestHeyMacFrame(unittest.TestCase):
 
 
     def _test_invalid_field(self):
-        f = HeymacFrame(
-            HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
-            HeymacFrameFctl.S | HeymacFrameFctl.D,
-            daddr=b"\xd1\xd2",
-            saddr=b"\xc1\xc2",
-            timmy=b"timmy")
+        f = HeymacFrame(HeymacFramePidType.CSMA,
+                        HeymacFrameFctl.S | HeymacFrameFctl.D,
+                        daddr=b"\xd1\xd2",
+                        saddr=b"\xc1\xc2",
+                        timmy=b"timmy")
 
     def test_invalid_field(self):
         self.assertRaises(HeymacFrameError, self._test_invalid_field)
 
 
     def test_hie(self):
-        f = HeymacFrame(
-            HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
-            HeymacFrameFctl.I,
-            ies=HeymacIeSequence(
-                HeymacHIeSqncNmbr(42),
-                HeymacHIeTerm(),
-                HeymacPIeTerm()))
+        f = HeymacFrame(HeymacFramePidType.CSMA,
+                        HeymacFrameFctl.I,
+                        ies=HeymacIeSequence(
+                            HeymacHIeSqncNmbr(42),
+                            HeymacHIeTerm(),
+                            HeymacPIeTerm()))
         b = bytes(f)
         self.assertEqual(b, b"\xE4\x08\x81\x00\x2A\x00\x20")
 
@@ -206,12 +195,11 @@ class TestHeyMacFrame(unittest.TestCase):
 
 
     def test_pie(self):
-        f = HeymacFrame(
-            HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
-            HeymacFrameFctl.I,
-            ies=HeymacIeSequence(
-                HeymacPIeMic(5, 4),
-                HeymacPIeTerm()))
+        f = HeymacFrame(HeymacFramePidType.CSMA,
+                        HeymacFrameFctl.I,
+                        ies=HeymacIeSequence(
+                            HeymacPIeMic(5, 4),
+                            HeymacPIeTerm()))
         b = bytes(f)
         self.assertEqual(b, b"\xE4\x08\xA3\x05\x04\x20")
 
@@ -228,13 +216,12 @@ class TestHeyMacFrame(unittest.TestCase):
 
 
     def test_available_payld_sz(self):
-        f = HeymacFrame(
-            HeymacFrame.PID_IDENT_HEYMAC | HeymacFrame.PID_TYPE_CSMA,
-            HeymacFrameFctl.S | HeymacFrameFctl.M |
-            HeymacFrameFctl.P,
-            saddr=b"\x10\x00",
-            hops=4,
-            taddr=b"\x11\x00")
+        f = HeymacFrame(HeymacFramePidType.CSMA,
+                        HeymacFrameFctl.S | HeymacFrameFctl.M |
+                        HeymacFrameFctl.P,
+                        saddr=b"\x10\x00",
+                        hops=4,
+                        taddr=b"\x11\x00")
         avail1 = f.available_payld_sz()
         b = bytes(f)
         self.assertEqual(b, b"\xE4\x07\x10\x00\x04\x11\x00")
