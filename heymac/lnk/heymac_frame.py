@@ -29,13 +29,16 @@ class HeymacFrameFctl(enum.IntFlag):
 
 
 class HeymacFramePid(enum.IntFlag):
+    """The first byte of the HeymacFrame is the protocol identifier, PID."""
     pass
 
 class HeymacFramePidIdent(HeymacFramePid):
+    """The upper nibble of the PID identifies the Heymac protocol."""
     MASK = 0b11110000
     HEYMAC = 0b11100000
 
 class HeymacFramePidType(HeymacFramePid):
+    """The lower nibble of the PID identifies PHY attributes and versioning."""
     MASK = 0b00001111
     TDMA = 0b00000000
     CSMA = 0b00000100
@@ -80,9 +83,8 @@ class HeymacFrame(object):
     To build a Heymac frame, create an instance and then set fields.
     Here is an example::
 
-        frame = HeymacFrame(
-            HeymacFramePidType.CSMA,
-            HeymacFrameFctl.D | HeymacFrameFctl.S)
+        frame = HeymacFrame(HeymacFramePidType.CSMA,
+                            HeymacFrameFctl.D | HeymacFrameFctl.S)
         frame.saddr = b"\x35\x16"
         frame.daddr = b"\x01\xE3"
         frame.payld = my_data
@@ -284,32 +286,25 @@ class HeymacFrame(object):
         return 0 != (self._fctl & HeymacFrameFctl.X)
 
     def is_long_addrs(self):
-        return 0 == (self._fctl & HeymacFrameFctl.X) \
-            and 0 != (self._fctl & HeymacFrameFctl.L)
+        return not self.is_extended() and 0 != (self._fctl & HeymacFrameFctl.L)
 
     def is_netid_present(self):
-        return 0 == (self._fctl & HeymacFrameFctl.X) \
-            and 0 != (self._fctl & HeymacFrameFctl.N)
+        return not self.is_extended() and 0 != (self._fctl & HeymacFrameFctl.N)
 
     def is_daddr_present(self):
-        return 0 == (self._fctl & HeymacFrameFctl.X) \
-            and 0 != (self._fctl & HeymacFrameFctl.D)
+        return not self.is_extended() and 0 != (self._fctl & HeymacFrameFctl.D)
 
     def is_ies_present(self):
-        return 0 == (self._fctl & HeymacFrameFctl.X) \
-            and 0 != (self._fctl & HeymacFrameFctl.I)
+        return not self.is_extended() and 0 != (self._fctl & HeymacFrameFctl.I)
 
     def is_saddr_present(self):
-        return 0 == (self._fctl & HeymacFrameFctl.X) \
-            and 0 != (self._fctl & HeymacFrameFctl.S)
+        return not self.is_extended() and 0 != (self._fctl & HeymacFrameFctl.S)
 
     def is_mhop(self):
-        return 0 == (self._fctl & HeymacFrameFctl.X) \
-            and 0 != (self._fctl & HeymacFrameFctl.M)
+        return not self.is_extended() and 0 != (self._fctl & HeymacFrameFctl.M)
 
     def is_pending_set(self):
-        return 0 == (self._fctl & HeymacFrameFctl.X) \
-            and 0 != (self._fctl & HeymacFrameFctl.P)
+        return not self.is_extended() and 0 != (self._fctl & HeymacFrameFctl.P)
 
     @property
     def pid(self):
@@ -430,14 +425,12 @@ class HeymacFrame(object):
         Fctl bits indicate a field is needed, but it's not present;
         or a field is present, but the Fctl bit is not set.
         """
-        FIELD_INFO = (
-            (HeymacFrameFctl.N, self._netid, "netid"),
-            (HeymacFrameFctl.D, self._daddr, "daddr"),
-            (HeymacFrameFctl.I, self._ie_sqnc, "ies"),
-            (HeymacFrameFctl.S, self._saddr, "saddr"),
-            (HeymacFrameFctl.M, self._hops, "hops"),
-            (HeymacFrameFctl.M, self._taddr, "taddr"),
-        )
+        FIELD_INFO = ((HeymacFrameFctl.N, self._netid, "netid"),
+                      (HeymacFrameFctl.D, self._daddr, "daddr"),
+                      (HeymacFrameFctl.I, self._ie_sqnc, "ies"),
+                      (HeymacFrameFctl.S, self._saddr, "saddr"),
+                      (HeymacFrameFctl.M, self._hops, "hops"),
+                      (HeymacFrameFctl.M, self._taddr, "taddr"))
 
         err_msg = None
         if not err_msg and self._pid is None:
@@ -456,11 +449,10 @@ class HeymacFrame(object):
                     break
 
         # If FCTL_L is set, at least one address field must exist
-        if not err_msg and (
-                HeymacFrameFctl.L & fctl
-                and not self._daddr
-                and not self._saddr
-                and not self._taddr):
+        if not err_msg and (HeymacFrameFctl.L & fctl
+                            and not self._daddr
+                            and not self._saddr
+                            and not self._taddr):
             err_msg = "Long address selected, but no address field is present"
 
         # If FCTL_X is set, only the payload should exist
@@ -527,12 +519,10 @@ class HeymacIe(object):
         return 1 + self._get_sz(self._iectl)
 
     def _get_sz(self, ie_ctl):
-        SZ = {
-            HeymacIe.SZ_BIT0: 0,
-            HeymacIe.SZ_BIT1: 0,
-            HeymacIe.SZ_2B: 2,
-            HeymacIe.SZ_N: -1,
-        }
+        SZ = {HeymacIe.SZ_BIT0: 0,
+              HeymacIe.SZ_BIT1: 0,
+              HeymacIe.SZ_2B: 2,
+              HeymacIe.SZ_N: -1}
         sz = SZ[ie_ctl & HeymacIe.SZ_MASK]
         if sz == -1:
             raise HeymacIeError("Sz byte absent")
