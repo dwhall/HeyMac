@@ -670,10 +670,7 @@ class HeymacIeSequence(object):
         self._ies = ies
 
     def __bytes__(self):
-        ba = bytearray()
-        for ie in self._ies:
-            ba.extend(bytes(ie))
-        return bytes(ba)
+        return b"".join(map(bytes, self._ies))
 
     def __iter__(self):
         return iter(self._ies)
