@@ -83,8 +83,7 @@ class HeymacFrame(object):
     To build a Heymac frame, create an instance and then set fields.
     Here is an example::
 
-        frame = HeymacFrame(HeymacFramePidType.CSMA,
-                            HeymacFrameFctl.D | HeymacFrameFctl.S)
+        frame = HeymacFrame(HeymacFramePidType.CSMA)
         frame.saddr = b"\x35\x16"
         frame.daddr = b"\x01\xE3"
         frame.payld = my_data
@@ -101,19 +100,19 @@ class HeymacFrame(object):
     Multi-byte fields MUST be in Network Order (big-endian).
     """
 
+    MAX_LEN = 256       # Maximum frame length
+    MIN_LEN = 2         # Minimum frame length
+
     FIELD_NAMES = (
         "netid", "daddr", "ies", "saddr", "payld", "mic", "hops", "taddr")
 
-    def __init__(self, pid_type, fctl=HeymacFrameFctl.NONE, **kwargs):
+    def __init__(self, pid_type, **kwargs):
         """Creates a HeymacFrame starting with the given PID and Fctl."""
-        # Validate arguments
         if (pid_type & ~HeymacFramePidType.MASK) != 0:
             raise HeymacFrameError("invalid pid_type value")
-        if 0 > fctl > 255:
-            raise HeymacFrameError("invalid fctl value")
 
         self._pid = HeymacFramePidIdent.HEYMAC | pid_type
-        self._fctl = fctl
+        self._fctl = HeymacFrameFctl.NONE
         self._netid = None
         self._daddr = None
         self._ie_sqnc = None
@@ -127,6 +126,8 @@ class HeymacFrame(object):
             if k not in HeymacFrame.FIELD_NAMES:
                 raise HeymacFrameError("Invalid field, {}".format(k))
             setattr(self, k, v)
+
+        # TODO: find a way to set the Fctl.P bit
 
     def __bytes__(self):
         """Returns the HeymacFrame serialized into a bytes object.
@@ -149,7 +150,7 @@ class HeymacFrame(object):
             if self.is_daddr_present():
                 frame.extend(self._daddr)
             if self.is_ies_present():
-                frame.extend(bytes(self._ie_sqnc))
+                frame.extend(self.ies)
             if self.is_saddr_present():
                 frame.extend(self._saddr)
             if self._payld:
@@ -163,7 +164,7 @@ class HeymacFrame(object):
                 frame.append(self._hops)
                 frame.extend(self._taddr)
 
-        if len(frame) > 256:
+        if len(frame) > HeymacFrame.MAX_LEN:
             raise HeymacFrameError("Serialized frame is too large.")
         return bytes(frame)
 
@@ -176,7 +177,7 @@ class HeymacFrame(object):
         """
         if max(frame_bytes) > 255 or min(frame_bytes) < 0:
             raise HeymacFrameError("frame_bytes must be a sequence of bytes")
-        if len(frame_bytes) < 2:
+        if len(frame_bytes) < HeymacFrame.MIN_LEN:
             raise HeymacFrameError("Frame must be 2 or more bytes in length")
 
         pid_ident = frame_bytes[0] & HeymacFramePidIdent.MASK
@@ -184,33 +185,34 @@ class HeymacFrame(object):
             raise HeymacFrameError("Invalid PID ident")
 
         pid_type = frame_bytes[0] & HeymacFramePidType.MASK
+        frame = HeymacFrame(pid_type)
+
         fctl = frame_bytes[1]
-        frame = HeymacFrame(pid_type, fctl)
-        addr_sz = frame._get_addr_sz()
+        addr_sz = (2, 8)[(fctl & HeymacFrameFctl.L) != 0]
         offset = 2
 
-        # Format of Extended frame is not defined by Heymac
+        # The format of Extended frame is not defined by Heymac
         # so everything after PID, Fctl is payload
-        if frame.is_extended():
+        if fctl & HeymacFrameFctl.X:
             frame.payld = frame_bytes[offset:]
             offset = len(frame_bytes)
 
         # Parse a regular Heymac frame
         else:
-            if frame.is_netid_present():
+            if fctl & HeymacFrameFctl.N:
                 frame.netid = frame_bytes[offset:offset + 2]
                 offset += 2
 
-            if frame.is_daddr_present():
+            if fctl & HeymacFrameFctl.D:
                 frame.daddr = frame_bytes[offset:offset + addr_sz]
                 offset += addr_sz
 
-            if frame.is_ies_present():
+            if fctl & HeymacFrameFctl.I:
                 ies = HeymacIeSequence.parse(frame_bytes, offset)
                 frame.ies = ies
                 offset += len(ies)
 
-            if frame.is_saddr_present():
+            if fctl & HeymacFrameFctl.S:
                 frame.saddr = frame_bytes[offset:offset + addr_sz]
                 offset += addr_sz
 
@@ -219,26 +221,27 @@ class HeymacFrame(object):
             # TODO: determine MIC size from IEs
             mic_sz = 0
 
-            if frame.is_mhop():
+            if fctl & HeymacFrameFctl.M:
                 mhop_sz = 1 + addr_sz
             else:
                 mhop_sz = 0
 
             payld_sz = len(frame_bytes) - offset - mic_sz - mhop_sz
-            frame.payld = HeymacFrame._parse_payld(frame_bytes, offset, payld_sz)
+            frame.payld = HeymacFrame._parse_payld(frame_bytes,
+                                                   offset,
+                                                   payld_sz)
             offset += payld_sz
 
             # TODO: parse MIC
 
-            if frame.is_mhop():
+            if fctl & HeymacFrameFctl.M:
                 frame.hops = frame_bytes[offset]
                 offset += 1
                 frame.taddr = frame_bytes[offset:offset + addr_sz]
                 offset += addr_sz
 
-        # Expected the amount parsed to match the frame size
         if offset != len(frame_bytes):
-            raise HeymacFrameError("Incorrect byte length")
+            raise HeymacFrameError("frame_bytes does not make an exact frame")
 
         frame._validate_fctl_and_fields()
         return frame
@@ -329,15 +332,14 @@ class HeymacFrame(object):
 
     @daddr.setter
     def daddr(self, val):
-        if len(val) != self._get_addr_sz():
-            raise HeymacFrameError("Address size mismatch")
         self._daddr = val
         self._fctl |= HeymacFrameFctl.D
+        if len(val) != 2:
+            self._fctl |= HeymacFrameFctl.L
 
     @property
     def ies(self):
-        # TODO: return bytes object, list of IE objects or HeymacIeSequence?
-        return self._ie_sqnc
+        return bytes(self._ie_sqnc)
 
     @ies.setter
     def ies(self, val):
@@ -350,10 +352,10 @@ class HeymacFrame(object):
 
     @saddr.setter
     def saddr(self, val):
-        if len(val) != self._get_addr_sz():
-            raise HeymacFrameError("Address size mismatch")
         self._saddr = val
         self._fctl |= HeymacFrameFctl.S
+        if len(val) != 2:
+            self._fctl |= HeymacFrameFctl.L
 
     @property
     def payld(self):
@@ -379,8 +381,6 @@ class HeymacFrame(object):
 
     @taddr.setter
     def taddr(self, val):
-        if len(val) != self._get_addr_sz():
-            raise HeymacFrameError("Address size mismatch")
         self._taddr = val
         if self._hops is not None:
             self._fctl |= HeymacFrameFctl.M
@@ -394,9 +394,9 @@ class HeymacFrame(object):
 
     @staticmethod
     def _parse_payld(frame_bytes, offset, sz):
-        """Parses sz number of frame_bytes at the offset.
+        """Parses sz number of frame_bytes at the offset as the payload.
 
-        Returns either a HeymacCmd or APv6Packet object
+        Returns a HeymacCmd object, an APv6Packet object or None
         """
         if sz < 0:
             raise HeymacFrameError("Insufficient bytes")
@@ -412,10 +412,6 @@ class HeymacFrame(object):
             else:
                 raise HeymacFrameError("Unknown payload prefix")
         return payld
-
-
-    def _get_addr_sz(self):
-        return (2, 8)[self.is_long_addrs()]
 
 
     def _validate_fctl_and_fields(self):
