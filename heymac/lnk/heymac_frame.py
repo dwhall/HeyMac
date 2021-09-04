@@ -17,7 +17,7 @@ class HeymacFrameError(Exception):
 
 class HeymacFrameFctl(enum.IntFlag):
     """HeymacFrame frame control (Fctl) field bit flag (bitwise combos)"""
-    NONE = 0
+    NO_FLAGS = 0
     X = 0b10000000     # eXtended frame (none of the other bits apply)
     L = 0b01000000     # Long addressing
     N = 0b00100000     # NetId present
@@ -112,7 +112,7 @@ class HeymacFrame(object):
             raise HeymacFrameError("invalid pid_type value")
 
         self._pid = HeymacFramePidIdent.HEYMAC | pid_type
-        self._fctl = HeymacFrameFctl.NONE
+        self._fctl = HeymacFrameFctl.NO_FLAGS
         self._netid = None
         self._daddr = None
         self._ie_sqnc = None
