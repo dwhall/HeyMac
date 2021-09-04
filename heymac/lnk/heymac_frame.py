@@ -429,10 +429,11 @@ class HeymacFrame(object):
                       (HeymacFrameFctl.M, self._taddr, "taddr"))
 
         err_msg = None
-        if not err_msg and self._pid is None:
-            err_msg = "PID value is missing"
-        if not err_msg and self._fctl is None:
-            err_msg = "Fctl value is missing"
+        if not err_msg and (self._pid & HeymacFramePidIdent.MASK
+                            != HeymacFramePidIdent.HEYMAC):
+            err_msg = "PID value is not Heymac"
+        if not err_msg and 0 > self._fctl > 255:
+            err_msg = "Fctl value is invalid"
 
         # Check that if the bit is set in Fctl,
         # the data field exists and vice versa
@@ -444,14 +445,32 @@ class HeymacFrame(object):
                               "and field '{}'".format(bit, field_nm)
                     break
 
-        # If FCTL_L is set, at least one address field must exist
-        if not err_msg and (HeymacFrameFctl.L & fctl
+        # Check that all address fields (if they exist) are the same length
+        addr_len = 0
+        if self._daddr:
+            addr_len = len(self.daddr)
+        if self._saddr and addr_len > 0 and addr_len != len(self.saddr):
+            err_msg = "Src and Dst address not of equal length"
+        if (not err_msg
+                and self._taddr
+                and addr_len > 0
+                and addr_len != len(self.taddr)):
+            err_msg = "Re-transmit address not of length equal to other(s)"
+
+        # If Fctl.L is set, at least one address field must exist
+        if not err_msg and (fctl & HeymacFrameFctl.L
                             and not self._daddr
                             and not self._saddr
                             and not self._taddr):
             err_msg = "Long address selected, but no address field is present"
 
-        # If FCTL_X is set, only the payload should exist
+        # IF Fctl.M is set, both Hops and Re-transmit Address must exist
+        if not err_msg and (fctl & HeymacFrameFctl.M
+                            and (not self._hops or not self._taddr)):
+            err_msg = "Fctl.M is set, but Hops or re-transmit address " \
+                      "is missing"
+
+        # If Fctl.X is set, only the payload should exist
         if not err_msg and HeymacFrameFctl.X & fctl:
             for _, field, field_nm in FIELD_INFO:
                 if field:
