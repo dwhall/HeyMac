@@ -83,12 +83,11 @@ class APv6Packet(object):
 
     def __init__(self, **kwargs):
         """Creates an APv6 packet with the given fields"""
-        self._hdr = (
-            APv6Packet.DEFAULT_PREFIX
-            | APv6Packet.DEFAULT_NHC
-            | APv6Packet.DEFAULT_HLIM
-            | APv6Packet.DEFAULT_SAM
-            | APv6Packet.DEFAULT_DAM)
+        self._hdr = (APv6Packet.DEFAULT_PREFIX
+                     | APv6Packet.DEFAULT_NHC
+                     | APv6Packet.DEFAULT_HLIM
+                     | APv6Packet.DEFAULT_SAM
+                     | APv6Packet.DEFAULT_DAM)
         self._hops = None
         self._saddr = None
         self._daddr = None
@@ -171,20 +170,18 @@ class APv6Packet(object):
         if hops_idx == APv6Packet.IPHC_HLIM_INLINE:
             h = self._hops
         else:
-            h = {
-                APv6Packet.IPHC_HLIM_1: 1,
-                APv6Packet.IPHC_HLIM_64: 64,
-                APv6Packet.IPHC_HLIM_255: 255}[hops_idx]
+            h = {APv6Packet.IPHC_HLIM_1: 1,
+                 APv6Packet.IPHC_HLIM_64: 64,
+                 APv6Packet.IPHC_HLIM_255: 255}[hops_idx]
         return struct.pack("B", h)
 
     @hops.setter
     def hops(self, val):
         if type(val) is bytes:
             val = val[0]
-        hlim = {
-            1: APv6Packet.IPHC_HLIM_1,
-            64: APv6Packet.IPHC_HLIM_64,
-            255: APv6Packet.IPHC_HLIM_255}
+        hlim = {1: APv6Packet.IPHC_HLIM_1,
+                64: APv6Packet.IPHC_HLIM_64,
+                255: APv6Packet.IPHC_HLIM_255}
         self._hdr &= ~APv6Packet.IPHC_HLIM_MASK
         if val in hlim.keys():
             self._hops = None
@@ -267,10 +264,9 @@ class UdpDatagram(object):
 
     def __init__(self, **kwargs):
         """Creates a UDP datagram with the given fields"""
-        self._hdr = (
-            UdpDatagram.DEFAULT_PREFIX
-            | UdpDatagram.DEFAULT_CS_OMIT
-            | UdpDatagram.DEFAULT_PORTS)
+        self._hdr = (UdpDatagram.DEFAULT_PREFIX
+                     | UdpDatagram.DEFAULT_CS_OMIT
+                     | UdpDatagram.DEFAULT_PORTS)
         self._src_port = None
         self._dst_port = None
         self._payld = None
@@ -302,18 +298,18 @@ class UdpDatagram(object):
         ports = bytearray()
         src_mode = self._get_port_mode(self._src_port)
         dst_mode = self._get_port_mode(self._dst_port)
-        if src_mode == UdpDatagram._UDPHC_PORT_MODE_NIBBLE \
-                and dst_mode == UdpDatagram._UDPHC_PORT_MODE_NIBBLE:
+        if (src_mode == UdpDatagram._UDPHC_PORT_MODE_NIBBLE
+                and dst_mode == UdpDatagram._UDPHC_PORT_MODE_NIBBLE):
             mode_bits = UdpDatagram._UDPHC_PORTS_MODE_NIBBLE_NIBBLE
             ports.append((self._src_port & 0x0F) << 4
                          | (self._dst_port & 0x0F))
-        elif src_mode == UdpDatagram._UDPHC_PORT_MODE_BYTE or \
-                src_mode == UdpDatagram._UDPHC_PORT_MODE_NIBBLE:
+        elif (src_mode == UdpDatagram._UDPHC_PORT_MODE_BYTE
+                or src_mode == UdpDatagram._UDPHC_PORT_MODE_NIBBLE):
             mode_bits = UdpDatagram._UDPHC_PORTS_MODE_BYTE_INLINE
             ports.append(self._src_port & 0xFF)
             ports.extend(self.dst_port)
-        elif dst_mode == UdpDatagram._UDPHC_PORT_MODE_BYTE or \
-                dst_mode == UdpDatagram._UDPHC_PORT_MODE_NIBBLE:
+        elif (dst_mode == UdpDatagram._UDPHC_PORT_MODE_BYTE
+                or dst_mode == UdpDatagram._UDPHC_PORT_MODE_NIBBLE):
             mode_bits = UdpDatagram._UDPHC_PORTS_MODE_INLINE_BYTE
             ports.extend(self.src_port)
             ports.append(self._dst_port & 0xFF)
