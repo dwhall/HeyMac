@@ -421,12 +421,12 @@ class HeymacFrame(object):
         Fctl bits indicate a field is needed, but it's not present;
         or a field is present, but the Fctl bit is not set.
         """
-        FIELD_INFO = ((HeymacFrameFctl.N, self._netid, "netid"),
-                      (HeymacFrameFctl.D, self._daddr, "daddr"),
-                      (HeymacFrameFctl.I, self._ie_sqnc, "ies"),
-                      (HeymacFrameFctl.S, self._saddr, "saddr"),
-                      (HeymacFrameFctl.M, self._hops, "hops"),
-                      (HeymacFrameFctl.M, self._taddr, "taddr"))
+        FIELD_INFO = ((HeymacFrameFctl.N, "_netid"),
+                      (HeymacFrameFctl.D, "_daddr"),
+                      (HeymacFrameFctl.I, "_ie_sqnc"),
+                      (HeymacFrameFctl.S, "_saddr"),
+                      (HeymacFrameFctl.M, "_hops"),
+                      (HeymacFrameFctl.M, "_taddr"))
 
         err_msg = None
         if not err_msg and (self._pid & HeymacFramePidIdent.MASK
@@ -439,7 +439,8 @@ class HeymacFrame(object):
         # the data field exists and vice versa
         if not err_msg:
             fctl = self._fctl
-            for bit, field, field_nm in FIELD_INFO:
+            for bit, field_nm in FIELD_INFO:
+                field = getattr(self, field_nm)
                 if (bit & fctl and not field) or ((bit & fctl) == 0 and field):
                     err_msg = "Fctl bit/value missing for Fctl bit 0x{:x} " \
                               "and field '{}'".format(bit, field_nm)
@@ -472,7 +473,8 @@ class HeymacFrame(object):
 
         # If Fctl.X is set, only the payload should exist
         if not err_msg and HeymacFrameFctl.X & fctl:
-            for _, field, field_nm in FIELD_INFO:
+            for _, field_nm in FIELD_INFO:
+                field = getattr(self, field_nm)
                 if field:
                     err_msg = "Extended frame has field other than {}" \
                               .format(field_nm)
