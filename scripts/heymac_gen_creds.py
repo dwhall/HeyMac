@@ -9,6 +9,12 @@ used by the `HeyMac network stack <https://github.com/dwhall/heymac>`.
 
 Personal files go in the HamIdent application folder,
 while device files go in the HeyMac application folder.
+
+References
+----------
+
+ISO 3166 Alpha-2 Country codes:
+    https://www.nationsonline.org/oneworld/country_code_list.htm
 """
 
 import argparse
@@ -27,9 +33,13 @@ messages for recreational/amateur radio communication.
 def main(args):
     print(WARNING)
     if bool(args.device):
-        assert HamIdent.cert_file_exists()
+        assert HamIdent.cert_file_exists(), \
+            "A personal credential MUST exist " \
+            "in order to create a device credential"
         _gen_device_credentials()
     else:
+        assert not HamIdent.cert_file_exists(), \
+            "Exiting to prevent overwriting existing credentials."
         _gen_personal_credentials()
 
 
@@ -59,7 +69,7 @@ def _input_person_info():
     person_info["cmn_name"] = input("Common name: ")
     person_info["callsign"] = input("Callsign: ")
     person_info["email"] = input("Email: ")
-    person_info["country"] = input("Country name: ")
+    person_info["country"] = input("Country code (ISO Alpha-2): ")
     person_info["province"] = input("State or province name: ")
     person_info["postalcode"] = input("Postal/zip code: ")
     return person_info
@@ -67,7 +77,6 @@ def _input_person_info():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    #parser.add_argument("-d", "--device", default=False, help='Generate device credential files')
-    parser.add_argument("-d", "--device", default=True, help='Generate device credential files')
+    parser.add_argument("-d", "--device", default=False, help='Generate device credential files')
     args = parser.parse_args()
     main(args)
