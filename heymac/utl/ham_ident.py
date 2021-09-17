@@ -4,8 +4,16 @@ Copyright 2017 Dean Hall.  See LICENSE for details.
 This module contains the HamIdent class which has methods to generate
 a self-signed X.509 certificate and asymmetric keypairs which are
 used to create various kinds of personal and device credential files.
-All keypairs and certificates are stored in an application-specific location.
+The personal credential is tailored to amateur radio operators in that
+the operator's callsign is put in the X.509 certificate's pseudonum field.
 
+A personal credential must be created first because device credentials
+re-use the callsign information from the personal credential to create
+a device identifier of the form::
+
+    <callsign>-###
+
+The process for creating a personal credential is as follows.
 First, a special keypair is made.  Elleptic Curve Cryptography
 is used to repeatedly generate asymmetric key pairs until
 a public key is found whose hash starts with 0xFC, the personal prefix.
@@ -20,7 +28,10 @@ such as a mobile, `unique-local`_ IPv6 address.
 Similarly, credential files may be created for individual devices.
 Such credentials have a unique asymmetric key pair,
 but this time the hash of the public key starts with 0xFD,
-the device prefix.  X.509 certificates are NOT created for devices.
+the device prefix.
+
+At this time, X.509 certificates are not created for devices
+because it is easier to process the credentials from a .json file.
 
 WARNING: This tool does not protect the private key!
 You should not use this keypair for meaningful cryptography!
@@ -80,15 +91,14 @@ class HamIdent(object):
         with open(fn, "rb") as f:
             pem_data = f.read()
             cert = x509.load_pem_x509_certificate(pem_data, default_backend())
-            for fld_str, oid in (
-                ("cmn_name", NameOID.COMMON_NAME),
-                ("callsign", NameOID.PSEUDONYM),
-                ("email", NameOID.EMAIL_ADDRESS),
-                ("country", NameOID.COUNTRY_NAME),
-                ("province", NameOID.STATE_OR_PROVINCE_NAME),
-                ("postalcode", NameOID.POSTAL_CODE)):
-                    person_info[fld_str] = \
-                        cert.subject.get_attributes_for_oid(oid)[0].value
+            for fld_str, oid in (("cmn_name", NameOID.COMMON_NAME),
+                                 ("callsign", NameOID.PSEUDONYM),
+                                 ("email", NameOID.EMAIL_ADDRESS),
+                                 ("country", NameOID.COUNTRY_NAME),
+                                 ("province", NameOID.STATE_OR_PROVINCE_NAME),
+                                 ("postalcode", NameOID.POSTAL_CODE)):
+                person_info[fld_str] = \
+                    cert.subject.get_attributes_for_oid(oid)[0].value
         return person_info
 
     @staticmethod
@@ -283,8 +293,8 @@ class HamIdent(object):
         return fn
 
 
-    def _write_cert_to_x509(self, pub_key, prv_key, person_info):
-        """Writes a self-signed X.509 certificate to a file
+    def _write_cert_to_x509(self, pub_key, signing_key, person_info):
+        """Writes a signed X.509 certificate to a file
         using info from the given person_info dict
         """
         # Generate a self-signed certificate (subject and issuer are the same)
@@ -314,7 +324,7 @@ class HamIdent(object):
             .add_extension(
                 x509.SubjectAlternativeName([x509.DNSName(u"localhost")]),
                 critical=False) \
-            .sign(prv_key, hashes.SHA256(), default_backend())
+            .sign(signing_key, hashes.SHA256(), default_backend())
         # Save the certificate to a file.
         fn = os.path.join(self.app_path, person_info["callsign"] + "_cert.pem")
         with open(fn, "wb") as f:
