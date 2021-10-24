@@ -17,4 +17,24 @@ class StatusModel():
 
 
     def get_summary(self):
-        return "--------"
+        s = bytearray(b"--------")
+
+        # Set transmitter status
+        if self.is_tx_restricted():
+            s[0] = ord('x')
+        elif self._phy_hsm._state == self._phy_hsm._txing:
+            s[0] = ord('T')
+        else:
+            s[0] = ord('t')
+
+        # Set receiver status
+        if self._phy_hsm._state == self._phy_hsm._listening:
+            s[1] = ord('L')
+        elif self._phy_hsm._state == self._phy_hsm._rxing:
+            s[1] = ord('R')
+        elif self._phy_hsm._state == self._phy_hsm._initializing:
+            pass
+        else:
+            s[1] = ord('x')
+
+        return s.decode()

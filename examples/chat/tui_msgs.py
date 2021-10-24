@@ -91,6 +91,7 @@ class MsgsView(Frame):
     def _updt_msgs(self):
         self._msgs_box.options = self._format_msgs()
         self._stngs.text = self._stngs_model.get_summary()
+        self._status.text = self._status_model.get_summary()
 
     def _format_msgs(self):
         height = self.find_widget("msgs")._h
@@ -150,6 +151,10 @@ class MsgsView(Frame):
         self.scene.add_effect(popup)
 
 
-    def update_time(self):
+    def update_ui(self):
+        # update time
         display_tm = time.strftime("%H:%M:%S", time.localtime(time.time()))
         self._time.text = display_tm
+
+        # update status
+        self._status.text = self._status_model.get_summary()

@@ -88,7 +88,7 @@ class TxtUiHsm(farc.Ahsm):
             return self.handled(event)
 
         elif sig == farc.Signal._UI_ONE_SEC:
-            self._msgs_view.update_time()
+            self._msgs_view.update_ui()
             return self.handled(event)
 
         elif sig == farc.Signal.GPS_GPRMC:
