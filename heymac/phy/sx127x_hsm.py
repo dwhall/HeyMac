@@ -23,7 +23,7 @@ class SX127xHsm(farc.Ahsm):
 
     _TX_TMOUT_MARGIN = 0.25 # percent
 
-    def __init__(self, lstn_by_dflt):
+    def __init__(self, sx127x, lstn_by_dflt):
         """Class intialization
 
         Listen by default means the radio enters
@@ -31,8 +31,10 @@ class SX127xHsm(farc.Ahsm):
         If lstn_by_dflt is False, the radio enters sleep mode
         when it is not doing anything else.
         """
+        assert isinstance(sx127x, SX127x)
+
         super().__init__()
-        self._sx127x = SX127x()
+        self._sx127x = sx127x
         self._lstn_by_dflt = lstn_by_dflt
         self._base_stngs = {}
         self._rx_stngs = {}
@@ -159,7 +161,8 @@ class SX127xHsm(farc.Ahsm):
 
             self._sx127x.init_gpio()
             self._sx127x.reset_rdo()
-            self.tmout_evt.post_in(self, 0.005)
+            self.tmout_evt.post_in(self,
+                                   self._sx127x._reset_cfg.after_reset_wait)
             return self.handled(event)
 
         elif sig == farc.Signal._PHY_TMOUT:

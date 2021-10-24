@@ -15,7 +15,7 @@ try:
 except ImportError:
     from . import mock_gpio as GPIO
 
-from . import cfg
+from .platform_cfg import SpiConfig, DioConfig, ResetConfig
 
 
 class SX127x(object):
@@ -26,10 +26,6 @@ class SX127x(object):
 
     # SX127x Oscillator frequency
     SX127X_OSC_FREQ = 32e6  # Hz
-
-    # SPI clock frequency
-    SPI_FREQ_MIN = 100000  # arbitrary (slowish)
-    SPI_FREQ_MAX = 20000000
 
     # SX127x DIOs (DO NOT CHANGE VALUES)
     # This table is dual maintenance with
@@ -105,31 +101,16 @@ class SX127x(object):
     OPMODE_RXONCE = 6
     OPMODE_CAD = 7
 
-    def __init__(self):
-        """Validates the SPI, DIOx pin and Reset pin config.
-        Opens the SPI bus with the given port,CS and freq.
-        Saves the DIOx pins and Reset pin configs.
-        """
-        (spi_port, spi_cs, spi_freq) = cfg.spi_cfg
-        assert spi_port in (0, 1), "SPI port index must be 0 or 1"
-        assert spi_cs in (0, 1), "SPI chip select must be 0 or 1"
-        spi_freq = int(spi_freq)
-        assert SX127x.SPI_FREQ_MIN <= spi_freq <= SX127x.SPI_FREQ_MAX, \
-            "SPI clock frequency must be within 1-20 MHz"
-        self.spi = spidev.SpiDev()
-        self.spi.open(spi_port, spi_cs)
-        self.spi.max_speed_hz = spi_freq
-        self.spi.mode = 0  # phase=0 and polarity=0
+    def __init__(self, spi_cfg, dio_cfg, reset_cfg):
+        """Saves config info, opens the SPI bus and init a settings object."""
+        assert isinstance(spi_cfg, SpiConfig)
+        assert isinstance(dio_cfg, DioConfig)
+        assert isinstance(reset_cfg, ResetConfig)
 
-        # DIOx: validate and save arguments
-        assert len(cfg.dio_cfg) <= 6
-        for pin_nmbr in cfg.dio_cfg:
-            assert 0 <= pin_nmbr <= 48, "Not a valid RPi GPIO number"
-        self.dio_cfg = cfg.dio_cfg
-
-        # Reset: validate and save argument
-        assert 0 <= cfg.reset_cfg <= 48, "Not a valid RPi GPIO number"
-        self.reset_cfg = cfg.reset_cfg
+        # Save all config objects
+        self._spi_cfg = spi_cfg
+        self._dio_cfg = dio_cfg
+        self._reset_cfg = reset_cfg
 
         self._stngs = SX127xSettings()
 
@@ -182,22 +163,31 @@ class SX127x(object):
 
 
     def init_gpio(self):
-        """Inits the GPIO pins"""
+        """Inits the GPIO pins that connect to LoRa DIO pins"""
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
-        GPIO.setup(self.reset_cfg, GPIO.OUT, initial=GPIO.HIGH)
-        for n, pin_nmbr in enumerate(self.dio_cfg):
+        GPIO.setup(self._reset_cfg.pin, GPIO.OUT, initial=GPIO.HIGH)
+        for n, pin_nmbr in enumerate(self._dio_cfg.pins):
             GPIO.setup(pin_nmbr, GPIO.IN)
 
 
     def open(self, dio_isr_clbk):
         """Opens the SX127x command interface.
-        Resets the radio, clears internal settings,
-        validates the chip communications,
+
+        Opens the SPI port.
+        Validates the chip communications,
         puts the modem into LoRa mode
         and initializes callbacks for DIOx pin inputs.
         Returns chip comms validity (True/False)
         """
+        # Open the SPI bus
+        spi = spidev.SpiDev()
+        spi.open(self._spi_cfg.port, self._spi_cfg.cs)
+        spi.max_speed_hz = self._spi_cfg.freq
+        spi.mode = 0  # phase=0 and polarity=0
+        self.spi = spi
+
+        # Validate SPI communication with a SX127x device
         valid = self._validate_chip()
 
         # Put radio in LoRa mode so DIO5 outputs ModeReady instead of ClkOut
@@ -214,7 +204,7 @@ class SX127x(object):
             self._dio4_isr, self._dio5_isr)
         self._dio_isr_clbk = dio_isr_clbk
         if dio_isr_clbk is not None:
-            for n, pin_nmbr in enumerate(self.dio_cfg):
+            for n, pin_nmbr in enumerate(self._dio_cfg.pins):
                 GPIO.add_event_detect(
                     pin_nmbr, edge=GPIO.RISING, callback=dio_isr_lut[n])
 
@@ -277,9 +267,9 @@ class SX127x(object):
         self._rng_raw = 0
 
         # Toggle the reset pin to reset the SX127x
-        GPIO.output(self.reset_cfg, GPIO.LOW)
-        time.sleep(0.000110)  # >100us
-        GPIO.output(self.reset_cfg, GPIO.HIGH)
+        GPIO.output(self._reset_cfg.pin, GPIO.LOW)
+        time.sleep(self._reset_cfg.pin_low_time)
+        GPIO.output(self._reset_cfg.pin, GPIO.HIGH)
 
         self._stngs.reset()
 
