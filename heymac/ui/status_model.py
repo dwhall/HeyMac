@@ -11,5 +11,10 @@ class StatusModel():
         self._lnk_hsm = lnk_hsm
 
 
+    def is_tx_restricted(self):
+        return self._lnk_hsm._state in (self._lnk_hsm._lurking,
+                                        self._lnk_hsm._initializing)
+
+
     def get_summary(self):
         return "--------"

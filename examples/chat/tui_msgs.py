@@ -11,6 +11,7 @@ from asciimatics.event import KeyboardEvent
 from asciimatics.exceptions import NextScene, StopApplication
 from asciimatics.widgets import Button, Frame, Label, Layout, \
     MultiColumnListBox, Text, Widget
+from asciimatics.widgets.popupdialog import PopUpDialog
 from asciimatics.screen import Screen
 
 
@@ -125,7 +126,9 @@ class MsgsView(Frame):
             if tui_event.key_code == Screen.KEY_F2:
                 self._on_click_stngs()
             elif tui_event.key_code in (10, 13):
-                if self.find_widget("msg_input") == self.focussed_widget:
+                if self._status_model.is_tx_restricted():
+                    self.show_popup("TX is restricted while Init/Lurking.")
+                elif self.find_widget("msg_input") == self.focussed_widget:
                     self._send_msg()
         return super().process_event(tui_event)
 
@@ -140,6 +143,11 @@ class MsgsView(Frame):
         msg = widget.value
         widget.value = ""
         return msg
+
+
+    def show_popup(self, text):
+        popup = PopUpDialog(self.screen, text, ["Close"], has_shadow=True)
+        self.scene.add_effect(popup)
 
 
     def update_time(self):
