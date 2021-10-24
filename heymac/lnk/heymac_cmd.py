@@ -11,7 +11,7 @@ class HeymacCmdError(Exception):
     pass
 
 
-class HeymacCmd(object):
+class HeymacCmd():
     """A Heymac Command message
 
     Offers methods to serialize and parse Heymac Command bytes.
@@ -81,7 +81,7 @@ class HeymacCmd(object):
         return self.field[fld_name]
 
 
-class HeymacCmdUnknown(object):
+class HeymacCmdUnknown():
     """A class used to indicate reception of an unknown Heymac Command"""
     pass
 

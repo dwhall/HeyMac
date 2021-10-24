@@ -69,7 +69,7 @@ from . import app_data
 TWO_YEARS = 2 * 365  # X.509 certificate duration in days
 
 
-class HamIdent(object):
+class HamIdent():
     def __init__(self, app_name="HamIdent", cert_duration=TWO_YEARS):
         self.app_path = app_data.get_app_data_path(app_name)
         self.cert_duration = cert_duration

@@ -5,7 +5,7 @@ The Heymac Radio Status model.
 """
 
 
-class StatusModel(object):
+class StatusModel():
     def __init__(self, phy_hsm, lnk_hsm):
         self._phy_hsm = phy_hsm
         self._lnk_hsm = lnk_hsm

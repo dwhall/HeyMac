@@ -18,7 +18,7 @@ from .heymac_cmd import HeymacCmd, HeymacCmdError, HeymacCmdBcn
 from ..utl import HamIdent
 
 
-class Heymac(object):
+class Heymac():
     """Heymac link layer (LNK) protocol values."""
     # Link addresses are 8 octets in size
     # Heymac uses its long-address mode to convey a link address

@@ -10,7 +10,7 @@ import time
 from ..lnk import HeymacCmdBcn, HeymacCmdTxt
 
 
-class MsgsModel(object):
+class MsgsModel():
     """Abstract model of Heymac text messages.
 
     UI modules should use this class

@@ -18,7 +18,7 @@ except ImportError:
 from .platform_cfg import SpiConfig, DioConfig, ResetConfig
 
 
-class SX127x(object):
+class SX127x():
     """The PHY layer SPI operations, settings management and GPIO
     interfaces for the Semtec SX127x family of digital radio transceivers.
     For now, this library only supports LoRa mode.
@@ -528,7 +528,7 @@ class SX127x(object):
             self._stngs_freq_applied = freq
 
 
-class SX127xSettings(object):
+class SX127xSettings():
     """Tracks the register settings for a SX127x radio.
     A settings field is one or more bits that come from a SX127x register,
     but is abstracted out of the register and bit position.  You simply use

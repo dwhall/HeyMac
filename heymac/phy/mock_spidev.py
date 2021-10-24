@@ -1,6 +1,6 @@
 # This file lets the project run on a PC,
 # but does no real action on hardware.
-class SpiDev(object):
+class SpiDev():
     def close(self):
         pass
 

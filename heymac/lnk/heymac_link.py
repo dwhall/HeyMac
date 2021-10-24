@@ -8,7 +8,7 @@ from .heymac_frame import HeymacFrame
 from .heymac_cmd import HeymacCmdBcn
 
 
-class HeymacLink(object):
+class HeymacLink():
     """Heymac link layer data.
 
     _ngbr_data is a dict that holds data for each neighbor.

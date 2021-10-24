@@ -44,7 +44,7 @@ class HeymacFramePidType(HeymacFramePid):
     CSMA = 0b00000100
 
 
-class HeymacFrame(object):
+class HeymacFrame():
     """Heymac frame definition
     [PID,Fctl,NetId,DstAddr,IEs,SrcAddr,Payld,MIC,Hops,TxAddr]
 
@@ -488,7 +488,7 @@ class HeymacIeError(HeymacFrameError):
     pass
 
 
-class HeymacIe(object):
+class HeymacIe():
     """Information Elements contain auxiliary frame data.
 
     The IE field of the Heymac frame contains:
@@ -682,7 +682,7 @@ class HeymacPIeMic(HeymacPIe):
         return HeymacPIeMic(mic_algo, mic_sz)
 
 
-class HeymacIeSequence(object):
+class HeymacIeSequence():
     def __init__(self, *ies):
         self._ies = ies
 

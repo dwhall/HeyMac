@@ -7,7 +7,7 @@ The Text User Interface Radio Settings model and view.
 from ..phy import SX127xSettings
 
 
-class RadioStngsModel(object):
+class RadioStngsModel():
     def __init__(self, phy_hsm):
         self._phy_hsm = phy_hsm
 

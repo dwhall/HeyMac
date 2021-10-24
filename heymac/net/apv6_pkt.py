@@ -16,7 +16,7 @@ class APv6PacketError(Exception):
     pass
 
 
-class APv6Packet(object):
+class APv6Packet():
     """APv6 frame definition
 
     [Hdr,Hops,SrcAddr,DstAddr,NxtHdr,Payld]
@@ -237,7 +237,7 @@ class UdpDatagramError(Exception):
     pass
 
 
-class UdpDatagram(object):
+class UdpDatagram():
     """UDP Datagram with header compression per RFC 6282.
     Always omits the checksum because the Physical layer has FEC and CRC"""
 
