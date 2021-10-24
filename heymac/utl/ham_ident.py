@@ -69,6 +69,10 @@ from . import app_data
 TWO_YEARS = 2 * 365  # X.509 certificate duration in days
 
 
+class HamIdentError(Exception):
+    pass
+
+
 class HamIdent():
     def __init__(self, app_name="HamIdent", cert_duration=TWO_YEARS):
         self.app_path = app_data.get_app_data_path(app_name)
@@ -115,21 +119,26 @@ class HamIdent():
 
     @staticmethod
     def get_info_from_json_cred(app_name):
-        fn = HamIdent._get_cred_fn(app_name)
-        with open(fn) as f:
-            json_info = json.load(f)
-        return json_info
+        filenames = HamIdent._get_cred_filenames(app_name)
+        len_filenames = len(filenames)
+        if len_filenames == 0:
+            return {}
+        elif len_filenames == 1:
+            with open(filenames[0]) as f:
+                json_info = json.load(f)
+            return json_info
+        else:
+            raise HamIdentError("Expected one cred file")
 
     @staticmethod
-    def _get_cred_fn(app_name):
+    def _get_cred_filenames(app_name):
         app_path = app_data.get_app_data_path(app_name)
         result = []
         for root, _, files in os.walk(app_path):
             for fn in files:
                 if fnmatch.fnmatch(fn, "*_cred.json"):
                     result.append(os.path.join(root, fn))
-        assert len(result) == 1, "Expected one cred file"
-        return result[0]
+        return result
 
 
     @staticmethod
@@ -351,7 +360,7 @@ class HamIdent():
         return fn
 
 
-class IdentModel(object):
+class IdentModel():
     """Abstract model of Identity
 
     UI modules should use this class

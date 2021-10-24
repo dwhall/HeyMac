@@ -79,13 +79,6 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
 
         self._rx_clbk = None
 
-        # Init crypto ident
-        cred = HamIdent.get_info_from_json_cred("HeyMac")
-        self._callsign = cred["callsign"]
-        self._pub_key = bytes.fromhex(cred["pub_key"])
-        self._lnk_addr = HamIdent.get_addr("HeyMac", 64)
-        self._lnk_data = HeymacLink(self._lnk_addr)
-
 
     def get_lnk_addr(self):
         return self._lnk_addr
@@ -104,6 +97,16 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
 
     def set_rx_clbk(self, rx_clbk):
         self._rx_clbk = rx_clbk
+
+
+    def _get_credentials(self):
+        """Attempt to get Crypto credentials."""
+        cred = HamIdent.get_info_from_json_cred("HeyMac")
+        if cred:
+            self._callsign = cred["callsign"]
+            self._pub_key = bytes.fromhex(cred["pub_key"])
+            self._lnk_addr = HamIdent.get_addr("HeyMac", 64)
+            self._lnk_data = HeymacLink(self._lnk_addr)
 
 
 # State machine
@@ -160,8 +163,11 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
     def _lurking(self, event):
         """State: _lurking
 
-        Waits for a fixed period with the receiver enabled,
-        processes any received frames, and then
+        Waits with the receiver
+        and a periodic timer enabled,
+        processing any received frames.
+        If identity credentials have been
+        set when the periodic timer elapses,
         transitions to the _beaconing state.
         """
         sig = event.signal
@@ -171,7 +177,13 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
             return self.handled(event)
 
         elif sig == farc.Signal._LNK_BCN_TMOUT:
-            return self.tran(self._beaconing)
+            self._callsign = None
+            self._get_credentials()
+            if self._callsign:
+                return self.tran(self._beaconing)
+            else:
+                self._bcn_evt.post_in(self, Heymac._BCN_PRD)
+                return self.handled(event)
 
         elif sig == farc.Signal._LNK_RXD_FROM_PHY:
             self._on_rxd_from_phy(event.value)

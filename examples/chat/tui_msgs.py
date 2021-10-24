@@ -22,7 +22,7 @@ class MsgsView(Frame):
             screen.height,
             screen.width,
             title="HeyMac",
-            on_load=self._updt_msgs,
+            on_load=self._on_load,
             can_scroll=False)
         self._msgs_model = msgs_model
         self._ident_model = ident_model
@@ -82,6 +82,10 @@ class MsgsView(Frame):
 
     def _on_input_change(self):
         pass
+
+    def _on_load(self):
+        self._updt_msgs()
+        self._ident.text = self._ident_model.get_summary()
 
     def _updt_msgs(self):
         self._msgs_box.options = self._format_msgs()

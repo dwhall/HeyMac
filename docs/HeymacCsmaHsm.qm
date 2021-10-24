@@ -23,8 +23,9 @@
      <entry brief="bcn_evt.post_in(2 * _BCN_PRD)"/>
      <exit brief="bcn_evt.disarm()"/>
      <tran trig="_LNK_BCN_TMOUT" target="../2">
+      <action brief="[ident]"/>
       <tran_glyph conn="22,36,3,0,26,2">
-       <action box="0,-2,16,2"/>
+       <action box="0,-2,22,2"/>
       </tran_glyph>
      </tran>
      <tran trig="_LNK_RXD_FROM_PHY">
