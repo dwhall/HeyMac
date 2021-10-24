@@ -63,7 +63,7 @@ class Heymac():
     _PHY_STNGS_TX = (("FLD_RDO_FREQ", 432_550_000),)
 
 
-class HeymacCsmaHsm(Heymac, farc.Ahsm):
+class HeymacCsmaHsm(farc.Ahsm):
     """The link layer (LNK) state machine.
 
     Automates beaconing and frame processing.
@@ -85,7 +85,7 @@ class HeymacCsmaHsm(Heymac, farc.Ahsm):
 
 
     def send_cmd(self, cmd, dest=None):
-        assert issubclass(type(cmd), HeymacCmd)
+        assert isinstance(cmd, HeymacCmd)
 
         f = HeymacFrame(HeymacFramePidType.CSMA)
         if dest:
