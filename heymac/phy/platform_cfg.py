@@ -46,6 +46,7 @@ class DioConfig:
     """
     def __init__(self, dio0=None, dio1=None, dio2=None, dio3=None, dio4=None,
                  dio5=None):
+        assert (dio0 and dio1 and dio3), "Heymac requires DIO0, DIO1 and DIO3."
         self._pins = (dio0, dio1, dio2, dio3, dio4, dio5)
         for pin_nmbr in self._pins:
             assert 0 <= pin_nmbr <= 48, "Not a valid RPi GPIO number"
