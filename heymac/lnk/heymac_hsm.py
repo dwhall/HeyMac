@@ -49,13 +49,9 @@ class Heymac():
     # PHY settings
     _PHY_STNGS_DFLT = (
         ("FLD_RDO_LORA_MODE", 1),
-        ("FLD_RDO_FREQ", 432_550_000),
         ("FLD_RDO_MAX_PWR", 7),
         ("FLD_RDO_PA_BOOST", 1),
         ("FLD_LORA_IMPLCT_HDR_MODE", 0),
-        ("FLD_LORA_CR", 2),     # phy.SX127x.STNG_LORA_CR_4TO6
-        ("FLD_LORA_BW", 8),     # phy.SX127x.STNG_LORA_BW_250K
-        ("FLD_LORA_SF", 7),     # phy.SX127x.STNG_LORA_SF_128_CPS
         ("FLD_LORA_CRC_EN", 1),
         ("FLD_LORA_SYNC_WORD", _HEYMAC_SYNC_WORD),
     )

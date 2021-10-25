@@ -23,7 +23,7 @@ class SX127xHsm(farc.Ahsm):
 
     _TX_TMOUT_MARGIN = 0.25 # percent
 
-    def __init__(self, sx127x, lstn_by_dflt):
+    def __init__(self, sx127x, lstn_by_dflt, radio_stngs):
         """Class intialization
 
         Listen by default means the radio enters
@@ -36,7 +36,7 @@ class SX127xHsm(farc.Ahsm):
         super().__init__()
         self._sx127x = sx127x
         self._lstn_by_dflt = lstn_by_dflt
-        self._base_stngs = {}
+        self._base_stngs = dict(radio_stngs)
         self._rx_stngs = {}
         self._tx_stngs = {}
 
@@ -93,7 +93,7 @@ class SX127xHsm(farc.Ahsm):
         """Stores the base settings for the PHY.
 
         This must be called before start() so the settings
-        can be written to the device during initilizing.
+        can be written to the device during initializing.
         Base settings are the ones that are usually the
         same throughout operation and do not vary
         during TX, RX or any other action.
