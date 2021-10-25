@@ -156,5 +156,8 @@ class MsgsView(Frame):
         display_tm = time.strftime("%H:%M:%S", time.localtime(time.time()))
         self._time.text = display_tm
 
+        # udpate settings
+        self._stngs.text = self._stngs_model.get_summary()
+
         # update status
         self._status.text = self._status_model.get_summary()
