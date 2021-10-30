@@ -145,9 +145,9 @@ class SX127x():
 
     def close(self):
         """Closes the SX127x command interface.
-        Disables GPIO and closes the SPI port.
+        Puts the radio in Sleep mode, disables GPIO and closes the SPI port.
         """
-        # TODO: put the radio in standby or sleep
+        self.write_opmode(SX127x.OPMODE_SLEEP)
         GPIO.cleanup()
         self.spi.close()
 
