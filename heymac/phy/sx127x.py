@@ -18,6 +18,42 @@ except ImportError:
 from .platform_cfg import SpiConfig, DioConfig, ResetConfig
 
 
+class NoiseAccumulator():
+    """Accumulates bits of noise.  Returns noise as a bytearray."""
+    MAX_LEN = 256
+
+    _noise = bytearray()
+    _byte = 0
+    _bit_cnt = 0
+
+    @classmethod
+    def append(cls, bit):
+        """Accumulates one bit of noise into a byte.
+        When the byte is full, append it to a FIFO.
+        Cap the FIFO at a max size (tossing oldest bits).
+        """
+        cls._byte |= (bit << cls._bit_cnt)
+        cls._bit_cnt += 1
+        if cls._bit_cnt == 8:
+            cls._noise.append(cls._byte)
+            cls._bit_cnt = 0
+            cls._byte = 0
+            if len(cls._noise) > NoiseAccumulator.MAX_LEN:
+                cls._noise = cls._noise[-NoiseAccumulator.MAX_LEN:]
+
+    @classmethod
+    def noise(cls, length=4):
+        """Returns a bytearray of the given length (4 default, 256 max),
+        if enough noise bytes have accumulated.  Returns None otherwise.
+        """
+        val = None
+        length = min(max(0, length), NoiseAccumulator.MAX_LEN)
+        if length <= len(cls._noise):
+            val = cls._noise[:length]
+            cls._noise = cls._noise[length:]
+        return val
+
+
 class SX127x():
     """The PHY layer SPI operations, settings management and GPIO
     interfaces for the Semtec SX127x family of digital radio transceivers.
@@ -115,6 +151,15 @@ class SX127x():
         self._stngs = SX127xSettings()
 
 # Public
+
+    @property
+    def noise(self, length=4):
+        """Returns a bytearray of the given length (4 default, 256 max),
+        from the noise accumulator if enough noise bytes have accumulated.
+        Returns None otherwise.
+        """
+        return NoiseAccumulator.noise(length)
+
 
     def calc_on_air_time(self, payld_len):
         """Returns the on-air time for the given TX bytes."""
@@ -263,9 +308,6 @@ class SX127x():
         """Resets the radio and internal tracking of radio settings.
         Caller must wait 5ms after calling this to interact with radio SPI.
         """
-        # Init empty settings
-        self._rng_raw = 0
-
         # Toggle the reset pin to reset the SX127x
         GPIO.output(self._reset_cfg.pin, GPIO.LOW)
         time.sleep(self._reset_cfg.pin_low_time)
@@ -301,13 +343,13 @@ class SX127x():
         return self._stngs.changed("FLD_RDO_LORA_MODE")
 
 
-    def updt_rng(self):
-        """The RSSI Wideband register's least significant bit
-        provides a noise source for a Random Number Generator
+    def updt_noise(self):
+        """Accumulates noise from the RSSI Wideband register's lsb.
+        Use the .noise property to fetch an arbitrary value
+        from this noise source.
         """
-        reg = self._read(SX127x.REG_LORA_RSSI_WB)[0]
-        self._rng_raw = (self._rng_raw << 1) | (reg & 1)
-        # TODO: feed an octet of raw bits into a hash algorithm
+        NoiseAccumulator.append(1 & self._read(SX127x.REG_LORA_RSSI_WB)[0])
+
 
     def write_fifo(self, data, sz=None):
         if not bool(sz):

@@ -313,7 +313,7 @@ class SX127xHsm(farc.Ahsm):
                 | SX127x.IRQ_FLAGS_VALIDHEADER)
             self._sx127x.write_fifo_ptr(0x00)
 
-            # Start periodic event for update_rng()
+            # Start periodic event
             self.prdc_evt.post_every(self, 0.100)  # 100ms
 
             # No action means listen-by-default; receive-continuosly
@@ -340,7 +340,7 @@ class SX127xHsm(farc.Ahsm):
             return self.handled(event)
 
         elif sig == farc.Signal._PHY_PRDC:
-            self._sx127x.updt_rng()
+            self._sx127x.updt_noise()
             return self.handled(event)
 
         elif sig == farc.Signal._DIO_VALID_HDR:

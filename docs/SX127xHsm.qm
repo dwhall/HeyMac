@@ -121,7 +121,7 @@
        </tran_glyph>
       </tran>
       <tran trig="_PHY_PRDC">
-       <action brief="updt_rng()"/>
+       <action brief="updt_noise()"/>
        <tran_glyph conn="22,64,3,-1,20">
         <action box="0,-2,20,2"/>
        </tran_glyph>
