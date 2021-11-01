@@ -36,7 +36,7 @@ class MsgsModel():
         elif isinstance(hm_frame.cmd, HeymacCmdTxt):
             rxtime = time.time()
             saddr = hm_frame.saddr
-            msg = hm_frame.cmd.get_field(hm_frame.cmd.FLD_MSG)
+            msg = hm_frame.cmd.msg
             bisect.insort(self._msg_data, (rxtime, saddr, msg.decode()))
 
         if self._update_view:
@@ -53,7 +53,7 @@ class MsgsModel():
 
     def send_msg(self, msg):
         """Requests the link layer transmit the given message"""
-        txt_cmd = HeymacCmdTxt(FLD_MSG=msg.encode())
+        txt_cmd = HeymacCmdTxt(msg=msg.encode())
         self._lnk_hsm.send_cmd(txt_cmd)
 
         txtime = time.time()

@@ -311,10 +311,10 @@ class HeymacCsmaHsm(farc.Ahsm):
 
         bcn = HeymacCmdBcn(
             # TODO: Fill with real data
-            FLD_CAPS=Heymac.LNK_CAP_RXCONT,
-            FLD_STATUS=0,
-            FLD_CALLSIGN_SSID=callsign,
-            FLD_PUB_KEY=self._pub_key)
+            caps=Heymac.LNK_CAP_RXCONT,
+            status=0,
+            callsign_ssid=callsign,
+            pub_key=self._pub_key)
         frame = HeymacFrame(HeymacFramePidType.CSMA)
         frame.saddr = self._lnk_addr
         frame.payld = bytes(bcn)

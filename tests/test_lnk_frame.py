@@ -50,9 +50,9 @@ class TestHeyMacFrame(unittest.TestCase):
 
     def test_min_payld(self):
         f = HeymacFrame(HeymacFramePidType.CSMA)
-        f.payld = HeymacCmdTxt(FLD_MSG=b"ABCD")
+        f.payld = HeymacCmdTxt(msg=b"ABCD")
         b = bytes(f)
-        self.assertEqual(b, b"\xE4\x00\x83ABCD")
+        self.assertEqual(b, b"\xE4\x00\x81ABCD")
 
         f = HeymacFrame.parse(b)
         self.assertEqual(f.fctl, 0)
@@ -86,9 +86,9 @@ class TestHeyMacFrame(unittest.TestCase):
         f = HeymacFrame(HeymacFramePidType.CSMA)
         f.daddr = b"\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8"
         f.saddr = b"\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8"
-        f.payld = HeymacCmdTxt(FLD_MSG=b"hi")
+        f.payld = HeymacCmdTxt(msg=b"hi")
         b = bytes(f)
-        self.assertEqual(b, b"\xE4\x54\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\x83hi")
+        self.assertEqual(b, b"\xE4\x54\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\x81hi")
 
         f = HeymacFrame.parse(b)
         self.assertEqual(f.fctl, 0x54)
@@ -104,9 +104,9 @@ class TestHeyMacFrame(unittest.TestCase):
         f = HeymacFrame(HeymacFramePidType.CSMA)
         f.daddr = b"\xd1\xd2"
         f.saddr = b"\xc1\xc2"
-        f.payld = HeymacCmdTxt(FLD_MSG=b"hello world")
+        f.payld = HeymacCmdTxt(msg=b"hello world")
         b = bytes(f)
-        self.assertEqual(b, b"\xE4\x14\xd1\xd2\xc1\xc2\x83hello world")
+        self.assertEqual(b, b"\xE4\x14\xd1\xd2\xc1\xc2\x81hello world")
 
         f = HeymacFrame.parse(b)
         self.assertEqual(f.fctl, 0x14)
@@ -122,9 +122,9 @@ class TestHeyMacFrame(unittest.TestCase):
         f = HeymacFrame(HeymacFramePidType.CSMA)
         f.netid = b"\x80\xA5"
         f.daddr = b"\xd1\xd2"
-        f.payld = HeymacCmdTxt(FLD_MSG=b"data")
+        f.payld = HeymacCmdTxt(msg=b"data")
         b = bytes(f)
-        self.assertEqual(b, b"\xE4\x30\x80\xa5\xd1\xd2\x83data")
+        self.assertEqual(b, b"\xE4\x30\x80\xa5\xd1\xd2\x81data")
 
         f = HeymacFrame.parse(b)
         self.assertEqual(f.fctl, 0x30)
@@ -140,9 +140,9 @@ class TestHeyMacFrame(unittest.TestCase):
         f = HeymacFrame(HeymacFramePidType.CSMA,
                         daddr=b"\xd1\xd2",
                         saddr=b"\xc1\xc2",
-                        payld=HeymacCmdTxt(FLD_MSG=b"hello world"))
+                        payld=HeymacCmdTxt(msg=b"hello world"))
         b = bytes(f)
-        self.assertEqual(b, b"\xE4\x14\xd1\xd2\xc1\xc2\x83hello world")
+        self.assertEqual(b, b"\xE4\x14\xd1\xd2\xc1\xc2\x81hello world")
 
         f = HeymacFrame.parse(b)
         self.assertEqual(f.fctl, 0x14)

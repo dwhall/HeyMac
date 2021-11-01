@@ -19,13 +19,13 @@ class TestHeyMacCmd(unittest.TestCase):
 
     def test_txt(self):
         # Build and serialize
-        c = HeymacCmdTxt(FLD_MSG=b"Hello world")
+        c = HeymacCmdTxt(msg=b"Hello world")
         b = bytes(c)
-        self.assertEqual(b, b"\x83Hello world")
+        self.assertEqual(b, b"\x81Hello world")
         # Parse and test
         c = HeymacCmd.parse(b)
         self.assertIs(type(c), HeymacCmdTxt)
-        self.assertEqual(c.get_field(HeymacCmd.FLD_MSG), b"Hello world")
+        self.assertEqual(c.msg, b"Hello world")
 
     def test_txt_no_fld(self):
         with self.assertRaises(HeymacCmdError):
@@ -33,37 +33,67 @@ class TestHeyMacCmd(unittest.TestCase):
 
     def test_txt_extra_fld(self):
         with self.assertRaises(HeymacCmdError):
-            _ = HeymacCmdTxt(FLD_MSG=b"Hello world", FLD_CAPS=42)
+            _ = HeymacCmdTxt(msg=b"Hello world", caps=42)
 
     def test_txt_wrong_fld(self):
         with self.assertRaises(HeymacCmdError):
-            _ = HeymacCmdTxt(FLD_CAPS=42)
+            _ = HeymacCmdTxt(caps=42)
 
     def test_txt_invalid_fld(self):
         with self.assertRaises(HeymacCmdError):
-            _ = HeymacCmdTxt(FLD_INVALID=None)
+            _ = HeymacCmdTxt(INVALID=None)
 
     def test_bcn(self):
         # Build and serialize
         c = HeymacCmdBcn(
-            FLD_CAPS=0x0102,
-            FLD_STATUS=0x0304,
-            FLD_CALLSIGN_SSID=b"EX4MPL-227",
-            FLD_PUB_KEY=PUB_KEY)
+            caps=0x0102,
+            status=0x0304,
+            callsign_ssid=b"EX4MPL-227",
+            pub_key=PUB_KEY)
         b = bytes(c)
-        self.assertEqual(b, b"\x84\x01\x02\x03\x04EX4MPL-227      " + PUB_KEY)
+        self.assertEqual(b, b"\x82\x01\x02\x03\x04EX4MPL-227\x00\x00\x00\x00\x00\x00" + PUB_KEY)
         # Parse and test
         c = HeymacCmd.parse(b)
         self.assertIs(type(c), HeymacCmdBcn)
-        self.assertEqual(c.get_field(HeymacCmd.FLD_CAPS), 0x0102)
-        self.assertEqual(c.get_field(HeymacCmd.FLD_STATUS), 0x0304)
-        self.assertEqual(c.get_field(HeymacCmd.FLD_CALLSIGN_SSID), "EX4MPL-227")
-        self.assertEqual(c.get_field(HeymacCmd.FLD_PUB_KEY), PUB_KEY)
+        self.assertEqual(c.caps, 0x0102)
+        self.assertEqual(c.status, 0x0304)
+        self.assertEqual(c.callsign_ssid, b"EX4MPL-227")
+        self.assertEqual(c.pub_key, PUB_KEY)
 
     def test_unknown_cmd(self):
         b = b"\xbe\x11\x22"
         c = HeymacCmd.parse(b)
         self.assertIs(type(c), HeymacCmdUnknown)
+
+    def test_ngbr_data1a(self):
+        c = HeymacCmdNgbrData(ngbr_lnk_addr=b"\xfe\x02\x03\x04\x05\x05\x07\x08")
+        b = bytes(c)
+        self.assertEqual(b, b"\x84\x01\xfe\x02\x03\x04\x05\x05\x07\x08")
+        c = HeymacCmd.parse(b)
+        self.assertIsInstance(c, HeymacCmdNgbrData)
+
+    def test_ngbr_data1b(self):
+        c = HeymacCmdNgbrData()
+        c.append(ngbr_lnk_addr=b"\xfe\x02\x03\x04\x05\x05\x07\x08")
+        b = bytes(c)
+        self.assertEqual(b, b"\x84\x01\xfe\x02\x03\x04\x05\x05\x07\x08")
+        c = HeymacCmd.parse(b)
+        self.assertIsInstance(c, HeymacCmdNgbrData)
+
+    def test_ngbr_data1c(self):
+        c = HeymacCmdNgbrData()
+        with self.assertRaises(TypeError):
+            c.append(b"\xfe\x02\x03\x04\x05\x05\x07\x08")
+
+    def test_ngbr_data3(self):
+        c = HeymacCmdNgbrData()
+        c.append(ngbr_lnk_addr=b"\xfe\x02\x03\x04\x05\x05\x07\x08")
+        c.append(ngbr_lnk_addr=b"\xfe\x02\x03\x04\x05\x05\x07\x08")
+        c.append(ngbr_lnk_addr=b"\xfe\x02\x03\x04\x05\x05\x07\x08")
+        b = bytes(c)
+        self.assertEqual(b, b"\x84\x03" + b"\xfe\x02\x03\x04\x05\x05\x07\x08" * 3)
+        c = HeymacCmd.parse(b)
+        self.assertIsInstance(c, HeymacCmdNgbrData)
 
 
 if __name__ == '__main__':
