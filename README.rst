@@ -73,7 +73,7 @@ Getting Started
 
 This project is meant to be run on a Raspberry Pi with a LoRa shield.
 However, it can also be run in a limited fashion on a PC (posix or windows)
-where some of the hardware peripherals are mocked.
+where some of the hardware peripherals are stubbed.
 
 The following steps will get you going on a PC or a Pi:
 

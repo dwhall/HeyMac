@@ -11,12 +11,12 @@ import farc
 try:
     import serial
 except ImportError:
-    from . import mock_serial as serial
+    from . import stub_serial as serial
 
 try:
     import RPi.GPIO as GPIO
 except ImportError:
-    from ..phy import mock_gpio as GPIO
+    from ..phy import stub_gpio as GPIO
 
 
 class UartHsm(farc.Ahsm):

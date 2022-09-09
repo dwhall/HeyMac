@@ -9,11 +9,11 @@ import time
 try:
     import spidev
 except ImportError:
-    from . import mock_spidev as spidev
+    from . import stub_spidev as spidev
 try:
     import RPi.GPIO as GPIO
 except ImportError:
-    from . import mock_gpio as GPIO
+    from . import stub_gpio as GPIO
 
 from .platform_cfg import SpiConfig, DioConfig, ResetConfig
 
@@ -204,7 +204,7 @@ class SX127x():
 
     def in_sim_mode(self):
         """Returns True if this driver is simulating the radio interface."""
-        return "mock" in str(spidev)
+        return "stub" in str(spidev)
 
 
     def init_gpio(self):
