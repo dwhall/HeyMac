@@ -1,6 +1,15 @@
 Addressing
 ==========
 
+References
+----------
+
+Video:          https://www.youtube.com/watch?v=oItwDXraK1M
+Cheatsheet:     https://github.com/onemarcfifty/cheat-sheets/blob/main/networking/ipv6.md
+
+Glossary
+--------
+
 APv6            Amateur Protocol ver 6
 SSAMN (salmon)  Something Something Amateur Mesh Network
 6LLAWN          Low-power Lossy Amateur Wireless Network
@@ -11,6 +20,18 @@ LoRaham         <taken>
 
 HONR            Hierarchically Ordered Numbers for Routing
 HAMR            Hierarchical Addresses for Multihop Routing
+
+
+IPv6 Scoping
+------------
+
+GLOBAL          2000::/3	GLOBAL unicast (i.e. the whole internet)
+UNIQUE LOCAL    FC00::/7	LAN (behind the internet gateway)
+LINK LOCAL      FE80::/10	Unicast (will never be routed, valid in one collision domain, i.e. on the same switch)
+LOCALHOST       ::1/128	    Loopback address (localhost)
+
+Always use the smallest possible scope for communication
+A host can have multiple addresses in different scopes
 
 
 ==================  ======  =======================================
@@ -47,12 +68,49 @@ Unique Local        fc/7    fc23 4567 89AB CDEF FEDC BA98 7654 3210
 HONR16 interface            .... .... .... ..NetIdXX XX00 0000 0000 [3]
 HONR56 interface            .... .... .... ..NetIdXX XXXX XXXX XXXX [3]
 ------------------  ------  ---------------------------------------
-APv6 VPN Unicast    
+APv6 VPN Unicast
 ==================  ======  =======================================
 
 [1] There is no difference between the global & local sides of a bridge from the perspective of the overlay network.
 [2] In this example SubnetId is 04.
 [3] See NetId section (follows)
+
+Plan
+----
+
+Every operator:
+- Generates a keypair from personal info (incl callsign)
+- Calculates his Mobile Unique Local (fc/8) address from the public key.
+- Provisions his devices with credentials that yield a Unique Local (fd/8) address.
+- Signs every device credential with his personal key.
+
+Every node:
+- Generates a Link Local (fe80::/64) address from crypto cert + randomized IV.
+- Uses Link Local address for MAC layer commands, including ngbr discovery.
+- Chooses primary and secondary (if available) ngbrs for parents
+
+Joining node:
+- initiates join to primary [and secondary] parent
+- accepts the ULA (fd/7) given to it by the parent node
+- uses that ULA for APv6 network-scope
+
+Parent node:
+- builds ULA (fd/7) for ngbrs that ask to join via:
+    - First 48 bits: network addr from root
+    - Next 16 bits: Subnet addr from root
+    - Last 64 bits: HONR address
+
+Root node:
+- Decides it will become a root when all are true:
+    - has inet resource and
+    - has 0 or 1 ngbrs with inet resource
+    - sufficient time has elapsed to build an initial ngbr list
+
+Idea:
+- Root generates a semi-permanent Unique Local (fd/8) address:
+    - club has a constant address? (public cert)
+    - using an algorithm:
+        - Algorithm is TBD (uses inputs: geo-ref, public cert + date/time, ...)
 
 
 NetId
