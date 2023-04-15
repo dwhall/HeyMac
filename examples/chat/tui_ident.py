@@ -61,7 +61,7 @@ class IdentView(Frame):
         # Col 2
         txt = TextBox(8, line_wrap=True, readonly=True)
         txt.disabled = True
-        txt.value = ["Info to create a personal X.509 crypto certficate.  "
+        txt.value = ["Info to create a personal X.509 crypto certificate. "
                      "You must input your callsign and should input "
                      "correct data in the other fields to increase trust."]
         layout1.add_widget(txt, 2)

@@ -3,6 +3,7 @@ Copyright 2020 Dean Hall.  See LICENSE for details.
 """
 
 import collections
+import collections.abc
 import math
 import time
 
@@ -510,7 +511,7 @@ class SX127x():
         """Writes one or more bytes to the register.
         Returns list of bytes (even if there is only one).
         """
-        assert type(data) == int or isinstance(data, collections.Sequence)
+        assert type(data) == int or isinstance(data, collections.abc.Sequence)
 
         # Set the write bit (MSb)
         reg_addr |= 0x80
