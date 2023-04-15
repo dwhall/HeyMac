@@ -11,10 +11,14 @@ asn1 >= 2.2.0           # https://pypi.org/project/asn1/
 cryptography >= 2.8     # https://pypi.org/project/cryptography/
 #farc >= 0.2.0           # https://pypi.org/project/farc/
 farc @ git+https://github.com/dwhall/farc.git@6c0a33de
-spidev >= 2.0.0 # https://pypi.org/project/spidev
 
+# If developing on an RPi or Linux
+spidev >= 2.0.0         # https://pypi.org/project/spidev
 # This version (or later) of RPi is needed because of the "chnl"
 # argument to GPIO event callbacks.  If you must use
 # an older version of RPi, you may remove the chnl argument
 # to all SX127xPhy._dio#_isr() callbacks.
-RPi >= 0.5.2 # https://pypi.org/project/RPi.GPIO/
+RPi >= 0.5.2            # https://pypi.org/project/RPi.GPIO/
+
+# If developing on a Mac
+PyObjC

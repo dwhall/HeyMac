@@ -529,7 +529,7 @@ class HeymacIe():
 
     def __bytes__(self):
         # This only works for SZ_BIT*.  Other sizes will need to override this.
-        return struct.pack("B", self._iectl)
+        return struct.pack("B", self._iectl)[0]
 
     def __len__(self):
         # FIXME: this doesn't handle IEs of SZ_N

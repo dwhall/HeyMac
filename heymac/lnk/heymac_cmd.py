@@ -75,8 +75,6 @@ class HeymacCmd():
 
         if issubclass(cmd_cls, HeymacCmdUnknown):
             cmd = HeymacCmdUnknown(cmd_bytes)
-        elif cmd_cls is HeymacCmdTxt:
-            cmd = HeymacCmdTxt(msg=cmd_bytes[1:])
         else:
             if cmd_cls._SUB_ID:
                 offset = 2
@@ -160,20 +158,17 @@ class HeymacCmdVarLen(HeymacCmd):
         self._fields.append(named_flds)
 
 
-class HeymacCmdTxt(HeymacCmd):
-    """Heymac command text message: {1, msg}"""
+class HeymacCmdTxt(HeymacCmdVarLen):
+    """Heymac command text message: {1, msg_len, msg}"""
     _CMD_ID = 1
+    _FMT_STR = "!c"
     _FLDS_CLS = namedtuple("CmdTxt", ["msg"])
-
-    # Python's struct module doesn't [un]pack variable-length strings
-    # so this command is a special case; it is variable length,
-    # but does not inherit from HeymacCmdVarLen.
-    # Also see the special case for HeymacCmdTxt in HeymacCmd.parse()
 
     def __bytes__(self):
         """Serializes the command into bytes to send over the air."""
         b = bytearray()
         b.append(HeymacCmd.PREFIX | self._CMD_ID)
+        b.append(len(self.msg))
         b.extend(self.msg)
         return bytes(b)
 
