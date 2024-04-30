@@ -168,8 +168,11 @@ class HeymacCmdTxt(HeymacCmdVarLen):
         """Serializes the command into bytes to send over the air."""
         b = bytearray()
         b.append(HeymacCmd.PREFIX | self._CMD_ID)
-        b.append(len(self.msg))
-        b.extend(self.msg)
+        msg_bytes = self._fields[0].msg
+        msg_len = len(msg_bytes)
+        assert msg_len < 256
+        b.append(msg_len)
+        b.extend(msg_bytes)
         return bytes(b)
 
 
