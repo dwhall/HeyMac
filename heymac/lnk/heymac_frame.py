@@ -288,26 +288,29 @@ class HeymacFrame():
     def is_extended(self):
         return 0 != (self._fctl & HeymacFrameFctl.X)
 
+    def _is_fctl_bit_set(self, bit_mask):
+        return not self.is_extended() and 0 != (self._fctl & bit_mask)
+
     def is_long_addrs(self):
-        return not self.is_extended() and 0 != (self._fctl & HeymacFrameFctl.L)
+        return self._is_fctl_bit_set(HeymacFrameFctl.L)
 
     def is_netid_present(self):
-        return not self.is_extended() and 0 != (self._fctl & HeymacFrameFctl.N)
+        return self._is_fctl_bit_set(HeymacFrameFctl.N)
 
     def is_daddr_present(self):
-        return not self.is_extended() and 0 != (self._fctl & HeymacFrameFctl.D)
+        return self._is_fctl_bit_set(HeymacFrameFctl.D)
 
     def is_ies_present(self):
-        return not self.is_extended() and 0 != (self._fctl & HeymacFrameFctl.I)
+        return self._is_fctl_bit_set(HeymacFrameFctl.I)
 
     def is_saddr_present(self):
-        return not self.is_extended() and 0 != (self._fctl & HeymacFrameFctl.S)
+        return self._is_fctl_bit_set(HeymacFrameFctl.S)
 
     def is_mhop(self):
-        return not self.is_extended() and 0 != (self._fctl & HeymacFrameFctl.M)
+        return self._is_fctl_bit_set(HeymacFrameFctl.M)
 
     def is_pending_set(self):
-        return not self.is_extended() and 0 != (self._fctl & HeymacFrameFctl.P)
+        return self._is_fctl_bit_set(HeymacFrameFctl.P)
 
     @property
     def pid(self):
@@ -334,7 +337,7 @@ class HeymacFrame():
     def daddr(self, val):
         self._daddr = val
         self._fctl |= HeymacFrameFctl.D
-        if len(val) != 2:
+        if len(val) > 2:
             self._fctl |= HeymacFrameFctl.L
 
     @property
@@ -354,7 +357,7 @@ class HeymacFrame():
     def saddr(self, val):
         self._saddr = val
         self._fctl |= HeymacFrameFctl.S
-        if len(val) != 2:
+        if len(val) > 2:
             self._fctl |= HeymacFrameFctl.L
 
     @property
@@ -459,7 +462,7 @@ class HeymacFrame():
             err_msg = "Re-transmit address not of length equal to other(s)"
 
         # If Fctl.L is set, at least one address field must exist
-        if not err_msg and (fctl & HeymacFrameFctl.L
+        if not err_msg and (bool(fctl & HeymacFrameFctl.L)
                             and not self._daddr
                             and not self._saddr
                             and not self._taddr):
