@@ -266,15 +266,12 @@ class HeymacCsmaHsm(farc.Ahsm):
         # Process the frame for link data, etc.
         self._lnk_data.process_frame(frame)
 
-        # If the frame is a multi-hop Heymac command
+        # If the frame is a multi-hop Heymac command,
+        # update re-transmitter field and
+        # post the frame for transmission
         if frame.cmd and frame.is_mhop():
-            hops = frame.hops
-            if hops > 1:
-                # Update the hops and re-transmitter fields
-                frame.hops = hops - 1
-                frame.taddr = self._lnk_addr
-                # Post the frame to PHY for transmission
-                self._post_frm(frame)
+            frame.taddr = self._lnk_addr
+            self._post_frm(frame)
 
         # Allow the NET layer to process the frame
         if self._rx_clbk:

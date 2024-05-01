@@ -22,7 +22,6 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertIsNone(f.daddr)
         self.assertIsNone(f.saddr)
         self.assertIsNone(f.payld)
-        self.assertIsNone(f.hops)
         self.assertIsNone(f.taddr)
 
 
@@ -44,7 +43,6 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertIsNone(f.daddr)
         self.assertIsNone(f.saddr)
         self.assertIsNone(f.payld)
-        self.assertIsNone(f.hops)
         self.assertIsNone(f.taddr)
 
 
@@ -60,7 +58,6 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertIsNone(f.daddr)
         self.assertIsNone(f.saddr)
         self.assertIsInstance(f.payld, HeymacCmdTxt)
-        self.assertIsNone(f.hops)
         self.assertIsNone(f.taddr)
 
 
@@ -78,7 +75,6 @@ class TestHeyMacFrame(unittest.TestCase):
             f.saddr,
             b"\x01\x02\x03\x04\x05\x06\x07\x08")
         self.assertIsNone(f.payld)
-        self.assertIsNone(f.hops)
         self.assertIsNone(f.taddr)
 
 
@@ -96,7 +92,6 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(f.daddr, b"\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8")
         self.assertEqual(f.saddr, b"\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8")
         self.assertIsInstance(f.payld, HeymacCmdTxt)
-        self.assertIsNone(f.hops)
         self.assertIsNone(f.taddr)
 
 
@@ -114,7 +109,6 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(f.daddr, b"\xd1\xd2")
         self.assertEqual(f.saddr, b"\xc1\xc2")
         self.assertIsInstance(f.payld, HeymacCmdTxt)
-        self.assertIsNone(f.hops)
         self.assertIsNone(f.taddr)
 
 
@@ -132,7 +126,6 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(f.daddr, b"\xd1\xd2")
         self.assertIsNone(f.saddr)
         self.assertIsInstance(f.payld, HeymacCmdTxt)
-        self.assertIsNone(f.hops)
         self.assertIsNone(f.taddr)
 
 
@@ -150,7 +143,6 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(f.daddr, b"\xd1\xd2")
         self.assertEqual(f.saddr, b"\xc1\xc2")
         self.assertIsInstance(f.payld, HeymacCmdTxt)
-        self.assertIsNone(f.hops)
         self.assertIsNone(f.taddr)
 
 
@@ -181,7 +173,6 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(type(f.ies), bytes)
         self.assertIsNone(f.saddr)
         self.assertIsNone(f.payld)
-        self.assertIsNone(f.hops)
         self.assertIsNone(f.taddr)
 
 
@@ -201,18 +192,16 @@ class TestHeyMacFrame(unittest.TestCase):
         self.assertEqual(type(f.ies), bytes)
         self.assertIsNone(f.saddr)
         self.assertIsNone(f.payld)
-        self.assertIsNone(f.hops)
         self.assertIsNone(f.taddr)
 
 
     def test_available_payld_sz(self):
         f = HeymacFrame(HeymacFramePidType.CSMA,
                         saddr=b"\x10\x00",
-                        hops=4,
                         taddr=b"\x11\x00")
         avail1 = f.available_payld_sz()
         b = bytes(f)
-        self.assertEqual(b, b"\xE4\x06\x10\x00\x04\x11\x00")
+        self.assertEqual(b, b"\xE4\x06\x10\x00\x11\x00")
 
         # Add IEs to the frame
         ies=HeymacIeSequence(

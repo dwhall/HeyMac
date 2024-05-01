@@ -24,7 +24,7 @@ class HeymacFrameFctl(enum.IntFlag):
     D = 0b00010000     # DstAddr present
     I = 0b00001000     # IEs present
     S = 0b00000100     # SrcAddr present
-    M = 0b00000010     # Multihop fields present
+    M = 0b00000010     # Multihop re-transmitter field present
     P = 0b00000001     # Pending frame follows
 
 
@@ -46,19 +46,19 @@ class HeymacFramePidType(HeymacFramePid):
 
 class HeymacFrame():
     """Heymac frame definition
-    [PID,Fctl,NetId,DstAddr,IEs,SrcAddr,Payld,MIC,Hops,TxAddr]
+    [PID,Fctl,NetId,DstAddr,IEs,SrcAddr,Payld,MIC,TxAddr]
 
     PID := Protocol ID
 
     =========   ======================================
     Bitfield    Description
     =========   ======================================
-    1110 ....   PID ident
-    .... XXXX   PID type
+    111x ....   PID ident
+    .... xxxx   PID type
     ---------   --------------------------------------
-    1110 00vv   Heymac TDMA, (vv)ersion
-    1110 01vv   Heymac CSMA, (vv)ersion
-    1110 1xxx   Heymac (RFU: Flood, Extended, etc.)
+    1110 0vvv   Heymac TDMA, (vvv)ersion
+    1110 1vvv   Heymac CSMA, (vvv)ersion
+    1111 xxxx   Heymac (RFU: Flood, Extended, etc.)
     =========   ======================================
 
     Fctl := Frame Control
@@ -72,7 +72,7 @@ class HeymacFrame():
     00010000    D: DstAddr present
     00001000    I: IEs present
     00000100    S: SrcAddr present
-    00000010    M: Multihop fields present
+    00000010    M: Multihop field present
     00000001    P: Pending frame follows
     =========   ======================================
 
@@ -104,7 +104,7 @@ class HeymacFrame():
     MIN_LEN = 2         # Minimum frame length
 
     FIELD_NAMES = (
-        "netid", "daddr", "ies", "saddr", "payld", "mic", "hops", "taddr")
+        "netid", "daddr", "ies", "saddr", "payld", "mic", "taddr")
 
     def __init__(self, pid_type, **kwargs):
         """Creates a HeymacFrame starting with the given PID and Fctl."""
@@ -119,7 +119,6 @@ class HeymacFrame():
         self._saddr = None
         self._payld = None
         self._mic = None
-        self._hops = None
         self._taddr = None
 
         for k, v in kwargs.items():
@@ -161,7 +160,6 @@ class HeymacFrame():
                 frame.extend(b)
             # TODO: add MICs
             if self.is_mhop():
-                frame.append(self._hops)
                 frame.extend(self._taddr)
 
         if len(frame) > HeymacFrame.MAX_LEN:
@@ -222,7 +220,7 @@ class HeymacFrame():
             mic_sz = 0
 
             if fctl & HeymacFrameFctl.M:
-                mhop_sz = 1 + addr_sz
+                mhop_sz = addr_sz
             else:
                 mhop_sz = 0
 
@@ -235,8 +233,6 @@ class HeymacFrame():
             # TODO: parse MIC
 
             if fctl & HeymacFrameFctl.M:
-                frame.hops = frame_bytes[offset]
-                offset += 1
                 frame.taddr = frame_bytes[offset:offset + addr_sz]
                 offset += addr_sz
 
@@ -264,7 +260,7 @@ class HeymacFrame():
                 byte_cnt += addr_len
             # TODO: add MICs
             if self.is_mhop():
-                byte_cnt += addr_len + 1
+                byte_cnt += addr_len
         return 255 - byte_cnt
 
 
@@ -369,24 +365,13 @@ class HeymacFrame():
         self._payld = val
 
     @property
-    def hops(self):
-        return self._hops
-
-    @hops.setter
-    def hops(self, val):
-        self._hops = val
-        if self._taddr is not None:
-            self._fctl |= HeymacFrameFctl.M
-
-    @property
     def taddr(self):
         return self._taddr
 
     @taddr.setter
     def taddr(self, val):
         self._taddr = val
-        if self._hops is not None:
-            self._fctl |= HeymacFrameFctl.M
+        self._fctl |= HeymacFrameFctl.M
 
 
 # Private
@@ -428,7 +413,6 @@ class HeymacFrame():
                       (HeymacFrameFctl.D, "_daddr"),
                       (HeymacFrameFctl.I, "_ie_sqnc"),
                       (HeymacFrameFctl.S, "_saddr"),
-                      (HeymacFrameFctl.M, "_hops"),
                       (HeymacFrameFctl.M, "_taddr"))
 
         err_msg = None
@@ -468,11 +452,9 @@ class HeymacFrame():
                             and not self._taddr):
             err_msg = "Long address selected, but no address field is present"
 
-        # IF Fctl.M is set, both Hops and Re-transmit Address must exist
-        if not err_msg and (fctl & HeymacFrameFctl.M
-                            and (not self._hops or not self._taddr)):
-            err_msg = "Fctl.M is set, but Hops or re-transmit address " \
-                      "is missing"
+        # IF Fctl.M is set, the re-transmitter address must exist
+        if not err_msg and bool(fctl & HeymacFrameFctl.M) and not self._taddr:
+            err_msg = "Fctl.M is set, but re-transmit address is missing"
 
         # If Fctl.X is set, only the payload should exist
         if not err_msg and HeymacFrameFctl.X & fctl:
