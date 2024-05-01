@@ -5,7 +5,7 @@ This module contains the HamIdent class which has methods to generate
 a self-signed X.509 certificate and asymmetric keypairs which are
 used to create various kinds of personal and device credential files.
 The personal credential is tailored to amateur radio operators in that
-the operator's callsign is put in the X.509 certificate's pseudonum field.
+the operator's callsign is put in the X.509 certificate's pseudonym field.
 
 A personal credential must be created first because device credentials
 re-use the callsign information from the personal credential to create
@@ -84,7 +84,7 @@ class HamIdent():
         try:
             cert_fn = HamIdent._get_cert_fn()
             return os.path.exists(cert_fn)
-        except AssertionError:
+        except HamIdentError:
             return False
 
 
@@ -113,7 +113,8 @@ class HamIdent():
             for fn in files:
                 if fnmatch.fnmatch(fn, "*cert.pem"):
                     result.append(os.path.join(root, fn))
-        assert len(result) == 1, "Expected one cert file"
+        if len(result) != 1:
+            HamIdentError("Expected one cert file")
         return result[0]
 
 
@@ -147,10 +148,12 @@ class HamIdent():
         the public key found in the app's pre-made JSON file.
         The callsign_ssid may or may not have the SSID.
         """
-        assert nmbr_bits % 8 == 0
+        if nmbr_bits % 8 != 0:
+            HamIdentError("Invalid number of bits")
         pub_key = HamIdent._get_key_from_json(app_name)
         saddr = HamIdent._get_addr_from_key(pub_key, nmbr_bits // 8)
-        assert saddr[0] in (0xfc, 0xfd), "Credential not valid"
+        if saddr[0] not in (0xFC, 0xFD):
+            HamIdentError("Credential not valid")
         return saddr
 
     @staticmethod
@@ -366,11 +369,15 @@ class IdentModel():
     UI modules should use this class
     instead of interacting with HamIdent directly.
     """
+    def __init__(self, app_name, addr_bit_cnt):
+        self._app_name = app_name
+        self._addr_bit_cnt = addr_bit_cnt
+
 
     def device_cred_exists(self):
         try:
-            info = HamIdent.get_info_from_json_cred("HeyMac")
-        except AssertionError:
+            info = HamIdent.get_info_from_json_cred(self._app_name)
+        except HamIdentError:
             return False
         return bool(info)
 
@@ -382,11 +389,12 @@ class IdentModel():
     def get_ident(self):
         try:
             ident = HamIdent.get_info_from_cert()
-            ident["saddr"] = HamIdent.get_addr("HeyMac", 64)
+            ident["saddr"] = HamIdent.get_addr(self._app_name,
+                                               self._addr_bit_cnt)
         except:
             ident = {}
         try:
-            cred = HamIdent.get_info_from_json_cred("HeyMac")
+            cred = HamIdent.get_info_from_json_cred(self._app_name)
         except:
             cred = {}
         if '-' in cred.get("callsign", ""):
@@ -404,7 +412,7 @@ class IdentModel():
 
     def apply(self, info):
         if self.personal_cert_exists():
-            ident = HamIdent("HeyMac")
+            ident = HamIdent(self._app_name)
             ssid = info["ssid"]
             passphrase = info["dev_pass"].encode()
             ident.gen_device_credentials(ssid, passphrase)
@@ -415,9 +423,8 @@ class IdentModel():
 
 
     def fields_are_equal_to(self, d):
-        ident_fields = (
-            "cmn_name", "callsign", "email", "country", "province",
-            "postalcode", "ssid")
+        ident_fields = ("cmn_name", "callsign", "email", "country", "province",
+                        "postalcode", "ssid")
         ident = self.get_ident()
         for fld in ident_fields:
             if ident.get(fld) != d.get(fld):
