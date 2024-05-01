@@ -7,6 +7,9 @@ References
 Video:          https://www.youtube.com/watch?v=oItwDXraK1M
 Cheatsheet:     https://github.com/onemarcfifty/cheat-sheets/blob/main/networking/ipv6.md
 
+6lowpan examples of hdr compression:
+                https://www.youtube.com/watch?v=0JMVO3HN0xo
+
 Glossary
 --------
 
