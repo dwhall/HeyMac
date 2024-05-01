@@ -228,8 +228,7 @@ class HeymacCsmaHsm(farc.Ahsm):
         """State: _lurking:_beaconing:_linking
 
         Indicates at least one neighbor has this node in its neighbor's list.
-        This state starts a periodic timer used to perform updates
-        on the link data (such as prune the neighbor list).
+        This state starts a periodic timer used to update link data.
         """
         sig = event.signal
         if sig == farc.Signal.ENTRY:

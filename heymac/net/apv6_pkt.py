@@ -19,7 +19,7 @@ class APv6PacketError(Exception):
 class APv6Packet():
     """APv6 frame definition
 
-    [Hdr,Hops,SrcAddr,DstAddr,NxtHdr,Payld]
+    [Hdr, [Hops,] [SrcAddr,] [DstAddr,] [NxtHdr,] Payld]
 
     Hdr := Header
 
@@ -45,11 +45,11 @@ class APv6Packet():
 
     S:
         0: Src Addr is carried in-line
-        1: Src Addr is elided; computed from MAC layer
+        1: Src Addr is omitted; computed from MAC layer
 
     D:
         0: Dest Addr is carried in-line
-        1: Dest Addr is elided; computed from MAC layer
+        1: Dest Addr is omitted; computed from MAC layer
     """
 
     IPHC_PREFIX_MASK = 0b11100000   # Packet prefix mask
@@ -66,11 +66,11 @@ class APv6Packet():
 
     IPHC_SAM_MASK = 0b10        # Src addr omit
     IPHC_SAM_INLINE = 0b00      # full 128-bit address is in-line
-    IPHC_SAM_OMIT = 0b10        # address is elided
+    IPHC_SAM_OMIT = 0b10        # address is omitted
 
     IPHC_DAM_MASK = 0b1         # Dst addr omit
     IPHC_DAM_INLINE = 0b0       # full 128-bit address is in-line
-    IPHC_DAM_OMIT = 0b1         # address is elided
+    IPHC_DAM_OMIT = 0b1         # address is omitted
 
     # Default values for the header of a new packet
     DEFAULT_PREFIX = IPHC_PREFIX
