@@ -2,13 +2,12 @@ HeyMac
 ======
 
 HeyMac is a flexible frame definition and communication protocol
-designed to carry Data Link (Layer 2) and Network (Layer 3) frames
-between small payload radio modems such as the Semtech SX127x.
-HeyMac is distilled from and incompatible with IEEE 802.15.4.
+designed to carry Data Link (Layer 2) frames between small payload
+radio modems such as the Semtech LoRa modem.
+HeyMac is distilled from and not compatible with IEEE 802.15.4.
 
 HeyMac offers 16- and 64-bit addressing, multi-network and multi-hop capabilities.
 Extensions for cryptographic authentication and encryption are possible.
-
 
 This implementation of HeyMac is written in Python3 using the `farc <https://github.com/dwhall/farc>`_
 hierarchical state machine framework.
@@ -17,17 +16,15 @@ hierarchical state machine framework.
 HeyMac Frame
 ------------
 
-The HeyMac frame is very dynamic.  Only the first two fields, Protocol ID
+The HeyMac frame structure is very dynamic.  Only the first two fields, Protocol ID
 and Frame Control, are required.  The Frame Control field defines which
-of the other fields are present.  The length of a HeyMac frame
-MUST be conveyed by the physical layer.
+of the subsequent fields are present.  The length of a HeyMac frame
+MUST be conveyed by a lower layer.
 HeyMac uses LoRa's Explicit Header mode to convey the physical frame length.
 
-Frame authentication and encryption are each optional.
-If both signing and encryption take place, signing is done first
-and then the signature is encrypted.  The following diagram shows the order
+The following diagram shows the order
 of the HeyMac frame fields and which fields are covered by
-authentication and which fields are encrypted.
+authentication and which fields may be encrypted.
 The topmost field in the diagram is transmitted first.
 
 ::
@@ -43,16 +40,14 @@ The topmost field in the diagram is transmitted first.
     +----+----+----+----+----+----+----+----+ x + n +
     |  Hdr Information Elements  (variable) | t | t |
     +----+----+----+----+----+----+----+----+---+ i +
-    |  Bdy Information Elements  (variable) |   | c |
-    +----+----+----+----+----+----+----+----+ C + a +
-    |  Source Address    (0, 2 or 8 octets) | r | t |
-    +----+----+----+----+----+----+----+----+ y + e +
-    |  Payload                   (variable) | p | d |
-    +----+----+----+----+----+----+----+----+ t +---+
-    |  Msg Integrity Code   (0 or N octets) |   |
+    |  Bdy Information Elements  (variable) | E | c |
+    +----+----+----+----+----+----+----+----+ n + a +
+    |  Source Address    (0, 2 or 8 octets) | c | t |
+    +----+----+----+----+----+----+----+----+ r + e +
+    |  Payload                   (variable) | y |   |
+    +----+----+----+----+----+----+----+----+ p +---+
+    |  Msg Integrity Code   (0 or N octets) | t |
     +----+----+----+----+----+----+----+----+---+
-    |  Hops                  (0 or 1 octet) |
-    +----+----+----+----+----+----+----+----+
     |  Transmitter Addr  (0, 2 or 8 octets) |
     +----+----+----+----+----+----+----+----+
 
@@ -100,15 +95,24 @@ Furthermore, the Pending flag is an indication of more frames to follow.
     +---+---+---+---+---+---+---+---+
     | X | L | N | D | I | S | M | P |
     +---+---+---+---+---+---+---+---+
+    | 0 | L | N | D | I | S | M | P |
+    +---+---+---+---+---+---+---+---+
+    | 1 |   < Extended Frame ID >   |
+    +---+---+---+---+---+---+---+---+
+    | 1 | 0 | <Reserved for HeyMac> |
+    +---+---+---+---+---+---+---+---+
+    | 1 | 1 |  <User defined IDs>   |
+    +---+---+---+---+---+---+---+---+
 
 **X: Extended Frame**
-    If the X bit is set, the remaining bits in the Fctl field no longer hold
-    the meaning given above.  Instead, the remaining seven bits become the Extended Frame Id.
-    Furthermore, the meaning of every octet following the Fctl field is determined by the Extended Frame Id.
+    If the X bit is set, the remaining bits in the Fctl field become the Extended Frame ID.
+    Furthermore, the meaning of every octet following the Fctl field is determined by the Extended Frame ID.
+    The lower 64 Extended Frame IDs are reserved for use by HeyMac.
+    The upper 64 Extended Frame IDs are available for user-defined purposes.
 
 **L: Long Addressing**
     If 1, every address field is 8 octets (64 bits)
-    in size, if present. This also applies to any address (such as a resender address)
+    in size, if present. This also applies to all addresses (Source, Dest and Transmitter)
     in an IE, unless explicitly defined by the IE to be a specific size.
     If 0, the addresses are 2 octets (16 bits) in size, if present.
 
@@ -133,10 +137,9 @@ Furthermore, the Pending flag is an indication of more frames to follow.
     If the Source Address is not present and there is no source information
     in the NET layer, the Source Address is assumed to be the Root address (0x0000).
 
-**M: Multihop fields present**
-    If 1, the Hops and TxAddr fields are present in the footer.
-    The Hops field is one octet that gives the remaining number of hops this frame
-    may be retransmitted.  The TxAddr field is the address of the
+**M: Multihop field present**
+    If 1, the TxAddr field is present in the footer.
+    The TxAddr field is the address of the
     node that is retransmitting this frame.
 
 **P: Pending frame follows**
@@ -151,7 +154,7 @@ Extended Frame Type
 ~~~~~~~~~~~~~~~~~~~
 
 When the PID field specifies HeyMac and the Fctl's X bit is set (1b1),
-the remaining bits in Fctl specify the Extended Frame Id
+the remaining bits in Fctl specify the Extended Frame ID
 and the remaining bits in the frame are specific to the Etended Frame type.
 
 Extended Frame structure:
@@ -162,7 +165,7 @@ Extended Frame structure:
     +----+----+----+----+----+----+----+----+
     |  Protocol ID, Version       (1 octet) |
     +----+----+----+----+----+----+----+----+
-    | X  |    Extended Frame Id   (1 octet) |
+    | X  |    Extended Frame ID   (1 octet) |
     +----+----+----+----+----+----+----+----+
     |  Extension-specific data   (variable) |
     +----+----+----+----+----+----+----+----+
@@ -269,36 +272,35 @@ within the Physical layer's payload.
 HeyMac Frame Security
 ---------------------
 
-HeyMac offers data confidentiality and data authenticity security services.
+HeyMac offers data confidentiality and data authenticity services.
 Encryption and authentication may be applied independently to a HeyMac frame.
-However, an intermediate node may disturb an encrypted frame
-if it is not also authenticated.
-If both encryption and authentication are enabled, encryption is performed first
-and authentication is performed afterward.
-Authentication is performed starting at the PID field
-and continuing to the end of the payload (which may be encrypted).
-The Message Integrity Code (MIC) is appended immediately after the payload.
-The size of the MIC is determined by the IE which specifies the authentication algorithm.
+Frame authentication and encryption are each optional; however, if encryption
+is performed, authentication is recommended.
+If both authentication and encryption take place, authentication is done first
+and then the MIC is encrypted.
+
+Authentication is performed starting at the beginning of the frame, the PID field,
+and continuing to the end of the payload.  The authentication process results in
+the Message Integrity Code (MIC).  The MIC is appended immediately after the payload.
+The size of the MIC is determined by the the authentication algorithm which is
+specified in a Body Information Element.
 
 HeyMac Encryption
 ~~~~~~~~~~~~~~~~~
 
 A Header Information Element indicates encryption is enabled for a frame.
 The IE also gives the encryption method details.
-When encryption is enabled, the Body IEs, Source Address and Payload fields
-are encrypted.  If Authentication is enabled, the MIC is encrypted as well.
-The Header IEs are not encrypted.
+When encryption is enabled, the Body IEs, Source Address, Payload fields
+and MIC (if present) are encrypted.  The Header IEs are not encrypted.
 
 HeyMac Authentication
 ~~~~~~~~~~~~~~~~~~~~~
 
-An entry in the Header Information Elements indicates authentication is enabled
+An entry in the Body Information Elements indicates authentication is enabled
 for a frame.  The IE also gives the authentication method details.
 
 When authentication is enabled, the authentication is calculated over every
-octet in the frame.
-How to handle authentication when a resender modifies the Resender Address IE
-is TBD.
+octet in the header and payload.
 
 Performing authentication generates a Message Integrity Code (MIC)
 that must be appended to the frame (and fit within the physical payload).
@@ -312,12 +314,11 @@ of consecutive frames (not specified by HeyMac).
 Multihop Messages
 ~~~~~~~~~~~~~~~~~
 
-The Fctl M bit indicates that the frame contains two fields in the frame footer,
-Hops and TxAddr.  The Hops field is one octet that gives the remaining number
-of hops this frame may be retransmitted.  The TxAddr field is the address of the
-node that is retransmitting this frame.
+The Fctl M bit indicates that the frame is intended for multi-hop transmission
+and shall contain a re-transmitter address field, TxAddr, in the footer.
+The TxAddr field is the address of the node that is retransmitting this frame.
 
-Since a HeyMac frame may be encrypted and sent via a multi-hop route,
+Since a HeyMac frame may be encrypted and travel via a multi-hop route,
 the Destination Address is not encrypted and the re-transmitting node
 must overwrite the TxAddr with its own address in order for there to be
-enough information for multihop routing.
+enough information for the next node(s) to perform routing.
